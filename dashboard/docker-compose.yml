@@ -3,6 +3,10 @@ services:
     build: .
     container_name: neurovoice-dashboard
     restart: unless-stopped
+    # Sicherheitsnetz fuer WhisperX (large-v3): isolierter Testlauf mit 5g-Limit lief
+    # erfolgreich durch, siehe docs/backlog.md Chunk 5. Verhindert, dass ein Ladevorgang
+    # andere Dienste auf dem 10GB-Server unter Druck setzt (RESSOURCEN.md im homeserver-Repo).
+    mem_limit: 5g
     environment:
       NEUROVOICE_DATA_DIR: /data
     ports:
@@ -11,3 +15,8 @@ services:
     volumes:
       # Read-only: das Dashboard liest nur, es schreibt/loescht keine Rohdaten.
       - /home/maximilian/neurovoice-data/raw:/data:ro
+      # Modell-Cache persistent, damit large-v3 (~3GB) nicht bei jedem Rebuild neu geladen wird.
+      - whisperx-models:/root/.cache
+
+volumes:
+  whisperx-models:

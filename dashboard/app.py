@@ -88,3 +88,61 @@ st.caption(
     "siehe docs/literatur_review.md. Weitere Feature-Stufen (Spektral/Prosodie/Artikulation) "
     "folgen laut docs/backlog.md."
 )
+
+# --- Transkription + Sprechfluss (Chunk 3/4 aus docs/backlog.md) ---
+st.subheader("Transkription & Sprechfluss")
+
+
+@st.cache_data(show_spinner=False)
+def _run_transcription(path: str, mtime: float):
+    from core.transcription import transcribe
+
+    return transcribe(path)
+
+
+try:
+    import core.transcription  # noqa: F401  -- nur um ImportError frueh + eindeutig zu fangen
+
+    transcription_available = True
+except ImportError:
+    transcription_available = False
+
+if not transcription_available:
+    st.info(
+        "Transkription ist auf diesem Server noch nicht installiert (WhisperX/torch fehlen — "
+        "siehe docs/backlog.md, Chunk 5). Läuft aktuell nur in der lokalen Testumgebung."
+    )
+else:
+    if st.button("🎧 Transkription starten (dauert bei large-v3 spürbar lange, das ist normal)"):
+        with st.spinner("Transkribiere lokal … kann je nach Hardware 1-2 Minuten dauern"):
+            transcript = _run_transcription(recording.path, os.path.getmtime(recording.path))
+        st.session_state["transcript"] = transcript
+
+    transcript = st.session_state.get("transcript")
+    if transcript:
+        st.markdown(f"**Text:** {transcript['text']}")
+
+        from core.speech_metrics import compute_speech_metrics
+
+        metrics = compute_speech_metrics(transcript["words"], total_duration_s=stats["duration_s"])
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Wörter", metrics["n_words"])
+        m2.metric("Sprechrate (Netto)", f"{metrics['net_speech_rate_wpm']:.0f} Wörter/min" if metrics["net_speech_rate_wpm"] else "–")
+        m3.metric("Sprechrate (Artikulation)", f"{metrics['articulation_rate_wpm']:.0f} Wörter/min" if metrics["articulation_rate_wpm"] else "–")
+        m4.metric("Flüssigkeits-Score", f"{metrics['fluency_score']:.2f}" if metrics["fluency_score"] is not None else "–")
+
+        p1, p2, p3 = st.columns(3)
+        p1.metric("Pausen (≥250ms)", metrics["pause_count"])
+        p2.metric("Ø Pausendauer", f"{metrics['mean_pause_duration_s']:.2f} s" if metrics["mean_pause_duration_s"] else "–")
+        p3.metric("Max. Pausendauer", f"{metrics['max_pause_duration_s']:.2f} s" if metrics["max_pause_duration_s"] else "–")
+
+        with st.expander("Wort-Zeitstempel (Detailtabelle)"):
+            words_df = pd.DataFrame(transcript["words"])
+            st.dataframe(words_df, use_container_width=True, hide_index=True)
+
+        st.caption(
+            "Sprechrate/Pausen basieren auf Wort-Zeitstempeln aus der Transkription (WhisperX), "
+            "nicht auf reiner akustischer Stille-Erkennung — präziser, da bekannt ist, WAS "
+            "zwischen den Pausen gesprochen wurde. Details: docs/backlog.md, Stufe 3 / Chunk 3."
+        )

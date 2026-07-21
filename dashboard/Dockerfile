@@ -3,11 +3,15 @@ FROM python:3.11-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
         libsndfile1 \
+        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY requirements.txt .
+# CPU-only Torch zuerst installieren (Server hat kein GPU) - vermeidet den riesigen,
+# hier nutzlosen CUDA-Download, den ein normales "pip install whisperx" mitziehen wuerde.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
