@@ -24,6 +24,35 @@ jederzeit nachträglich, auch bei laufenden Containern, ohne Neustart/Datenverlu
 
 ---
 
+## INFRA-BEFUND-09 — WhisperX im Produktions-Dashboard: OOM-Kill beim ersten Lauf ✅ BEHOBEN
+
+**Symptom:** Erster Live-Test von WhisperX im echten `neurovoice-dashboard`-Container (nach
+Chunk-5-Deploy) brach ohne sichtbaren Fehler ab — die Python-Ausgabe endete nach dem VAD-Start-
+Log, keine finalen Ergebnisse. `docker inspect` zeigte `OOMKilled: true`.
+
+**Root Cause:** Der isolierte Vorab-Test (siehe Chunk-5-Performance-Check) lief in einem leeren
+Container NUR mit WhisperX. Im echten Dashboard-Container läuft WhisperX aber zusätzlich zur
+bereits aktiven Streamlit-App (Parselmouth/Matplotlib/Pandas-Grundlast) — beide teilen sich
+dasselbe Speicher-Cgroup-Limit. Das gesetzte `mem_limit: 5g` reichte dafür nicht, vermutlich
+verschärft durch gleichzeitiges Herunterladen mehrerer Modelle (VAD, wav2vec2-Alignment,
+large-v3) im allerersten Lauf (leerer Modell-Cache).
+
+**Fix:** `mem_limit` auf `7g` erhöht (`dashboard/docker-compose.yml`). Wiederholungstest danach
+erfolgreich: 27/27 Wörter korrekt, nur 576,9 MiB tatsächlich benutzt (weit unter dem Limit) —
+die Modelle waren durch den ersten (abgebrochenen) Versuch bereits teilweise im
+Cache-Volume vorhanden, kein erneuter Download nötig.
+
+**Nebenbeobachtung:** Laufzeit sank von 544,5s (isolierter Vortest, System noch mit 99% vollem
+Swap) auf 96,1s (nach der AnythingLLM/Ollama-Speicherbereinigung, RESSOURCEN.md) — starkes Indiz,
+dass Swap-Thrashing die eigentliche Vortest-Laufzeit deutlich verlangsamt hatte, nicht die reine
+Rechenleistung der N150-CPU.
+
+**Lehre**: Speicherlimits, die in einem isolierten/leeren Testcontainer erfolgreich sind, gelten
+NICHT automatisch für den produktiven Container mit bereits laufender Anwendung daneben — die
+Grundlast der Hauptanwendung muss mit eingerechnet werden.
+
+---
+
 ## BUG-01 — Dashboard: falsche Lautstärke-/Bittiefen-Werte ✅ BEHOBEN
 
 **Symptom:** Erste Version zeigte `bit_depth=64`, `peak_dbfs=180.67` (physikalisch unmöglich,

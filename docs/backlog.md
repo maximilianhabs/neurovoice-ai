@@ -37,28 +37,26 @@ Feature-Umfang.
 - [ ] Vokalraum-Plot (F1/F2) für Vokal-Task
 - [x] Speech-to-Text-Transkription, Chunk 1: `dashboard/core/transcription.py`, WhisperX
       lokal (`large-v3`, Genauigkeit vor Geschwindigkeit, Nutzer-Vorgabe 2026-07-21), liefert
-      Text + wortgenaue Zeitstempel (Alignment via wav2vec2). Nur gegen synthetische
-      macOS-`say`-TTS-Aufnahme des Nordwind-Referenztexts verifiziert (27/27 Wörter korrekt,
-      Zeitstempel plausibel) — noch NICHT gegen echte (ggf. dysarthrische) Sprache getestet,
-      das ist ein reiner Mechanik-Nachweis. `whisperx` noch nicht in `requirements.txt`
-      (bewusst, siehe Chunk 5 unten — erst nach Chunk 2-4 in Docker-Setup übernehmen).
+      Text + wortgenaue Zeitstempel (Alignment via wav2vec2). Mittlerweile auch gegen echte
+      Sprache verifiziert (Chunk 2) und live im Produktions-Dashboard deployed (Chunk 5).
   - [x] Chunk 2: Wort-Alignment gegen echte Aufnahme verifiziert (2026-07-21, Take 3 „selbst",
         realer Sprecher, kein TTS) — 27/27 Wörter korrekt, Konfidenz 0,74-0,99. Zeitstempel
         stichprobenartig gegen die Intensitätskurve geprüft (Parselmouth): Stille vor Sprechbeginn
         ~39 dB vs. aktive Sprache 65-75 dB vs. Stille danach ~48,6 dB — Übergänge passen sauber.
         Laufzeit ~83s für 12,2s Audio auf M1 (lokal getestet, nicht auf dem Beelink-Server —
         Performance-Risiko auf der schwächeren N150-CPU noch nicht geprüft, siehe Hinweis unten).
-  - [ ] Chunk 3: `core/speech_metrics.py` — Sprechgeschwindigkeit, Pausen-Statistik (granular
-        zwischen Wörtern, da Wort-Zeitstempel jetzt vorliegen), Flüssigkeits-Score aus Wortliste.
-        **= identisch mit Stufe 3 in Phase 2** (nicht doppelt bauen, ein Modul für beides)
-  - [ ] Chunk 4: Dashboard-Integration (`app.py`, neue Sektion nach Feature-Tabelle)
-  - [ ] Chunk 5: `requirements.txt`/`Dockerfile` für torch/whisperx anpassen, Modell-Cache als Volume einplanen (Beelink-Deploy).
-        **Vorab-Performance-Check einplanen**: Beelink hat Intel N150, kein GPU, 4 Kerne — auf
-        dieser Hardware ist bereits ein anderes Projekt (lokales LLM für DSA-Wissensdatenbank)
-        letztlich an unpraktikabler Geschwindigkeit gescheitert. `large-v3` auf M1 brauchte ~83s
-        für 12s Audio; auf dem deutlich schwächeren N150 könnte das ein Vielfaches sein. Für eine
-        Batch-Transkription (kein Live-Chat) ist das evtl. trotzdem akzeptabel, aber vor dem
-        vollen Chunk-5-Umbau einmal auf dem echten Server testen, nicht einfach annehmen.
+  - [x] Chunk 3: `core/speech_metrics.py` — Sprechgeschwindigkeit, Pausen-Statistik (granular
+        zwischen Wörtern), Flüssigkeits-Score aus Wortliste. Verifiziert gegen Take 3: 0 echte
+        Pausen (deckt sich mit dem früheren Intensitäts-Befund), Fluency-Score 1.0.
+        **= identisch mit Stufe 3 in Phase 2** (ein Modul für beides)
+  - [x] Chunk 4: Dashboard-Integration (`app.py`, neue Sektion "Transkription & Sprechfluss"
+        mit Trigger-Button, `st.cache_data`, gracefully degradierend ohne WhisperX)
+  - [x] Chunk 5: `requirements.txt`/`Dockerfile` für torch/whisperx angepasst, Modell-Cache als
+        Volume eingerichtet, auf dem Beelink-Server deployed und **live verifiziert** (2026-07-21):
+        27/27 Wörter korrekt im echten Produktions-Container, 96,1s Laufzeit, 576,9 MiB Speicher
+        (weit unter Limit). Unterwegs ein echter Bug gefunden+behoben: erster Live-Lauf endete in
+        einem OOM-Kill (5g-Limit reichte nicht, weil Streamlit-Grundlast mitzählt) — siehe
+        docs/bugtracker.md INFRA-BEFUND-09. Limit auf 7g erhöht, seitdem stabil.
 - [ ] Später: Verlaufsansicht über mehrere Aufnahmen derselben Person (longitudinal)
 
 **Deploy-Hinweis**: Code wird aktuell manuell per `scp` nach `~/neurovoice-dashboard/` auf den

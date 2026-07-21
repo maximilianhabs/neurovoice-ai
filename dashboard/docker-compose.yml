@@ -3,10 +3,12 @@ services:
     build: .
     container_name: neurovoice-dashboard
     restart: unless-stopped
-    # Sicherheitsnetz fuer WhisperX (large-v3): isolierter Testlauf mit 5g-Limit lief
-    # erfolgreich durch, siehe docs/backlog.md Chunk 5. Verhindert, dass ein Ladevorgang
-    # andere Dienste auf dem 10GB-Server unter Druck setzt (RESSOURCEN.md im homeserver-Repo).
-    mem_limit: 5g
+    # Sicherheitsnetz fuer WhisperX (large-v3). ACHTUNG: 5g reichte NICHT (OOMKilled beim
+    # ersten echten Produktionstest, 2026-07-21, siehe docs/bugtracker.md BUG-XX) -- der
+    # isolierte Testlauf ohne Streamlit-Grundlast hatte das Problem nicht gezeigt. 7g als
+    # naechster Versuch, mit Monitoring waehrend des Laufs. Verhindert trotzdem, dass ein
+    # Ladevorgang andere Dienste auf dem 10GB-Server unter Druck setzt (RESSOURCEN.md).
+    mem_limit: 7g
     environment:
       NEUROVOICE_DATA_DIR: /data
     ports:
