@@ -12,7 +12,7 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 
 - [x] Syncthing auf Beelink-Server installiert (Docker, Tailscale-only, Discovery/Relay deaktiviert) — siehe homeserver-Repo LOG.md 2026-07-21
 - [x] ffmpeg auf Server installiert
-- [ ] Syncthing auf iPhone einrichten, Pairing mit Server (Device-ID des Servers: `2NZZMYW-PJG4XLE-DILEQIU-65W4Z5T-DAY6YST-ZUSDIMN-6OMPFSR-T5WZBAV`)
+- [x] Syncthing auf iPhone eingerichtet (Möbius Sync), Pairing mit Server abgeschlossen und verifiziert (siehe homeserver-Repo LOG.md + services/syncthing/README.md für Troubleshooting)
 - [x] Ordnerstruktur angelegt: `~/neurovoice-data/raw-inbox` (Syncthing-Ziel) getrennt von `~/neurovoice-data/raw/<patient_id>/...` (final) — auf dem Server, nicht im Git-Repo
 - [x] Konvertierungsskript: `.m4a` (ALAC) → `.wav`, verlustfrei (Dekodierung, kein Re-Encoding) — `scripts/convert_and_verify.sh`, deployed auf Server
 - [x] Verifikationsskript: `ffprobe`-Check (Codec/Samplerate/Bittiefe) + Checksumme vor/nach Transfer — im selben Skript enthalten
