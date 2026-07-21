@@ -35,7 +35,17 @@ Feature-Umfang.
 - [x] Feature-Tabelle Stufe 1 (F0 Mittelwert/SD, Jitter, Shimmer, HNR) mit Warnhinweis bei Nicht-Vokal-Tasks
 - [ ] Formant-Tracks (F1-F3) als eigenes Overlay (bisher nur F0 im Spektrogramm)
 - [ ] Vokalraum-Plot (F1/F2) für Vokal-Task
-- [ ] Perspektivisch: Speech-to-Text-Transkription (Nutzerwunsch 2026-07-21, noch nicht im Detail geplant)
+- [x] Speech-to-Text-Transkription, Chunk 1: `dashboard/core/transcription.py`, WhisperX
+      lokal (`large-v3`, Genauigkeit vor Geschwindigkeit, Nutzer-Vorgabe 2026-07-21), liefert
+      Text + wortgenaue Zeitstempel (Alignment via wav2vec2). Nur gegen synthetische
+      macOS-`say`-TTS-Aufnahme des Nordwind-Referenztexts verifiziert (27/27 Wörter korrekt,
+      Zeitstempel plausibel) — noch NICHT gegen echte (ggf. dysarthrische) Sprache getestet,
+      das ist ein reiner Mechanik-Nachweis. `whisperx` noch nicht in `requirements.txt`
+      (bewusst, siehe Chunk 5 unten — erst nach Chunk 2-4 in Docker-Setup übernehmen).
+  - [ ] Chunk 2: Wort-Alignment-Genauigkeit gegen echte Aufnahme stichprobenartig verifizieren
+  - [ ] Chunk 3: `core/speech_metrics.py` — Sprechgeschwindigkeit, Pausen-Statistik, Flüssigkeits-Score aus Wortliste
+  - [ ] Chunk 4: Dashboard-Integration (`app.py`, neue Sektion nach Feature-Tabelle)
+  - [ ] Chunk 5: `requirements.txt`/`Dockerfile` für torch/whisperx anpassen, Modell-Cache als Volume einplanen (Beelink-Deploy)
 - [ ] Später: Verlaufsansicht über mehrere Aufnahmen derselben Person (longitudinal)
 
 **Deploy-Hinweis**: Code wird aktuell manuell per `scp` nach `~/neurovoice-dashboard/` auf den
