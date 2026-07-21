@@ -42,10 +42,21 @@ Feature-Umfang.
       Zeitstempel plausibel) — noch NICHT gegen echte (ggf. dysarthrische) Sprache getestet,
       das ist ein reiner Mechanik-Nachweis. `whisperx` noch nicht in `requirements.txt`
       (bewusst, siehe Chunk 5 unten — erst nach Chunk 2-4 in Docker-Setup übernehmen).
-  - [ ] Chunk 2: Wort-Alignment-Genauigkeit gegen echte Aufnahme stichprobenartig verifizieren
+  - [x] Chunk 2: Wort-Alignment gegen echte Aufnahme verifiziert (2026-07-21, Take 3 „selbst",
+        realer Sprecher, kein TTS) — 27/27 Wörter korrekt, Konfidenz 0,74-0,99. Zeitstempel
+        stichprobenartig gegen die Intensitätskurve geprüft (Parselmouth): Stille vor Sprechbeginn
+        ~39 dB vs. aktive Sprache 65-75 dB vs. Stille danach ~48,6 dB — Übergänge passen sauber.
+        Laufzeit ~83s für 12,2s Audio auf M1 (lokal getestet, nicht auf dem Beelink-Server —
+        Performance-Risiko auf der schwächeren N150-CPU noch nicht geprüft, siehe Hinweis unten).
   - [ ] Chunk 3: `core/speech_metrics.py` — Sprechgeschwindigkeit, Pausen-Statistik, Flüssigkeits-Score aus Wortliste
   - [ ] Chunk 4: Dashboard-Integration (`app.py`, neue Sektion nach Feature-Tabelle)
-  - [ ] Chunk 5: `requirements.txt`/`Dockerfile` für torch/whisperx anpassen, Modell-Cache als Volume einplanen (Beelink-Deploy)
+  - [ ] Chunk 5: `requirements.txt`/`Dockerfile` für torch/whisperx anpassen, Modell-Cache als Volume einplanen (Beelink-Deploy).
+        **Vorab-Performance-Check einplanen**: Beelink hat Intel N150, kein GPU, 4 Kerne — auf
+        dieser Hardware ist bereits ein anderes Projekt (lokales LLM für DSA-Wissensdatenbank)
+        letztlich an unpraktikabler Geschwindigkeit gescheitert. `large-v3` auf M1 brauchte ~83s
+        für 12s Audio; auf dem deutlich schwächeren N150 könnte das ein Vielfaches sein. Für eine
+        Batch-Transkription (kein Live-Chat) ist das evtl. trotzdem akzeptabel, aber vor dem
+        vollen Chunk-5-Umbau einmal auf dem echten Server testen, nicht einfach annehmen.
 - [ ] Später: Verlaufsansicht über mehrere Aufnahmen derselben Person (longitudinal)
 
 **Deploy-Hinweis**: Code wird aktuell manuell per `scp` nach `~/neurovoice-dashboard/` auf den
