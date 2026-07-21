@@ -141,3 +141,28 @@ def formant_features(path: str) -> dict:
         "f2_mean_hz": _mean_formant(2),
         "f3_mean_hz": _mean_formant(3),
     }
+
+
+def prosody_features(path: str) -> dict:
+    """Stufe-4-Features (siehe docs/backlog.md): Monoloudness via Parselmouth.
+
+    Monoloudness = SD(Intensitaet) ueber die gesamte Aeusserung -- klassischer PD-Marker
+    (reduzierte Variabilitaet = auffaellig), siehe docs/literatur_review.md. Monopitch
+    (SD(F0)) wird bewusst NICHT hier nochmal berechnet -- der Wert ist identisch mit
+    "F0 Standardabweichung" aus phonation_features() (Stufe 1) und wird von dort
+    wiederverwendet, um doppelte Berechnung/Anzeige desselben Werts zu vermeiden.
+    """
+    sound = parselmouth.Sound(path)
+
+    intensity = sound.to_intensity()
+    intensity_values = intensity.values[0]
+    # Praat markiert "keine definierte Intensitaet" (Stille) mit dem Sentinel-Wert -300 dB --
+    # das ist kein echter Messwert und muss raus, sonst wird die SD massiv durch den
+    # Stille/Sprache-Kontrast an den Raendern verzerrt statt die eigentliche Modulation
+    # innerhalb der Sprache abzubilden (siehe docs/bugtracker.md).
+    intensity_values = intensity_values[(~np.isnan(intensity_values)) & (intensity_values > -300)]
+    intensity_sd = float(np.std(intensity_values)) if len(intensity_values) else None
+
+    return {
+        "monoloudness_intensity_sd_db": intensity_sd,
+    }

@@ -52,8 +52,13 @@ def spectrogram_figure(sound: parselmouth.Sound):
 
 def intensity_figure(sound: parselmouth.Sound):
     intensity = sound.to_intensity()
+    times = intensity.xs()
+    values = intensity.values[0].copy()
+    # -300 dB ist Praats Sentinel fuer "keine definierte Intensitaet" (Stille), kein
+    # echter Messwert -- als Luecke (NaN) darstellen statt die y-Achse zu stauchen.
+    values[values <= -300] = np.nan
     fig, ax = plt.subplots(figsize=(10, 2))
-    ax.plot(intensity.xs(), intensity.values[0], color="#c05621")
+    ax.plot(times, values, color="#c05621")
     ax.set_xlabel("Zeit (s)")
     ax.set_ylabel("Intensität (dB)")
     ax.set_title("Lautstärkeverlauf")

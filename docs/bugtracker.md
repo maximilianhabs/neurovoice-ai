@@ -6,6 +6,28 @@ Format: Status, Root Cause, Fix/Empfehlung, Datum.
 
 ---
 
+## BUG-11 — Monoloudness/Lautstärkekurve durch Praat-Sentinel-Wert (-300 dB) verzerrt ✅ BEHOBEN
+
+**Symptom:** Erster Monoloudness-Wert (Stufe 4, Intensitäts-SD) für Take 3 war **26,18 dB** —
+unplausibel hoch für eine reine Sprachmodulations-Kennzahl.
+
+**Root Cause:** Praat markiert Zeitpunkte ohne definierte Intensität (Stille am Anfang/Ende
+der Aufnahme) mit dem Sentinel-Wert **-300 dB**, kein echter Messwert. `~np.isnan()` filtert
+das nicht raus (es ist kein NaN, sondern eine gültige aber bedeutungslose Zahl) — dieselbe
+Fehlerklasse wie beim HNR-Sentinel (-200), der in `phonation_features()` bereits korrekt
+behandelt wird, hier aber übersehen wurde. Dieselbe Verzerrung steckte auch unbemerkt im
+Lautstärke-Diagramm (`plots.py`, `intensity_figure()`) — die Kurve wäre durch die -300dB-Spitzen
+an den Rändern gestaucht dargestellt worden.
+
+**Fix:** Beide Stellen filtern jetzt `values > -300` zusätzlich zu NaN. Ergebnis nach Fix:
+12,75 dB (Take 3) — durchgehend plausibel über alle drei Testaufnahmen (10,9-12,7 dB).
+
+**Lehre**: Bei jedem neuen Parselmouth-Kennwert prüfen, ob die zugrundeliegende
+Praat-Funktion einen Sentinel-/Platzhalterwert für "undefiniert" verwendet (bekannt: HNR=-200,
+Intensität=-300) — `NaN`-Filterung allein reicht nicht.
+
+---
+
 ## RANDNOTIZ-10 — Transkript-Cache-Dateien gehören `root` ⚠️ OFFEN (kosmetisch)
 
 **Symptom:** Neu angelegte `/derived/<patient_id>/*.transcript.json`-Dateien gehören auf dem

@@ -7,7 +7,7 @@ import pandas as pd
 import parselmouth
 import streamlit as st
 
-from core.audio import basic_stats, formant_features, list_patients, list_recordings, phonation_features
+from core.audio import basic_stats, formant_features, list_patients, list_recordings, phonation_features, prosody_features
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
@@ -120,6 +120,25 @@ st.caption(
     "folgen laut docs/backlog.md."
 )
 
+# --- Prosodie (Stufe 4 aus docs/backlog.md) ---
+st.subheader("Prosodie")
+
+prosody = prosody_features(recording.path)
+
+prosody_rows = [
+    ("Monopitch (F0-SD)", features["f0_sd_hz"], "Hz", "= F0-Standardabweichung oben — niedrige Werte können auf eine eintönige Sprechweise hindeuten"),
+    ("Monoloudness (Intensitäts-SD)", prosody["monoloudness_intensity_sd_db"], "dB", "Lautstärke-Variabilität — niedrige Werte können auf eine gleichbleibende, wenig modulierte Lautstärke hindeuten"),
+]
+prosody_df = pd.DataFrame(prosody_rows, columns=["Feature", "Wert", "Einheit", "Erklärung"])
+prosody_df["Wert"] = prosody_df["Wert"].apply(lambda v: f"{v:.2f}" if v is not None else "–")
+st.dataframe(prosody_df, use_container_width=True, hide_index=True)
+
+st.caption(
+    "Rhythmus (nPVI) erscheint weiter unten im Transkriptions-Bereich, da er die "
+    "Wort-Zeitstempel aus der Transkription braucht. Referenzwerte für Monopitch/Monoloudness "
+    "sind noch nicht hinterlegt (siehe docs/backlog.md, offene Frage zu Normwerten)."
+)
+
 # --- Transkription + Sprechfluss (Chunk 3/4 aus docs/backlog.md) ---
 st.subheader("Transkription & Sprechfluss")
 
@@ -209,10 +228,11 @@ else:
         m3.metric("Sprechrate (Artikulation)", f"{metrics['articulation_rate_wpm']:.0f} Wörter/min" if metrics["articulation_rate_wpm"] else "–")
         m4.metric("Flüssigkeits-Score", f"{metrics['fluency_score']:.2f}" if metrics["fluency_score"] is not None else "–")
 
-        p1, p2, p3 = st.columns(3)
+        p1, p2, p3, p4 = st.columns(4)
         p1.metric("Pausen (≥250ms)", metrics["pause_count"])
         p2.metric("Ø Pausendauer", f"{metrics['mean_pause_duration_s']:.2f} s" if metrics["mean_pause_duration_s"] else "–")
         p3.metric("Max. Pausendauer", f"{metrics['max_pause_duration_s']:.2f} s" if metrics["max_pause_duration_s"] else "–")
+        p4.metric("Rhythmus (nPVI)", f"{metrics['rhythm_npvi']:.1f}" if metrics["rhythm_npvi"] is not None else "–")
 
         with st.expander("Wort-Zeitstempel (Detailtabelle)"):
             words_df = pd.DataFrame(transcript["words"])
@@ -221,5 +241,9 @@ else:
         st.caption(
             "Sprechrate/Pausen basieren auf Wort-Zeitstempeln aus der Transkription (WhisperX), "
             "nicht auf reiner akustischer Stille-Erkennung — präziser, da bekannt ist, WAS "
-            "zwischen den Pausen gesprochen wurde. Details: docs/backlog.md, Stufe 3 / Chunk 3."
+            "zwischen den Pausen gesprochen wurde. Details: docs/backlog.md, Stufe 3 / Chunk 3. "
+            "Rhythmus (nPVI, Stufe 4): normalisierter Pairwise Variability Index über die "
+            "Wortdauern — hohe Werte = stark wechselnde Wortdauern (\"lebendiger\" Rhythmus), "
+            "niedrige Werte = gleichförmiger/eintöniger. Näherung auf Wortebene, da keine "
+            "Silbensegmentierung vorliegt."
         )

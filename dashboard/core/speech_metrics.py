@@ -41,6 +41,7 @@ def compute_speech_metrics(
             "max_pause_duration_s": None,
             "total_pause_time_s": 0.0,
             "fluency_score": None,
+            "rhythm_npvi": None,
         }
 
     speech_start = valid_words[0]["start"]
@@ -74,6 +75,18 @@ def compute_speech_metrics(
     # vs. klinisch-perzeptiver Eindruck").
     fluency_score = 1 - (total_pause_time_s / articulation_span_s) if articulation_span_s > 0 else None
 
+    # Rhythmus (nPVI, Stufe 4): normalisierter Pairwise Variability Index ueber die
+    # Wortdauern -- Standardmass fuer Sprechrhythmus-Variabilitaet aus der Prosodie-
+    # Literatur (urspruenglich fuer Vokal-/Silbendauern entwickelt, hier als Naeherung
+    # auf Wortebene, da wir keine Silbensegmentierung haben). Hohe Werte = stark
+    # wechselnde Wortdauern ("lebendiger" Rhythmus), niedrige Werte = gleichfoermig/eintoenig.
+    word_durations = [w["end"] - w["start"] for w in valid_words]
+    pvi_diffs = []
+    for d1, d2 in zip(word_durations, word_durations[1:]):
+        if (d1 + d2) > 0:
+            pvi_diffs.append(abs(d1 - d2) / ((d1 + d2) / 2))
+    rhythm_npvi = (100 * sum(pvi_diffs) / len(pvi_diffs)) if pvi_diffs else None
+
     return {
         "n_words": n_words,
         "net_speech_rate_wpm": net_speech_rate_wpm,
@@ -84,4 +97,5 @@ def compute_speech_metrics(
         "max_pause_duration_s": max_pause_duration_s,
         "total_pause_time_s": total_pause_time_s,
         "fluency_score": fluency_score,
+        "rhythm_npvi": rhythm_npvi,
     }
