@@ -1,0 +1,20 @@
+# Audiodaten nie committen (Rohaufnahmen, auch pseudonymisiert)
+raw-inbox/*
+!raw-inbox/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
+*.wav
+*.m4a
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editors
+.vscode/
+.idea/
