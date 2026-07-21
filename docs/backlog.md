@@ -48,7 +48,9 @@ Feature-Umfang.
         ~39 dB vs. aktive Sprache 65-75 dB vs. Stille danach ~48,6 dB — Übergänge passen sauber.
         Laufzeit ~83s für 12,2s Audio auf M1 (lokal getestet, nicht auf dem Beelink-Server —
         Performance-Risiko auf der schwächeren N150-CPU noch nicht geprüft, siehe Hinweis unten).
-  - [ ] Chunk 3: `core/speech_metrics.py` — Sprechgeschwindigkeit, Pausen-Statistik, Flüssigkeits-Score aus Wortliste
+  - [ ] Chunk 3: `core/speech_metrics.py` — Sprechgeschwindigkeit, Pausen-Statistik (granular
+        zwischen Wörtern, da Wort-Zeitstempel jetzt vorliegen), Flüssigkeits-Score aus Wortliste.
+        **= identisch mit Stufe 3 in Phase 2** (nicht doppelt bauen, ein Modul für beides)
   - [ ] Chunk 4: Dashboard-Integration (`app.py`, neue Sektion nach Feature-Tabelle)
   - [ ] Chunk 5: `requirements.txt`/`Dockerfile` für torch/whisperx anpassen, Modell-Cache als Volume einplanen (Beelink-Deploy).
         **Vorab-Performance-Check einplanen**: Beelink hat Intel N150, kein GPU, 4 Kerne — auf
@@ -64,36 +66,44 @@ Server kopiert (kein `git clone` dort) — bei Änderungen erneut kopieren + `do
 
 ## Phase 2 — Feature-Extraktion (nach stabiler Aufnahme-Pipeline)
 
-Tool-Basis: **Parselmouth** (Python-Wrapper um Praat, klinischer Goldstandard).
+Tool-Basis: **Parselmouth** (Phonation/Spektral/Prosodie) + **WhisperX** (Transkript +
+Wort-Zeitstempel, siehe Phase 2b Chunks). **Reorganisiert 2026-07-21**: Nutzerwunsch war,
+"so viele logopädische Parameter wie möglich" zu erfassen — Reihenfolge bleibt einfach→komplex,
+aber Stufe 3 nutzt jetzt bewusst die Wort-Zeitstempel aus der Transkription (Chunk 3) statt
+reiner akustischer Pausenerkennung, weil das präziser ist (siehe dort).
 
-### Stufe 1 — Phonation, gehaltener Vokal (am einfachsten, am besten etabliert)
-- [ ] F0 (Mittelwert, SD)
-- [ ] Jitter
-- [ ] Shimmer
-- [ ] HNR/NHR
-- [ ] Erste Referenzwerte/Normalisierung nach Geschlecht recherchieren & hinterlegen
+### Stufe 1 — Phonation/Stimmbandarbeit, gehaltener Vokal ✅ IM DASHBOARD UMGESETZT
+- [x] F0 (Mittelwert, SD)
+- [x] Jitter
+- [x] Shimmer
+- [x] HNR/NHR
+- [ ] Referenzwerte/Normalisierung nach Geschlecht (Saarbrücken Voice Database) noch nicht hinterlegt — Werte werden angezeigt, aber noch nicht eingeordnet ("normal" vs. "auffällig")
 
-### Stufe 2 — Spektralanalyse/Klangfarbe
-- [ ] Formanten F1-F3 (gehaltener Vokal zunächst, später Vokale in Fließsprache)
-- [ ] MFCCs
+### Stufe 2 — Spektralanalyse/Klangfarbe/Artikulationsort (Zunge, harter/weicher Gaumen)
+- [ ] Formanten F1-F3 (gehaltener Vokal zunächst, später Vokale in Fließsprache) — F1↔Zungenhöhe, F2↔Zungenposition vorne/hinten (siehe docs/literatur_review.md)
+- [ ] MFCCs (allgemeine Klangfarbe)
 - [ ] Vowel Space Area / Formant-Ratios (mit Vorsicht — Literatur uneinheitlich, siehe Review)
+- [ ] Ort-der-Artikulation-Differenzierung bei Konsonanten (velar/harter+weicher Gaumen vs. alveolar/Zungenspitze, spektrale Bursts — siehe Literatur-Review)
 
-### Stufe 3 — Zeitliche Struktur/Sprechfluss (Freisprache + Lesetext)
-- [ ] Sprechrate (Net Speech Rate)
-- [ ] Pausenerkennung + Pausenmuster (Anzahl, Dauer)
-- [ ] Diadochokinetische Rate (separater Task "pa-ta-ka" nötig — noch nicht in Aufnahme-Konzept enthalten)
+### Stufe 3 — Sprechrate/Pausen/Flüssigkeit **(= Speech-to-Text Chunk 3, siehe Phase 2b)**
+Nutzt die Wort-Zeitstempel aus der Transkription für granulare Pausenanalyse zwischen Wörtern,
+statt reiner akustischer Stille-Erkennung — präziser, weil man weiß, WAS zwischen den Pausen
+gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
+- [ ] Sprechrate (Wörter/Silben pro Sekunde, aus Wortliste ableitbar)
+- [ ] Pausenstatistik zwischen Wörtern (Anzahl, Dauer, Position) aus Wort-Zeitstempeln
+- [ ] Flüssigkeits-Score (z.B. Anteil ungewöhnlich langer Wortpausen)
+- [ ] Diadochokinetische Rate (separater Task "pa-ta-ka" nötig — noch nicht in Aufnahme-Konzept enthalten, offene Frage unten)
 
-### Stufe 4 — Prosodie
+### Stufe 4 — Prosodie/Sprechweise
 - [ ] Monopitch-Maß (SD F0 über Äußerung, Freisprache/Lesetext)
 - [ ] Monoloudness (SD Intensität)
 - [ ] Rhythmus/PVI
 
-### Stufe 5 — Artikulation (komplexer, ggf. spätere Iteration)
+### Stufe 5 — Artikulationssauberkeit (Plosive/Konsonanten)
 - [ ] **Verschlussdauer (Closure Duration) bei Plosiven statt VOT** — im Deutschen wird Fortis/Lenis
       (p/b, t/d, k/g) primär über Verschlussdauer signalisiert, nicht über Aspiration/VOT wie im
       Englischen (fortis-Verschluss ca. 4x länger als lenis). VOT bleibt ein Zusatzmaß, ist aber nicht
       das primäre deutsche Unterscheidungsmerkmal.
-- [ ] Ort-der-Artikulation-Differenzierung (velar vs. alveolar, spektrale Bursts)
 
 ### Stufe 6 — CPP als robusteres Alternativmaß zu Jitter/Shimmer bei Fließsprache
 - [ ] Cepstral Peak Prominence für Freisprache/Lesetext (da Jitter/Shimmer dort unzuverlässig sind)
