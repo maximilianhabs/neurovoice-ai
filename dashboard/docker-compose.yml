@@ -1,0 +1,13 @@
+services:
+  neurovoice-dashboard:
+    build: .
+    container_name: neurovoice-dashboard
+    restart: unless-stopped
+    environment:
+      NEUROVOICE_DATA_DIR: /data
+    ports:
+      # Nur ueber Tailscale erreichbar, wie alle anderen Dienste auf diesem Server.
+      - "100.67.129.76:8501:8501/tcp"
+    volumes:
+      # Read-only: das Dashboard liest nur, es schreibt/loescht keine Rohdaten.
+      - /home/maximilian/neurovoice-data/raw:/data:ro
