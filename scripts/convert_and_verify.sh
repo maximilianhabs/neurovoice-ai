@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Konvertiert alle .m4a (ALAC) aus raw-inbox/ verlustfrei zu WAV in data/raw/<patient_id>/
-# und verifiziert Codec/Samplerate/Bittiefe + Checksumme.
+# Konvertiert alle .m4a (ALAC) aus dem Syncthing-Inbox-Ordner verlustfrei zu WAV
+# nach data/raw/<patient_id>/ und verifiziert Codec/Samplerate/Bittiefe + Checksumme.
+#
+# Laeuft auf dem Homeserver gegen ~/neurovoice-data (Syncthing-Zielordner),
+# ueberschreibbar via Umgebungsvariablen NEUROVOICE_INBOX / NEUROVOICE_DATA.
 #
 # Erwartetes Voice-Memo-Titelschema (vor der Aufnahme im iPhone so benennen):
 #   <patient_id>_task-<typ>_take<n>
@@ -12,9 +15,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INBOX="$SCRIPT_DIR/../raw-inbox"
-OUTBASE="$SCRIPT_DIR/../data/raw"
+INBOX="${NEUROVOICE_INBOX:-$HOME/neurovoice-data/raw-inbox}"
+OUTBASE="${NEUROVOICE_DATA:-$HOME/neurovoice-data/raw}"
+
+sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
 
 shopt -s nullglob
 for f in "$INBOX"/*.m4a; do
@@ -32,7 +42,7 @@ for f in "$INBOX"/*.m4a; do
   timestamp=$(date -r "$f" +%Y-%m-%d_%H%M)
   out="$outdir/${timestamp}_${base#*_}.wav"
 
-  src_hash=$(shasum -a 256 "$f" | awk '{print $1}')
+  src_hash=$(sha256 "$f")
 
   ffmpeg -y -loglevel error -i "$f" -c:a pcm_s24le "$out"
 
