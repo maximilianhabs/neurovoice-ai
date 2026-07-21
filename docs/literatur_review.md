@@ -62,6 +62,21 @@ Stand: 2026-07-21
 3. **Automatisierte Metriken korrelieren nicht immer mit dem, was Kliniker*innen perzeptiv hören** — Diskrepanz zwischen "objektiver Zahl" und wahrgenommener Stimmqualität ist in der Literatur dokumentiert, sollte im Tool nicht verschwiegen werden (z.B. durch Konfidenz-/Warnhinweise statt reiner Zahlenausgabe).
 4. **Geschlechts-/Alters-Normalisierung ist Pflicht**, sonst sind longitudinale Trends nicht von Populationsunterschieden zu trennen.
 
+## Sprachspezifik: Deutsch (Muttersprache des Projekts)
+
+- **Fortis/Lenis-Kontrast bei Plosiven (p/b, t/d, k/g)**: Im Deutschen primär über
+  **Verschlussdauer** signalisiert (Fortis ca. 4x länger als Lenis), nicht über Aspiration/VOT
+  wie im Englischen — beide Typen sind im Deutschen weitgehend unaspiriert. Zusätzlich F0-Effekte
+  am Vokaleinsatz nach dem Plosiv. Konsequenz: VOT als alleiniges Artikulations-Feature (Stufe 5)
+  ist für Deutsch nicht das primäre Maß — Verschlussdauer muss ergänzt/priorisiert werden.
+- **Saarbrücken Voice Database (SVD)**: 2225 deutsche Sprecher:innen (869 gesund, 1356 mit 71
+  Pathologien), gehaltene Vokale /a/, /i/, /u/ in vier Tonlagen (normal/hoch/tief/steigend-fallend).
+  Größte frei verfügbare deutsche Normwert-Basis für Phonation-Features (F0, Jitter, Shimmer, HNR) —
+  sinnvoll als Referenzpunkt statt eigene Normwerte von Grund auf zu erheben.
+- **"Nordwind und Sonne"**: IPA-Standardreferenztext, in nahezu jeder Sprache in einer
+  Standardversion vorhanden, phonetisch repräsentativ — gewählt als Lesetext für den
+  "Lesetext"-Task-Typ (siehe docs/lesetext_nordwind_sonne.md).
+
 ## Quellen (Auswahl)
 
 - [Analysis of Voice, Speech, and Language Biomarkers of Parkinson's Disease Collected in a Mixed Reality Setting](https://www.mdpi.com/1424-8220/25/8/2405)
@@ -85,3 +100,6 @@ Stand: 2026-07-21
 - [openSMILE — The Munich Versatile and Fast Open-Source Audio Feature Extractor](https://www.researchgate.net/publication/224929655_openSMILE_--_The_Munich_Versatile_and_Fast_Open-Source_Audio_Feature_Extractor)
 - [GitHub: hyyoka/Acoustic-Features (parselmouth, librosa, disvoice)](https://github.com/hyyoka/Acoustic-Features)
 - [Comparative Evaluation of Acoustic Feature Extraction Tools for Clinical Speech (Interspeech 2025)](https://www.isca-archive.org/interspeech_2025/choi25h_interspeech.pdf)
+- [Obstruent voicing effects on F0, but without voicing: Phonetic correlates of Swiss German lenis, fortis, and aspirated stops](https://www.sciencedirect.com/science/article/abs/pii/S0095447017302681)
+- [Nordwind und Sonne — IMS Uni Stuttgart (Standardtext Deutsch)](https://www2.ims.uni-stuttgart.de/sgtutorial/nordwind.html)
+- [Nordwind und Sonne in 76 Mundarten — Phonogrammarchiv Uni Zürich](https://www.phonogrammarchiv.uzh.ch/de/Nordwind-und-Sonne.html)

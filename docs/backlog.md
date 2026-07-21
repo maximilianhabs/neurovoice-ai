@@ -16,7 +16,7 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 - [ ] Konvertierungsskript: `.m4a` (ALAC) → `.wav`, verlustfrei (Container-Wechsel, kein Re-Encoding)
 - [ ] Verifikationsskript: `ffprobe`-Check (Codec/Samplerate/Bittiefe) + Checksumme vor/nach Transfer
 - [ ] Testdatenbank: 5-6 Aufnahmen (Freisprache, Vokal, Lesetext), sauber benannt & verifiziert
-- [ ] Lesetext für "Lesetext"-Task-Typ auswählen/festlegen (phonetisch ausgewogen?)
+- [x] Lesetext festgelegt: "Nordwind und Sonne" (Standard-IPA-Referenztext, siehe docs/lesetext_nordwind_sonne.md)
 
 ## Phase 2 — Feature-Extraktion (nach stabiler Aufnahme-Pipeline)
 
@@ -45,7 +45,10 @@ Tool-Basis: **Parselmouth** (Python-Wrapper um Praat, klinischer Goldstandard).
 - [ ] Rhythmus/PVI
 
 ### Stufe 5 — Artikulation (komplexer, ggf. spätere Iteration)
-- [ ] Voice Onset Time (VOT) bei Plosiven
+- [ ] **Verschlussdauer (Closure Duration) bei Plosiven statt VOT** — im Deutschen wird Fortis/Lenis
+      (p/b, t/d, k/g) primär über Verschlussdauer signalisiert, nicht über Aspiration/VOT wie im
+      Englischen (fortis-Verschluss ca. 4x länger als lenis). VOT bleibt ein Zusatzmaß, ist aber nicht
+      das primäre deutsche Unterscheidungsmerkmal.
 - [ ] Ort-der-Artikulation-Differenzierung (velar vs. alveolar, spektrale Bursts)
 
 ### Stufe 6 — CPP als robusteres Alternativmaß zu Jitter/Shimmer bei Fließsprache
@@ -60,6 +63,17 @@ Tool-Basis: **Parselmouth** (Python-Wrapper um Praat, klinischer Goldstandard).
 - Web-App/UI für geführte Angehörigen-Nutzung
 - Externes USB-Mikro als Aufnahmequelle
 - Echte Pseudonymisierungs-/Zuordnungstabelle (sobald echte Testpersonen dazukommen)
+
+## Sprache: Deutsch (Muttersprache) — Konsequenzen für die Pipeline
+
+- **Lesetext**: "Nordwind und Sonne" (docs/lesetext_nordwind_sonne.md) — Standard-IPA-Referenztext,
+  phonetisch repräsentativ, ermöglicht später auch Vergleich mit anderssprachigen Aufnahmen/Literatur,
+  da der Text in nahezu jeder Sprache in einer Standardversion existiert.
+- **Referenz-/Normwerte**: Saarbrücken Voice Database (SVD) — 2225 deutsche Sprecher:innen (869 gesund,
+  1356 pathologisch), gehaltene Vokale /a/,/i/,/u/ in normal/hoch/tief/steigend-fallend. Als deutsche
+  Normwert-Basis für Stufe-1-Phonation-Features nutzbar, statt eigene Normwerte mühsam zu erheben.
+- **Fortis/Lenis im Deutschen ≠ Englisch**: siehe Stufe 5 oben — Verschlussdauer statt VOT/Aspiration
+  ist das primäre Unterscheidungsmerkmal deutscher Plosive.
 
 ## Offene fundamentale Fragen (aus Konzeptphase, zu klären bevor Phase 2 beginnt)
 
