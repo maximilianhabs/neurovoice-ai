@@ -4,19 +4,23 @@ services:
     container_name: neurovoice-dashboard
     restart: unless-stopped
     # Sicherheitsnetz fuer WhisperX (large-v3). ACHTUNG: 5g reichte NICHT (OOMKilled beim
-    # ersten echten Produktionstest, 2026-07-21, siehe docs/bugtracker.md BUG-XX) -- der
-    # isolierte Testlauf ohne Streamlit-Grundlast hatte das Problem nicht gezeigt. 7g als
-    # naechster Versuch, mit Monitoring waehrend des Laufs. Verhindert trotzdem, dass ein
-    # Ladevorgang andere Dienste auf dem 10GB-Server unter Druck setzt (RESSOURCEN.md).
+    # ersten echten Produktionstest, 2026-07-21, siehe docs/bugtracker.md INFRA-BEFUND-09) --
+    # der isolierte Testlauf ohne Streamlit-Grundlast hatte das Problem nicht gezeigt. 7g
+    # verhindert trotzdem, dass ein Ladevorgang andere Dienste auf dem 10GB-Server unter
+    # Druck setzt (RESSOURCEN.md).
     mem_limit: 7g
     environment:
       NEUROVOICE_DATA_DIR: /data
+      NEUROVOICE_DERIVED_DIR: /derived
     ports:
       # Nur ueber Tailscale erreichbar, wie alle anderen Dienste auf diesem Server.
       - "100.67.129.76:8501:8501/tcp"
     volumes:
       # Read-only: das Dashboard liest nur, es schreibt/loescht keine Rohdaten.
       - /home/maximilian/neurovoice-data/raw:/data:ro
+      # Read-write, aber getrennt von den Rohdaten: hier landen abgeleitete Ergebnisse
+      # (Transkripte als Cache), damit z.B. WhisperX nicht bei jedem Aufruf neu rechnen muss.
+      - /home/maximilian/neurovoice-data/derived:/derived
       # Modell-Cache persistent, damit large-v3 (~3GB) nicht bei jedem Rebuild neu geladen wird.
       - whisperx-models:/root/.cache
 

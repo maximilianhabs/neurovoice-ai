@@ -1,15 +1,40 @@
 """NeuroVoice AI — Analyse-Dashboard. Lokale Streamlit-App, siehe docs/dashboard_konzept.md."""
 
+import json
 import os
 
 import pandas as pd
 import parselmouth
 import streamlit as st
 
-from core.audio import basic_stats, list_patients, list_recordings, phonation_features
+from core.audio import basic_stats, formant_features, list_patients, list_recordings, phonation_features
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
+# Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
+# Transkripte, damit sie NICHT bei jedem Aufruf neu berechnet werden muessen. Rohdaten
+# bleiben unangetastet, siehe README.md "Repo-Struktur" / Projektprinzip "Original nie ueberschreiben".
+DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
+
+
+def _transcript_cache_path(recording) -> str:
+    patient_dir = os.path.join(DERIVED_DIR, recording.patient_id)
+    os.makedirs(patient_dir, exist_ok=True)
+    base = os.path.splitext(recording.filename)[0]
+    return os.path.join(patient_dir, f"{base}.transcript.json")
+
+
+def _load_cached_transcript(recording) -> dict | None:
+    cache_path = _transcript_cache_path(recording)
+    if os.path.exists(cache_path):
+        with open(cache_path, encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+def _save_transcript_cache(recording, transcript: dict) -> None:
+    with open(_transcript_cache_path(recording), "w", encoding="utf-8") as f:
+        json.dump(transcript, f, ensure_ascii=False, indent=2)
 
 st.set_page_config(page_title="NeuroVoice AI — Analyse-Dashboard", layout="wide", page_icon="🎙️")
 st.title("🎙️ NeuroVoice AI — Analyse-Dashboard")
@@ -71,6 +96,7 @@ if recording.task != "vokal":
     )
 
 features = phonation_features(recording.path)
+formants = formant_features(recording.path)
 
 rows = [
     ("F0 Mittelwert", features["f0_mean_hz"], "Hz", "Mittlere Grundfrequenz (Tonhöhe)"),
@@ -78,6 +104,9 @@ rows = [
     ("Jitter (local)", features["jitter_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Grundfrequenz"),
     ("Shimmer (local)", features["shimmer_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Amplitude"),
     ("HNR (Mittelwert)", features["hnr_mean_db"], "dB", "Harmonics-to-Noise-Ratio (Stimmklangqualität)"),
+    ("F1 Mittelwert", formants["f1_mean_hz"], "Hz", "1. Formant — korreliert mit Zungenhöhe (offen/geschlossen)"),
+    ("F2 Mittelwert", formants["f2_mean_hz"], "Hz", "2. Formant — korreliert mit Zungenposition (vorne/hinten)"),
+    ("F3 Mittelwert", formants["f3_mean_hz"], "Hz", "3. Formant — Klangfarbe/Artikulationsschärfe"),
 ]
 df = pd.DataFrame(rows, columns=["Feature", "Wert", "Einheit", "Erklärung"])
 df["Wert"] = df["Wert"].apply(lambda v: f"{v:.2f}" if v is not None else "–")
@@ -85,20 +114,14 @@ st.dataframe(df, use_container_width=True, hide_index=True)
 
 st.caption(
     "Referenzwerte: Saarbrücken Voice Database (deutsch, 869 gesunde Sprecher:innen) — "
-    "siehe docs/literatur_review.md. Weitere Feature-Stufen (Spektral/Prosodie/Artikulation) "
+    "siehe docs/literatur_review.md. Formanten sind Mittelwerte über die gesamte Aufnahme, "
+    "noch keine Vokalraum-Fläche (dafür braucht es mehrere unterschiedliche Vokale in einer "
+    "Aufnahme, siehe docs/backlog.md). Weitere Feature-Stufen (Prosodie/Artikulationssauberkeit) "
     "folgen laut docs/backlog.md."
 )
 
 # --- Transkription + Sprechfluss (Chunk 3/4 aus docs/backlog.md) ---
 st.subheader("Transkription & Sprechfluss")
-
-
-@st.cache_data(show_spinner=False)
-def _run_transcription(path: str, mtime: float):
-    from core.transcription import transcribe
-
-    return transcribe(path)
-
 
 try:
     import core.transcription  # noqa: F401  -- nur um ImportError frueh + eindeutig zu fangen
@@ -113,12 +136,26 @@ if not transcription_available:
         "siehe docs/backlog.md, Chunk 5). Läuft aktuell nur in der lokalen Testumgebung."
     )
 else:
-    if st.button("🎧 Transkription starten (dauert bei large-v3 spürbar lange, das ist normal)"):
-        with st.spinner("Transkribiere lokal … kann je nach Hardware 1-2 Minuten dauern"):
-            transcript = _run_transcription(recording.path, os.path.getmtime(recording.path))
-        st.session_state["transcript"] = transcript
+    cached_transcript = _load_cached_transcript(recording)
 
-    transcript = st.session_state.get("transcript")
+    if cached_transcript is not None:
+        transcript = cached_transcript
+        st.caption("✅ Transkript aus dem Cache geladen (bereits einmal berechnet, kein erneutes Warten nötig).")
+        if st.button("🔁 Neu transkribieren (überschreibt den Cache)"):
+            from core.transcription import transcribe
+
+            with st.spinner("Transkribiere lokal … kann je nach Hardware 1-2 Minuten dauern"):
+                transcript = transcribe(recording.path)
+            _save_transcript_cache(recording, transcript)
+    else:
+        transcript = None
+        if st.button("🎧 Transkription starten (dauert bei large-v3 spürbar lange, das ist normal — läuft danach nur noch einmal pro Datei)"):
+            from core.transcription import transcribe
+
+            with st.spinner("Transkribiere lokal … kann je nach Hardware 1-2 Minuten dauern"):
+                transcript = transcribe(recording.path)
+            _save_transcript_cache(recording, transcript)
+
     if transcript:
         st.markdown(f"**Text:** {transcript['text']}")
 

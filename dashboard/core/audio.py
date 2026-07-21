@@ -116,3 +116,28 @@ def phonation_features(path: str) -> dict:
         "shimmer_local_pct": shimmer_local * 100 if shimmer_local is not None else None,
         "hnr_mean_db": hnr_mean,
     }
+
+
+def formant_features(path: str) -> dict:
+    """Stufe-2-Features (siehe docs/backlog.md): Formanten F1-F3 via Parselmouth.
+
+    F1 korreliert mit Zungenhoehe (offen/geschlossen), F2 mit Zungenposition
+    vorne/hinten -- siehe docs/literatur_review.md. Mittelwerte ueber die gesamte
+    Aufnahme, kein Versuch einer vollen Vokalraum-Flaeche (dafuer braeuchte man
+    mehrere unterschiedliche Vokale in einer Aufnahme, siehe Backlog-Hinweis).
+    """
+    sound = parselmouth.Sound(path)
+    formant = sound.to_formant_burg()
+
+    times = np.arange(formant.xmin, formant.xmax, 0.01)
+
+    def _mean_formant(n: int) -> float | None:
+        values = [formant.get_value_at_time(n, t) for t in times]
+        values = [v for v in values if v is not None and not np.isnan(v)]
+        return float(np.mean(values)) if values else None
+
+    return {
+        "f1_mean_hz": _mean_formant(1),
+        "f2_mean_hz": _mean_formant(2),
+        "f3_mean_hz": _mean_formant(3),
+    }

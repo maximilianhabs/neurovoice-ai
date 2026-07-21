@@ -33,8 +33,13 @@ Feature-Umfang.
 - [x] Spektrogramm-Ansicht (mit F0-Overlay)
 - [x] Intensitätskurve (Lautstärke über Zeit)
 - [x] Feature-Tabelle Stufe 1 (F0 Mittelwert/SD, Jitter, Shimmer, HNR) mit Warnhinweis bei Nicht-Vokal-Tasks
-- [ ] Formant-Tracks (F1-F3) als eigenes Overlay (bisher nur F0 im Spektrogramm)
-- [ ] Vokalraum-Plot (F1/F2) für Vokal-Task
+- [x] Formant-Tracks (F1-F3) als Overlay im Spektrogramm + Mittelwerte in der Feature-Tabelle
+      (Stufe 2 aus Phase 2), verifiziert an Take 3 (F1≈729Hz, F2≈1776Hz, F3≈2733Hz, plausibel)
+- [ ] Vokalraum-Plot (F1/F2) für Vokal-Task — braucht mehrere unterschiedliche Vokale in einer
+      Aufnahme, aktuelles Aufnahme-Konzept liefert nur einen gehaltenen Vokal pro Take
+- [x] Transkript-Caching: Ergebnis wird nach `/derived/<patient_id>/*.transcript.json`
+      geschrieben (getrennt vom read-only `/data`-Mount), läuft nur noch einmal pro Datei
+      statt bei jedem Dashboard-Aufruf neu — Button "Neu transkribieren" überschreibt bewusst
 - [x] Speech-to-Text-Transkription, Chunk 1: `dashboard/core/transcription.py`, WhisperX
       lokal (`large-v3`, Genauigkeit vor Geschwindigkeit, Nutzer-Vorgabe 2026-07-21), liefert
       Text + wortgenaue Zeitstempel (Alignment via wav2vec2). Mittlerweile auch gegen echte

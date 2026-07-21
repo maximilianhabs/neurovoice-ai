@@ -6,6 +6,21 @@ Format: Status, Root Cause, Fix/Empfehlung, Datum.
 
 ---
 
+## RANDNOTIZ-10 — Transkript-Cache-Dateien gehören `root` ⚠️ OFFEN (kosmetisch)
+
+**Symptom:** Neu angelegte `/derived/<patient_id>/*.transcript.json`-Dateien gehören auf dem
+Host `root:root`, nicht `maximilian:maximilian` — der Nutzer kann sie lesen, aber nicht ohne
+`sudo`/Hilfscontainer löschen.
+
+**Root Cause:** Der Dashboard-Container läuft ohne explizites `USER`, also als `root` — alles,
+was er neu anlegt, gehört root, egal welcher Host-User das Volume gemountet hat.
+
+**Empfehlung (nicht dringend)**: Falls das je störend wird, `USER`-Direktive mit passendem
+PUID/PGID im Dockerfile ergänzen (wie z.B. beim Syncthing-Setup mit `PUID=1000`/`PGID=1000`).
+Aktuell keine funktionale Einschränkung, nur beim manuellen Aufräumen etwas umständlicher.
+
+---
+
 ## PROZESS-NOTIZ-08 — Docker-Testcontainer ohne Namen sorgen für Verwirrung ✅ ERLEDIGT (Vorsatz)
 
 **Symptom:** Ein isolierter WhisperX-Testcontainer (`docker run --rm ...` ohne `--name`) bekam

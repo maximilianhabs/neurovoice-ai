@@ -34,6 +34,16 @@ def spectrogram_figure(sound: parselmouth.Sound):
     pitch_values = pitch.selected_array["frequency"]
     pitch_values[pitch_values == 0] = np.nan
     ax.plot(pitch.xs(), pitch_values, "o", markersize=2, color="#4fd1c5", label="F0")
+
+    # Formant-Tracks F1-F3 (Stufe 2, docs/backlog.md) -- F1 korreliert mit Zungenhoehe,
+    # F2 mit Zungenposition vorne/hinten, siehe docs/literatur_review.md.
+    formant = sound.to_formant_burg()
+    formant_times = np.arange(formant.xmin, formant.xmax, 0.01)
+    formant_colors = {1: "#68d391", 2: "#fbd38d", 3: "#fc8181"}
+    for n in (1, 2, 3):
+        values = np.array([formant.get_value_at_time(n, t) or np.nan for t in formant_times])
+        ax.plot(formant_times, values, ".", markersize=2, color=formant_colors[n], label=f"F{n}")
+
     ax.legend(loc="upper right")
 
     fig.tight_layout()
