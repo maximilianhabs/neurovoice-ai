@@ -83,7 +83,7 @@ reiner akustischer Pausenerkennung, weil das präziser ist (siehe dort).
 - [ ] Referenzwerte/Normalisierung nach Geschlecht (Saarbrücken Voice Database) noch nicht hinterlegt — Werte werden angezeigt, aber noch nicht eingeordnet ("normal" vs. "auffällig")
 
 ### Stufe 2 — Spektralanalyse/Klangfarbe/Artikulationsort (Zunge, harter/weicher Gaumen)
-- [ ] Formanten F1-F3 (gehaltener Vokal zunächst, später Vokale in Fließsprache) — F1↔Zungenhöhe, F2↔Zungenposition vorne/hinten (siehe docs/literatur_review.md)
+- [x] Formanten F1-F3 — im Dashboard umgesetzt (siehe Phase 2b oben), F1↔Zungenhöhe, F2↔Zungenposition vorne/hinten (siehe docs/literatur_review.md)
 - [ ] MFCCs (allgemeine Klangfarbe)
 - [ ] Vowel Space Area / Formant-Ratios (mit Vorsicht — Literatur uneinheitlich, siehe Review)
 - [ ] Ort-der-Artikulation-Differenzierung bei Konsonanten (velar/harter+weicher Gaumen vs. alveolar/Zungenspitze, spektrale Bursts — siehe Literatur-Review)
@@ -92,9 +92,9 @@ reiner akustischer Pausenerkennung, weil das präziser ist (siehe dort).
 Nutzt die Wort-Zeitstempel aus der Transkription für granulare Pausenanalyse zwischen Wörtern,
 statt reiner akustischer Stille-Erkennung — präziser, weil man weiß, WAS zwischen den Pausen
 gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
-- [ ] Sprechrate (Wörter/Silben pro Sekunde, aus Wortliste ableitbar)
-- [ ] Pausenstatistik zwischen Wörtern (Anzahl, Dauer, Position) aus Wort-Zeitstempeln
-- [ ] Flüssigkeits-Score (z.B. Anteil ungewöhnlich langer Wortpausen)
+- [x] Sprechrate (Wörter pro Minute, netto + artikulationsbezogen) — im Dashboard umgesetzt
+- [x] Pausenstatistik zwischen Wörtern (Anzahl, Ø/Max-Dauer) aus Wort-Zeitstempeln — im Dashboard umgesetzt
+- [x] Flüssigkeits-Score (Anteil der Sprechspanne ohne echte Pausen) — im Dashboard umgesetzt
 - [ ] Diadochokinetische Rate (separater Task "pa-ta-ka" nötig — noch nicht in Aufnahme-Konzept enthalten, offene Frage unten)
 
 ### Stufe 4 — Prosodie/Sprechweise
