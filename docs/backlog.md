@@ -16,8 +16,10 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 - [x] Ordnerstruktur angelegt: `~/neurovoice-data/raw-inbox` (Syncthing-Ziel) getrennt von `~/neurovoice-data/raw/<patient_id>/...` (final) — auf dem Server, nicht im Git-Repo
 - [x] Konvertierungsskript: `.m4a` (ALAC) → `.wav`, verlustfrei (Dekodierung, kein Re-Encoding) — `scripts/convert_and_verify.sh`, deployed auf Server
 - [x] Verifikationsskript: `ffprobe`-Check (Codec/Samplerate/Bittiefe) + Checksumme vor/nach Transfer — im selben Skript enthalten
-- [ ] Testdatenbank: 5-6 Aufnahmen (Freisprache, Vokal, Lesetext), sauber benannt & verifiziert
+- [x] Erste Testaufnahme komplett durch die Pipeline (Vokal-Task, später zu Lesetext korrigiert, da tatsächlicher Inhalt der Nordwind-Satz war — Namenskonvention beim Umbenennen in Voice Memos auf Leerzeichen statt Unterstriche achten)
+- [ ] Restliche Testdatenbank auffüllen (aktuell: 1 von 5-6 Aufnahmen)
 - [x] Lesetext festgelegt: "Nordwind und Sonne" (Standard-IPA-Referenztext, siehe docs/lesetext_nordwind_sonne.md)
+- [x] iPhone-Einstellung "Voice Memos → Audioqualität" auf "Verlustfrei" umgestellt (erste Testdatei war noch AAC/komprimiert, siehe homeserver-Repo LOG.md)
 
 ## Phase 2b — Analyse-Dashboard (parallel zu Phase 2, siehe docs/dashboard_konzept.md)
 
@@ -27,12 +29,17 @@ Pitch-Kontur/Formant-Tracks/Intensitätskurve + wachsende Feature-Tabelle. Start
 Stufe 1 der Feature-Extraktion (F0/Jitter/Shimmer/HNR) steht — nicht erst nach vollem
 Feature-Umfang.
 
-- [ ] Streamlit-Grundgerüst (Datei auswählen → Player → Wellenform)
-- [ ] Spektrogramm-Ansicht
-- [ ] Pitch-Kontur + Formant-Tracks als Overlay
-- [ ] Feature-Tabelle (wächst mit Phase-2-Stufen mit)
+- [x] Streamlit-Grundgerüst (Datei auswählen → Player → Wellenform) — läuft auf `100.67.129.76:8501`, Code in `dashboard/`
+- [x] Spektrogramm-Ansicht (mit F0-Overlay)
+- [x] Intensitätskurve (Lautstärke über Zeit)
+- [x] Feature-Tabelle Stufe 1 (F0 Mittelwert/SD, Jitter, Shimmer, HNR) mit Warnhinweis bei Nicht-Vokal-Tasks
+- [ ] Formant-Tracks (F1-F3) als eigenes Overlay (bisher nur F0 im Spektrogramm)
 - [ ] Vokalraum-Plot (F1/F2) für Vokal-Task
+- [ ] Perspektivisch: Speech-to-Text-Transkription (Nutzerwunsch 2026-07-21, noch nicht im Detail geplant)
 - [ ] Später: Verlaufsansicht über mehrere Aufnahmen derselben Person (longitudinal)
+
+**Deploy-Hinweis**: Code wird aktuell manuell per `scp` nach `~/neurovoice-dashboard/` auf den
+Server kopiert (kein `git clone` dort) — bei Änderungen erneut kopieren + `docker compose up -d --build`.
 
 ## Phase 2 — Feature-Extraktion (nach stabiler Aufnahme-Pipeline)
 
