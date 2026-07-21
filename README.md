@@ -53,7 +53,8 @@ kein Zwischenschritt über SMB/eigene Web-App.
 
 ## Repo-Struktur
 
-- `docs/` — Konzept, Backlog, Literaturrecherche
+- `docs/` — Konzept, Backlog, Literaturrecherche, [Bug-/Problem-Tracker](docs/bugtracker.md)
 - `raw-inbox/` — Syncthing-Zielordner (unveränderte .m4a-Dateien, noch nicht konvertiert/einsortiert)
 - `data/raw/` — finale Ablage nach Konvertierung + Umbenennung
 - `scripts/` — Konvertierungs-/Verifikations-Skripte
+- `dashboard/` — Streamlit-Analyse-Dashboard (siehe docs/dashboard_konzept.md)

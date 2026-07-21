@@ -1,0 +1,156 @@
+# NeuroVoice AI — Bug-/Problem-Tracker
+
+Jedes aufgetretene Problem wird hier festgehalten, auch wenn es klein wirkt oder schon
+behoben ist — damit nichts durchrutscht und die Historie nachvollziehbar bleibt.
+Format: Status, Root Cause, Fix/Empfehlung, Datum.
+
+---
+
+## BUG-01 — Dashboard: falsche Lautstärke-/Bittiefen-Werte ✅ BEHOBEN
+
+**Symptom:** Erste Version zeigte `bit_depth=64`, `peak_dbfs=180.67` (physikalisch unmöglich,
+müsste ≤0 dBFS sein).
+
+**Root Cause:** `scipy.io.wavfile.read()` liefert bei Stereo-Dateien ein 2D-Array. Der Code
+rief `data.mean(axis=1)` auf, **bevor** Bittiefe/Normalisierung bestimmt wurden — `np.mean()`
+auf einem Integer-Array liefert automatisch `float64` zurück. Dadurch wurde (a) die Bittiefe
+anhand des NEUEN float64-dtype berechnet (64 statt 24 bit) und (b) die Normalisierungsprüfung
+(`np.issubdtype(..., np.integer)`) schlug fehl, sodass rohe Integer-Sample-Werte (bis
+~1,7 Milliarden) ungeteilt als bereits normalisierte Samples im Bereich [-1,1] behandelt wurden.
+
+**Fix:** Wechsel von `scipy.io.wavfile` auf `soundfile` (liest 24-bit-PCM korrekt, normalisiert
+automatisch bei `dtype='float64'`). Normalisierung passiert jetzt vor jeder Kanalmittelung.
+Siehe `dashboard/core/audio.py`, Commit vom 2026-07-21.
+
+**Verifiziert:** Werte nach Fix plausibel (24 bit, 2 Kanäle, -6 dBFS Peak).
+
+---
+
+## BEFUND-02 — Erste Testaufnahme war AAC statt ALAC ✅ BEHOBEN
+
+**Symptom:** `ffprobe` zeigte `codec_name=aac` statt des erwarteten ALAC für die erste
+Testaufnahme — widerspricht der Projektannahme "iPhone liefert verlustfreies ALAC".
+
+**Root Cause:** iPhone-Einstellung „Voice Memos → Audioqualität" stand auf „Komprimiert",
+nicht „Verlustfrei". Kein Software-Bug, sondern eine falsche Ausgangseinstellung.
+
+**Fix:** Nutzer hat die Einstellung umgestellt (zusätzlich Stereo statt Mono gewählt, 3D Audio
+war nicht verfügbar). Take 2 bestätigt: `codec_name=alac`, `bits_per_raw_sample=24`.
+
+**Empfehlung:** Bei jeder neuen Aufnahme-Charge (nicht nur beim ersten Test) den Codec der
+Originaldatei per `ffprobe` verifizieren, nicht nur die App-Einstellung als gegeben annehmen —
+genau dieser Bug hätte sich sonst unbemerkt durch die ganze Testdatenbank gezogen.
+
+---
+
+## BEFUND-03 — ALAC-Dekodierwarnung bei Take 2 ✅ GEKLÄRT, KEIN DATENVERLUST
+
+**Symptom:** `ffmpeg` meldete beim Konvertieren von Take 2: `invalid samples per frame: 0` /
+`Decoding error: Invalid data found when processing input`. Konvertierte WAV war 11,52s lang,
+Original-Container meldete 11,61s — 85ms "Differenz".
+
+**Untersuchung:** `ffprobe -show_packets` zeigt, dass das letzte Paket der Datei nur 8 Bytes
+groß ist (praktisch leer) — eine reine Auffüll-Frame. Der `iTunSMPB`-Metadaten-Tag der Datei
+(Standard-Apple-Tag für Gapless-Playback) bestätigt: Feld 3 = `0x1000` (4096 = exakt eine
+ALAC-Frame-Länge an "remainder"-Padding), Feld 4 = `0x87000` = 552.960 Samples = genau die
+11,52s der validen Audio-Samples. ALAC codiert in festen 4096-Sample-Frames; die letzte Frame
+der Originalaufnahme war nicht vollständig gefüllt und wurde vom Encoder mit Stille auf die
+volle Framegröße aufgefüllt — dieses Padding ist laut `iTunSMPB` ausdrücklich zum Verwerfen
+gedacht (Gapless-Playback-Standard), enthält keine echten Audiodaten.
+
+**Ergebnis:** Die 85ms sind **keine verlorenen Audiodaten**, sondern korrekt verworfenes
+Auffüll-Padding. Die Warnung ist harmlos, aber im Skript-Output irreführend/beunruhigend.
+
+**Empfehlung (offen, niedrige Priorität):** `scripts/convert_and_verify.sh` könnte diese
+spezifische Warnung abfangen/kommentieren, damit sie nicht bei jeder zukünftigen Konvertierung
+wieder wie ein echter Fehler aussieht. Nicht dringend, da rein kosmetisch.
+
+---
+
+## PROZESS-RISIKO-04 — Voice-Memos-Dateinamen weichen vom Schema ab ⚠️ OFFEN
+
+**Symptom:** Beide bisherigen Testaufnahmen kamen NICHT im erwarteten Schema
+(`<patient_id>_task-<typ>_take<n>`) an:
+- Take 1: `Selbst Aufnahme vokal take 01.m4a`
+- Take 2: `Selbst Aufnahme Aufgabe zwei Lese Text Nordwind und Sonne take zwei.m4a`
+
+**Root Cause:** Kein iOS-Bug — der Nutzer tippt beim Umbenennen natürlichsprachige Titel statt
+des exakten Schemas. `scripts/convert_and_verify.sh` erkennt Abweichungen zwar (Warnung +
+Überspringen), aber jede Aufnahme musste bisher manuell nachbenannt werden, bevor die
+Konvertierung lief.
+
+**Risiko:** Bei mehr Aufnahmen (oder falls später andere Personen aufnehmen) wird manuelles
+Nachbenennen fehleranfällig und skaliert nicht — Kernprinzip aus docs/dashboard_konzept.md
+("skalierbar") wird hier unterlaufen.
+
+**Empfehlung (offen):** Entweder (a) das Skript tolerant genug machen, um auch aus
+Freitext-Titeln automatisch zu erkennen, welcher Task gemeint ist (Schlüsselwort-Suche nach
+"vokal"/"lesetext"/"freisprache" im Dateinamen), oder (b) eine feste Kurzform in Voice Memos
+als Vorlage/Kopiervorlage bereitstellen (z.B. iOS-Textersetzung/Shortcut), damit der Nutzer
+nicht jedes Mal frei tippen muss. Noch nicht entschieden.
+
+---
+
+## PROZESS-RISIKO-05 — Task-Label und tatsächlicher Aufnahmeinhalt liefen auseinander ✅ KORRIGIERT (Einzelfall), Risiko bleibt
+
+**Symptom:** Take 1 wurde als `task-vokal` benannt/konvertiert, tatsächlich eingesprochen
+wurde aber der Nordwind-Lesetext.
+
+**Root Cause:** Menschlicher Fehler beim Betiteln der Aufnahme in Voice Memos, nicht direkt
+erkennbar ohne Rückfrage.
+
+**Fix (Einzelfall):** Nutzer hat auf Nachfrage den tatsächlichen Inhalt bestätigt, Datei wurde
+umbenannt (`task-lesetext`).
+
+**Risiko, das bleibt:** Falsches Task-Label hätte unbemerkt zu einer ungültigen Jitter/Shimmer-
+Interpretation führen können (nur bei Task „vokal" verlässlich, siehe
+docs/literatur_review.md). Das Dashboard warnt zwar bei Nicht-Vokal-Tasks (`app.py`), aber nur
+wenn das Label korrekt gesetzt ist — bei falschem Label greift die Warnung nicht.
+
+**Empfehlung (offen):** Kein technischer Fix vorgesehen — bleibt ein Prozess-Risiko, das durch
+sorgfältiges Betiteln beim Aufnehmen entschärft wird, nicht durch Software.
+
+---
+
+## INFRA-BEFUND-06 — Syncthing-Pairing schlug zunächst zweifach fehl ✅ BEHOBEN
+
+**Symptom 1:** iPhone zeigte „Disconnected", diverse Timeouts/Connection-Refused-Meldungen.
+**Root Cause 1:** Globale Discovery/Relay sind auf dem Server bewusst deaktiviert (Datenschutz)
+— dadurch funktioniert die Standard-Adresse „dynamic" nicht, das iPhone konnte den Server nicht
+finden. **Fix:** Statische Adresse `tcp://100.67.129.76:22000` im iPhone-Client hinterlegt.
+
+**Symptom 2:** Danach Server-Log `Connection rejected ... error="unknown device"`.
+**Root Cause 2:** iPhone war nur einseitig (auf dem iPhone selbst) als Remote-Device
+eingetragen, dem Server aber nicht bekannt/freigegeben.
+**Fix:** iPhone-Device-ID per REST-API zum Server hinzugefügt, Ordner `raw-inbox` explizit mit
+dieser Device-ID geteilt.
+
+**Verifiziert:** `GET /rest/system/connections` zeigt stabile Verbindung, Nutzer bestätigt
+"Up to Date" mit grünem Haken. Volle Doku: homeserver-Repo `services/syncthing/README.md`.
+
+---
+
+## SICHERHEITSVORFALL-07 — Passwort-Weitergabe versucht, Klartext-Passwort in alter Memory gefunden ✅ BEHOBEN
+
+**Symptom:** Bei einer sudo-Passwortsperre hat der Nutzer wiederholt angeboten, das Passwort
+im Chat zu teilen bzw. es "speichern" zu lassen — musste mehrfach klar abgelehnt werden (feste
+Regel, keine Ausnahme). Dabei zusätzlich entdeckt: Eine ältere Memory-Datei
+(`project_homeserver_beelink.md`, aus einer früheren Session) enthielt bereits ein
+Klartext-Passwort.
+
+**Fix:** Passwort wurde nie verwendet/gespeichert. Alte Memory-Datei bereinigt (Passwort
+entfernt, Verweis auf Passwort-Manager stattdessen). Neue Feedback-Memory
+(`feedback_keine_passwoerter.md`) angelegt, damit künftige Sessions das nicht wiederholen.
+
+**Kein technischer Bug im Projekt selbst**, aber sicherheitsrelevant genug, um hier
+mitzuführen.
+
+---
+
+## Offene Punkte (Zusammenfassung, damit nichts vergessen wird)
+
+| # | Thema | Priorität | Status |
+|---|---|---|---|
+| PROZESS-RISIKO-04 | Freitext-Dateinamen aus Voice Memos | mittel | offen, Lösung noch nicht entschieden |
+| BEFUND-03 | Kosmetische ALAC-Warnung im Skript-Output | niedrig | offen, rein kosmetisch |
+| PROZESS-RISIKO-05 | Task-Label kann inhaltlich falsch gesetzt werden | niedrig | kein technischer Fix geplant, Wachsamkeit nötig |
