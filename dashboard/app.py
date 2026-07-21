@@ -157,11 +157,51 @@ else:
             _save_transcript_cache(recording, transcript)
 
     if transcript:
-        st.markdown(f"**Text:** {transcript['text']}")
+        CONFIDENCE_WARN_THRESHOLD = 0.75
+        words_html = []
+        for w in transcript["words"]:
+            score = w.get("score")
+            if score is not None and score < CONFIDENCE_WARN_THRESHOLD:
+                words_html.append(
+                    f'<span style="background:#fde68a;border-bottom:2px solid #d97706;'
+                    f'padding:0 2px;border-radius:2px;" '
+                    f'title="Konfidenz {score:.2f} — unsicher erkannt, ggf. Wort prüfen">{w["word"]}</span>'
+                )
+            else:
+                words_html.append(w["word"])
+        transcript_html = " ".join(words_html)
+
+        st.markdown(
+            f"""
+            <div style="background:#fffbea;border-left:5px solid #3182ce;border-radius:8px;
+                        padding:1rem 1.3rem;margin:0.4rem 0 0.6rem;">
+              <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                          color:#3182ce;font-weight:700;margin-bottom:0.5rem;">
+                🤖 KI-Transkription (WhisperX, Modell large-v3)
+              </div>
+              <div style="font-size:1.3rem;line-height:1.7;color:#1a202c;">
+                {transcript_html}
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "⚠️ Automatisch erkannt, keine manuelle Korrektur — einzelne Wörter können falsch "
+            "erfasst sein. Gelb unterstrichene Wörter haben eine Erkennungs-Konfidenz unter 75% "
+            "(Maus drüberhalten zeigt den genauen Wert) — hier lohnt sich ein Abgleich mit dem Audio."
+        )
 
         from core.speech_metrics import compute_speech_metrics
 
         metrics = compute_speech_metrics(transcript["words"], total_duration_s=stats["duration_s"])
+        scores = [w["score"] for w in transcript["words"] if w.get("score") is not None]
+        mean_confidence = sum(scores) / len(scores) if scores else None
+        low_confidence_count = sum(1 for s in scores if s < CONFIDENCE_WARN_THRESHOLD)
+
+        c1, c2 = st.columns(2)
+        c1.metric("Ø Erkennungs-Konfidenz", f"{mean_confidence:.0%}" if mean_confidence is not None else "–")
+        c2.metric("Unsichere Wörter (<75%)", low_confidence_count)
 
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Wörter", metrics["n_words"])
