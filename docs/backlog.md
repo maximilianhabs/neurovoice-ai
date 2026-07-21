@@ -10,11 +10,12 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 
 ## Phase 1 — Aufnahme-Pipeline (aktuell)
 
-- [ ] Syncthing auf Beelink-Server installieren (Docker oder nativ)
-- [ ] Syncthing auf iPhone einrichten, Pairing mit Server
-- [ ] Ordnerstruktur anlegen: `raw-inbox/` (Syncthing-Ziel) getrennt von `data/raw/<patient_id>/...` (final)
-- [ ] Konvertierungsskript: `.m4a` (ALAC) → `.wav`, verlustfrei (Container-Wechsel, kein Re-Encoding)
-- [ ] Verifikationsskript: `ffprobe`-Check (Codec/Samplerate/Bittiefe) + Checksumme vor/nach Transfer
+- [x] Syncthing auf Beelink-Server installiert (Docker, Tailscale-only, Discovery/Relay deaktiviert) — siehe homeserver-Repo LOG.md 2026-07-21
+- [x] ffmpeg auf Server installiert
+- [ ] Syncthing auf iPhone einrichten, Pairing mit Server (Device-ID des Servers: `2NZZMYW-PJG4XLE-DILEQIU-65W4Z5T-DAY6YST-ZUSDIMN-6OMPFSR-T5WZBAV`)
+- [x] Ordnerstruktur angelegt: `~/neurovoice-data/raw-inbox` (Syncthing-Ziel) getrennt von `~/neurovoice-data/raw/<patient_id>/...` (final) — auf dem Server, nicht im Git-Repo
+- [x] Konvertierungsskript: `.m4a` (ALAC) → `.wav`, verlustfrei (Dekodierung, kein Re-Encoding) — `scripts/convert_and_verify.sh`, deployed auf Server
+- [x] Verifikationsskript: `ffprobe`-Check (Codec/Samplerate/Bittiefe) + Checksumme vor/nach Transfer — im selben Skript enthalten
 - [ ] Testdatenbank: 5-6 Aufnahmen (Freisprache, Vokal, Lesetext), sauber benannt & verifiziert
 - [x] Lesetext festgelegt: "Nordwind und Sonne" (Standard-IPA-Referenztext, siehe docs/lesetext_nordwind_sonne.md)
 
