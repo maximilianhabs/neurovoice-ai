@@ -19,6 +19,21 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 - [ ] Testdatenbank: 5-6 Aufnahmen (Freisprache, Vokal, Lesetext), sauber benannt & verifiziert
 - [x] Lesetext festgelegt: "Nordwind und Sonne" (Standard-IPA-Referenztext, siehe docs/lesetext_nordwind_sonne.md)
 
+## Phase 2b — Analyse-Dashboard (parallel zu Phase 2, siehe docs/dashboard_konzept.md)
+
+Streamlit-App, analog zum bestehenden EDF-Analyzer-Projekt, lokal auf dem Beelink-Server
+(nur Tailscale, kein öffentlicher Zugriff). Audio-Player + Wellenform/Spektrogramm/
+Pitch-Kontur/Formant-Tracks/Intensitätskurve + wachsende Feature-Tabelle. Start sobald
+Stufe 1 der Feature-Extraktion (F0/Jitter/Shimmer/HNR) steht — nicht erst nach vollem
+Feature-Umfang.
+
+- [ ] Streamlit-Grundgerüst (Datei auswählen → Player → Wellenform)
+- [ ] Spektrogramm-Ansicht
+- [ ] Pitch-Kontur + Formant-Tracks als Overlay
+- [ ] Feature-Tabelle (wächst mit Phase-2-Stufen mit)
+- [ ] Vokalraum-Plot (F1/F2) für Vokal-Task
+- [ ] Später: Verlaufsansicht über mehrere Aufnahmen derselben Person (longitudinal)
+
 ## Phase 2 — Feature-Extraktion (nach stabiler Aufnahme-Pipeline)
 
 Tool-Basis: **Parselmouth** (Python-Wrapper um Praat, klinischer Goldstandard).
