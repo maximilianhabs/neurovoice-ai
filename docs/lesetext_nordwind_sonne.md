@@ -14,8 +14,15 @@ verfügbar. Deutsche Standardversion:
 > Sonne von ihnen beiden der Stärkere war.
 
 Vorteil für NeuroVoice AI: phonetisch repräsentativ, sprecherunabhängig standardisiert,
-ermöglicht später Vergleichbarkeit mit Literatur/anderen Sprachversionen. Dauer beim normalen
-Vorlesen liegt über den anvisierten 30 Sekunden — für das 30s-Snippet-Konzept ggf. nur die
-ersten 2-3 Sätze verwenden, oder Aufnahmedauer für den Lesetext-Task-Typ auf ca. 45-60s anpassen.
+ermöglicht später Vergleichbarkeit mit Literatur/anderen Sprachversionen.
+
+**Anpassung an die 10-Sekunden-Standarddauer**: Der volle Text passt nicht in 10s. Für den
+Lesetext-Task reicht der erste Satz:
+
+> Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere wäre,
+> als ein Wanderer, der in einen warmen Mantel gehüllt war, des Weges daherkam.
+
+Der komplette Text bleibt als Option für spätere, längere Aufnahmen (z.B. Sprechfluss-/
+Pausen-Analyse, Stufe 3 im Backlog) hinterlegt.
 
 Quelle: [Nordwind und Sonne — IMS Uni Stuttgart](https://www2.ims.uni-stuttgart.de/sgtutorial/nordwind.html)

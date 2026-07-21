@@ -29,10 +29,12 @@ nur auf Basis akustischer Sprachmerkmale statt Hirnstromkurven.
 
 ## Aufnahme-Konzept
 
-- Dauer: 30 Sekunden Snippets
+- Dauer: **10 Sekunden Snippets (Standard, bewusst kurz gehalten gegen Datenmüll)**
 - Task-Typen: Freisprache, gehaltener Vokal ("aaa"), Lesetext
   (wichtig: unterschiedliche Feature-Familien sind nur bei bestimmten Task-Typen zuverlässig
   extrahierbar — siehe Literaturrecherche, Abschnitt "Einschränkungen")
+  - Lesetext "Nordwind und Sonne" passt nicht komplett in 10s — für den Start reicht der erste
+    Satz ("Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere wäre...")
 - Sprechabstand konstant halten (~15-20cm), unteres iPhone-Mikro nicht verdecken
 
 ## Ordnerstruktur (Daten)
