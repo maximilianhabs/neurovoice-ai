@@ -6,6 +6,24 @@ Format: Status, Root Cause, Fix/Empfehlung, Datum.
 
 ---
 
+## PROZESS-NOTIZ-08 — Docker-Testcontainer ohne Namen sorgen für Verwirrung ✅ ERLEDIGT (Vorsatz)
+
+**Symptom:** Ein isolierter WhisperX-Testcontainer (`docker run --rm ...` ohne `--name`) bekam
+von Docker automatisch den zufälligen Namen `strange_curran` zugewiesen — sorgte für Verwirrung
+("was ist das für ein Programm?").
+
+**Klärung:** `strange_curran` war kein Programm, sondern Dockers eingebauter Zufallsname
+(Adjektiv + Nachname, z.B. von bekannten Informatiker:innen) für Container ohne expliziten
+`--name`. Container war ohnehin ein `--rm`-Wegwerf-Container und hat sich nach Abschluss selbst
+entfernt — nichts umzubenennen nötig.
+
+**Vorsatz für künftige Testcontainer:** Immer explizit `--name` vergeben (z.B.
+`--name neurovoice-test-<zweck>`), damit `docker ps`/Logs auf Anhieb erkennbar bleiben.
+Falls doch mal ein unbenannter Container stehen bleibt: `docker rename <alt> <neu>` funktioniert
+jederzeit nachträglich, auch bei laufenden Containern, ohne Neustart/Datenverlust.
+
+---
+
 ## BUG-01 — Dashboard: falsche Lautstärke-/Bittiefen-Werte ✅ BEHOBEN
 
 **Symptom:** Erste Version zeigte `bit_depth=64`, `peak_dbfs=180.67` (physikalisch unmöglich,
