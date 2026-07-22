@@ -67,6 +67,30 @@ Feature-Umfang.
 **Deploy-Hinweis**: Code wird aktuell manuell per `scp` nach `~/neurovoice-dashboard/` auf den
 Server kopiert (kein `git clone` dort) — bei Änderungen erneut kopieren + `docker compose up -d --build`.
 
+## Normwert-Ampel-Visualisierung ✅ UMGESETZT (2026-07-22)
+
+Konzept-Artifact (2026-07-21) vollständig ins Produktions-Dashboard übernommen. Hierarchie
+nach **Auswertbarkeit beim Lesetext** (Nutzer-Entscheidung: "wir werden hauptsächlich Texte/
+Wörter vorlesen lassen"), nicht nur nach Literatur-Robustheit:
+
+- [x] `core/reference_ranges.py` — Ampel-Zonen für Sprechrate/HNR/Jitter/Shimmer (aus allg.
+      Stimmklinik-Literatur + IReST-Studie), `verdict_for_value()` für Farbe+Label
+- [x] `core/plots.py`: `gauge_figure()` (Halbkreis-Tacho mit Matplotlib Wedges + Nadel),
+      `radar_figure()` (Polar-Profil)
+- [x] "Werte auf einen Blick": Primärgruppe groß (Sprechrate, HNR, Monopitch,
+      Artikulationsschärfe, CPPS) + Radar-Profil; Sekundärgruppe klein/muted (Jitter,
+      Shimmer, Vokalraum-Fläche — bewusst nach unten trotz guter Literatur-Basis)
+- [x] Konsolidierte "Tabellarische Übersicht" (ersetzt 3 verstreute Einzeltabellen) —
+      alle 14 Parameter mit Wert, Erklärung, Referenz/Normwert, Auswertbarkeit
+- [x] "Glossar"-Abschnitt (F0, Formanten, Jitter, Shimmer, HNR, CPP, Monopitch/
+      Monoloudness, nPVI, Artikulationsschärfe, VSA, Fluency-Score)
+- Verifiziert headless via `streamlit.testing.v1.AppTest` (mit UND ohne gecachtes
+  Transkript) — keine Exceptions, Werte/Verdicts stimmen mit bekannten Take-3-Referenzen
+  überein (Sprechrate 133 WPM → "grenzwertig", HNR 8,67dB → "auffällig").
+
+**Offen**: Ampel-Grenzwerte stammen aus allgemeiner Literatur/IReST, noch nicht aus der
+Saarbrücker Voice Database projektspezifisch gezogen (bestehende offene Frage, s.u.).
+
 ## Phase 2 — Feature-Extraktion (nach stabiler Aufnahme-Pipeline)
 
 Tool-Basis: **Parselmouth** (Phonation/Spektral/Prosodie) + **WhisperX** (Transkript +
