@@ -245,3 +245,27 @@ def articulation_features(path: str) -> dict:
         "mean_closure_duration_s": float(np.mean(closure_durations)) if closure_durations else None,
         "mean_burst_sharpness_db_s": float(np.mean(burst_sharpness)) if burst_sharpness else None,
     }
+
+
+def cpp_features(path: str) -> dict:
+    """Stufe-6-Features (siehe docs/backlog.md): CPPS (Cepstral Peak Prominence, geglaettet)
+    via Parselmouth/Praat.
+
+    Robusteres Alternativmass zu Jitter/Shimmer bei Fliessprache/Lesetext -- CPPS braucht
+    KEINE periodische, gehaltene Phonation und funktioniert deshalb genau bei dem Task-Typ,
+    den wir hauptsaechlich sammeln (siehe docs/literatur_review.md). Parameter folgen den
+    ueblichen CPPS-Konventionen aus der Stimmklinik-Literatur (Hillenbrand/Heman-Ackah-Stil):
+    Pitch-Boden 60Hz, Zeitmittelungsfenster 10ms, Quefrenz-Mittelungsfenster 1ms,
+    Trendlinie linear ("Straight"), robuste Anpassung.
+
+    WICHTIG: CPPS-Werte sind stark parameterabhaengig (Fenstergroessen, Trendlinien-Methode) --
+    Zahlen aus anderen Tools/Studien nicht ungeprueft als Normwert uebernehmen, siehe
+    docs/bugtracker.md-Prinzip "MDVP- und Praat-Normwerte sind nicht direkt vergleichbar".
+    """
+    sound = parselmouth.Sound(path)
+    power_cepstrogram = parselmouth.praat.call(sound, "To PowerCepstrogram", 60, 0.002, 5000, 50)
+    cpps_db = parselmouth.praat.call(
+        power_cepstrogram, "Get CPPS", True, 0.01, 0.001, 60, 330, 0.05,
+        "Parabolic", 0.001, 0.05, "Straight", "Robust",
+    )
+    return {"cpps_db": float(cpps_db)}

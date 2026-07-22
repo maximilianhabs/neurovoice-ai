@@ -115,8 +115,12 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
       Texts (gute Baseline-Reproduzierbarkeit). **Noch keine dysarthrische Vergleichsaufnahme
       vorhanden** — aktuell nur an gesunder Sprache kalibriert, siehe Dysarthrie-Konzept unten.
 
-### Stufe 6 — CPP als robusteres Alternativmaß zu Jitter/Shimmer bei Fließsprache
-- [ ] Cepstral Peak Prominence für Freisprache/Lesetext (da Jitter/Shimmer dort unzuverlässig sind)
+### Stufe 6 — CPP als robusteres Alternativmaß zu Jitter/Shimmer bei Fließsprache ✅ IM DASHBOARD UMGESETZT (2026-07-21)
+- [x] Cepstral Peak Prominence (CPPS, geglättet) für Freisprache/Lesetext — `cpp_features()`,
+      Praat `To PowerCepstrogram` + `Get CPPS` (Hillenbrand/Heman-Ackah-Konvention). Verifiziert
+      an allen 3 Testaufnahmen: 7,1-8,2 dB, konsistent über unabhängige Lesungen. Wichtig:
+      CPPS-Werte sind stark parameterabhängig — nicht ungeprüft mit Werten aus anderen
+      Tools/Studien vergleichen (gleiches Prinzip wie MDVP- vs. Praat-Normwerte).
 
 ## Später (explizit nicht Teil des aktuellen Auftrags)
 

@@ -10,6 +10,7 @@ import streamlit as st
 from core.audio import (
     articulation_features,
     basic_stats,
+    cpp_features,
     formant_features,
     list_patients,
     list_recordings,
@@ -105,13 +106,15 @@ if recording.task != "vokal":
 
 features = phonation_features(recording.path)
 formants = formant_features(recording.path)
+cpp = cpp_features(recording.path)
 
 rows = [
     ("F0 Mittelwert", features["f0_mean_hz"], "Hz", "Mittlere Grundfrequenz (Tonhöhe)"),
     ("F0 Standardabweichung", features["f0_sd_hz"], "Hz", "Tonhöhen-Variabilität (\"Monopitch\"-Maß)"),
-    ("Jitter (local)", features["jitter_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Grundfrequenz"),
-    ("Shimmer (local)", features["shimmer_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Amplitude"),
+    ("Jitter (local)", features["jitter_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Grundfrequenz — nur bei gehaltenem Vokal zuverlässig"),
+    ("Shimmer (local)", features["shimmer_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Amplitude — nur bei gehaltenem Vokal zuverlässig"),
     ("HNR (Mittelwert)", features["hnr_mean_db"], "dB", "Harmonics-to-Noise-Ratio (Stimmklangqualität)"),
+    ("CPPS (Stufe 6)", cpp["cpps_db"], "dB", "Cepstral Peak Prominence — Stimmklang-Alternative zu Jitter/Shimmer, robust bei Fließsprache/Lesetext"),
     ("F1 Mittelwert", formants["f1_mean_hz"], "Hz", "1. Formant — korreliert mit Zungenhöhe (offen/geschlossen)"),
     ("F2 Mittelwert", formants["f2_mean_hz"], "Hz", "2. Formant — korreliert mit Zungenposition (vorne/hinten)"),
     ("F3 Mittelwert", formants["f3_mean_hz"], "Hz", "3. Formant — Klangfarbe/Artikulationsschärfe"),
@@ -124,7 +127,10 @@ st.caption(
     "Referenzwerte: Saarbrücken Voice Database (deutsch, 869 gesunde Sprecher:innen) — "
     "siehe docs/literatur_review.md. Formanten sind Mittelwerte über die gesamte Aufnahme, "
     "noch keine Vokalraum-Fläche (dafür braucht es mehrere unterschiedliche Vokale in einer "
-    "Aufnahme, siehe docs/backlog.md). Weitere Feature-Stufen (Prosodie/Artikulationssauberkeit) "
+    "Aufnahme, siehe docs/backlog.md). CPPS ist — anders als Jitter/Shimmer — bewusst auch bei "
+    "Fließsprache/Lesetext aussagekräftig, aber stark von den gewählten Analyse-Parametern "
+    "abhängig (Fenstergrößen, Trendlinie) — Werte aus anderen Tools/Studien nicht ungeprüft als "
+    "Normwert übernehmen. Weitere Feature-Stufen (Prosodie/Artikulationssauberkeit) "
     "folgen laut docs/backlog.md."
 )
 
