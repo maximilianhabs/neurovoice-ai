@@ -7,7 +7,15 @@ import pandas as pd
 import parselmouth
 import streamlit as st
 
-from core.audio import basic_stats, formant_features, list_patients, list_recordings, phonation_features, prosody_features
+from core.audio import (
+    articulation_features,
+    basic_stats,
+    formant_features,
+    list_patients,
+    list_recordings,
+    phonation_features,
+    prosody_features,
+)
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
@@ -137,6 +145,35 @@ st.caption(
     "Rhythmus (nPVI) erscheint weiter unten im Transkriptions-Bereich, da er die "
     "Wort-Zeitstempel aus der Transkription braucht. Referenzwerte für Monopitch/Monoloudness "
     "sind noch nicht hinterlegt (siehe docs/backlog.md, offene Frage zu Normwerten)."
+)
+
+# --- Artikulationssauberkeit (Stufe 5 aus docs/backlog.md) ---
+st.subheader("Artikulationssauberkeit")
+
+st.info(
+    "ℹ️ Erkennt akustisch **Verschluss-Löse-Muster** (kurzer Energieeinbruch + scharfer "
+    "Wiederanstieg), wie sie bei Plosiven (p/b, t/d, k/g) typisch sind — **keine phonetische "
+    "Erkennung einzelner Laute**. Ziel ist eine grobe Gradmesser-Kennzahl für "
+    "Artikulationspräzision (weniger/unschärfere/längere Verschlüsse können auf eingeschränkte "
+    "Zungen-/Lippenbeweglichkeit hindeuten), nicht die Identifikation, welcher Laut gemeint war."
+)
+
+articulation = articulation_features(recording.path)
+
+art_rows = [
+    ("Anzahl erkannter Verschluss-Ereignisse", articulation["n_stop_events"], "", "Grobes Maß für artikulatorische Aktivität"),
+    ("Ø Verschlussdauer", articulation["mean_closure_duration_s"] * 1000 if articulation["mean_closure_duration_s"] else None, "ms", "Deutsch: Lenis ~5-20ms, Fortis ~40-60ms (Literatur) — längere Werte können auf unscharfe Artikulation hindeuten"),
+    ("Ø Burst-Schärfe", articulation["mean_burst_sharpness_db_s"], "dB/s", "Wie schnell der Pegel nach dem Verschluss wieder ansteigt — schwächere Werte = weniger scharfe Löseartikulation"),
+]
+art_df = pd.DataFrame(art_rows, columns=["Feature", "Wert", "Einheit", "Erklärung"])
+art_df["Wert"] = art_df["Wert"].apply(lambda v: f"{v:.1f}" if v is not None else "–")
+st.dataframe(art_df, use_container_width=True, hide_index=True)
+
+st.caption(
+    "Noch keine Referenzwerte aus dysarthrischen Aufnahmen vorhanden — aktuell nur an "
+    "gesunden Testaufnahmen kalibriert (siehe docs/backlog.md). Werte über mehrere Takes "
+    "derselben Person/desselben Texts sind gut vergleichbar (Baseline), sagen aber noch "
+    "nichts über pathologische Abweichungen aus."
 )
 
 # --- Transkription + Sprechfluss (Chunk 3/4 aus docs/backlog.md) ---

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 import parselmouth
 import soundfile as sf
+from scipy.signal import find_peaks
 
 FILENAME_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2}_\d{4})_task-(?P<task>[a-zA-Z]+)_take(?P<take>\d+)\.wav$")
 
@@ -165,4 +166,82 @@ def prosody_features(path: str) -> dict:
 
     return {
         "monoloudness_intensity_sd_db": intensity_sd,
+    }
+
+
+def articulation_features(path: str) -> dict:
+    """Stufe-5-Features (siehe docs/backlog.md): Verschluss-/Burst-Erkennung als
+    generischer Artikulationsschaerfe-Indikator.
+
+    WICHTIG (Scope, mit Blick auf das Dysarthrie-Fernziel des Projekts): Das hier ist
+    KEINE phonetische Erkennung einzelner Laute/Plosive -- es erkennt rein akustisch
+    Verschluss-Loese-Muster (kurzer Energieeinbruch, gefolgt von einem scharfen
+    Wiederanstieg) in der Intensitaetskontur, ohne zu wissen, ob/welcher Konsonant
+    gemeint war. Ziel ist eine grobe Gradmesser-Kennzahl ("wie viele klare, scharfe
+    Verschluss-Gesten enthaelt die Aufnahme, wie lang sind die Verschluesse") --
+    passend zum Nutzerziel "Schweregrad einordnen, nicht Inhalt entschluesseln"
+    (2026-07-21). Bei eingeschraenkter Zungenbeweglichkeit (z.B. bulbaere Dysarthrie)
+    waeren weniger/unschaerfere/laengere Verschluss-Ereignisse zu erwarten -- diese
+    Referenzwerte hier stammen aber nur von gesunden Testaufnahmen, noch keine
+    dysarthrische Vergleichsaufnahme vorhanden (siehe docs/backlog.md).
+
+    Deutsche Besonderheit (siehe docs/literatur_review.md): Fortis/Lenis wird im
+    Deutschen primaer ueber Verschlussdauer signalisiert, nicht ueber Aspiration/VOT --
+    macht Verschlussdauer als Kennzahl besonders relevant fuer diese Sprache.
+    """
+    sound = parselmouth.Sound(path)
+    intensity = sound.to_intensity()
+    times = intensity.xs()
+    values = intensity.values[0].copy()
+
+    valid = (~np.isnan(values)) & (values > -300)
+    times = times[valid]
+    values = values[valid]
+
+    if len(values) < 10:
+        return {"n_stop_events": 0, "mean_closure_duration_s": None, "mean_burst_sharpness_db_s": None}
+
+    dt = float(np.median(np.diff(times)))
+
+    # Taeler = potenzielle Verschluesse: lokale Minima mit ausreichend Tiefe (Prominence),
+    # damit normales Sprechrauschen nicht faelschlich als Verschluss zaehlt.
+    valley_idx, _ = find_peaks(-values, prominence=8, distance=max(1, int(0.03 / dt)))
+
+    closure_durations = []
+    burst_sharpness = []
+
+    for idx in valley_idx:
+        valley_val = values[idx]
+
+        # Verschlussdauer: wie lange bleibt der Pegel nahe am Minimum (innerhalb 3 dB)?
+        left = idx
+        while left > 0 and values[left - 1] <= valley_val + 3:
+            left -= 1
+        right = idx
+        while right < len(values) - 1 and values[right + 1] <= valley_val + 3:
+            right += 1
+        closure_duration = times[right] - times[left]
+
+        # Nur plausibler Bereich fuer eine Plosiv-Verschlussdauer (siehe Literatur-Review:
+        # deutsche Lenis ~5-20ms, Fortis ~40-60ms) -- alles ausserhalb ist vermutlich eine
+        # laengere Sprechpause, kein einzelner Verschlusslaut.
+        if not (0.01 <= closure_duration <= 0.3):
+            continue
+
+        # Burst-Schaerfe: staerkster Wiederanstieg in den 60ms nach dem Minimum.
+        window_end = min(len(values), idx + max(2, int(0.06 / dt)))
+        if window_end <= idx + 1:
+            continue
+        rise = values[window_end - 1] - values[idx]
+        time_span = times[window_end - 1] - times[idx]
+        if time_span <= 0 or rise <= 0:
+            continue
+
+        closure_durations.append(closure_duration)
+        burst_sharpness.append(rise / time_span)
+
+    return {
+        "n_stop_events": len(closure_durations),
+        "mean_closure_duration_s": float(np.mean(closure_durations)) if closure_durations else None,
+        "mean_burst_sharpness_db_s": float(np.mean(burst_sharpness)) if burst_sharpness else None,
     }

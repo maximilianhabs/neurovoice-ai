@@ -103,11 +103,17 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
 - [x] Rhythmus (nPVI) — `speech_metrics.py`, Näherung auf Wortebene (keine Silbensegmentierung), Teil der Sprechfluss-Metriken
 - **Bug unterwegs gefunden+behoben**: Praat-Sentinel -300dB (Stille) verzerrte den ersten Monoloudness-Wert massiv (26,18 statt 12,75 dB) — betraf auch die Lautstärkekurve. Siehe docs/bugtracker.md BUG-11.
 
-### Stufe 5 — Artikulationssauberkeit (Plosive/Konsonanten)
-- [ ] **Verschlussdauer (Closure Duration) bei Plosiven statt VOT** — im Deutschen wird Fortis/Lenis
-      (p/b, t/d, k/g) primär über Verschlussdauer signalisiert, nicht über Aspiration/VOT wie im
-      Englischen (fortis-Verschluss ca. 4x länger als lenis). VOT bleibt ein Zusatzmaß, ist aber nicht
-      das primäre deutsche Unterscheidungsmerkmal.
+### Stufe 5 — Artikulationssauberkeit (Plosive/Konsonanten) ✅ ERSTE VERSION IM DASHBOARD (2026-07-21)
+- [x] **Verschlussdauer (Closure Duration) bei Plosiven statt VOT** — `articulation_features()`,
+      akustische Verschluss-/Burst-Erkennung über die Intensitätskontur (find_peaks auf
+      Praat-Intensität, Prominence-Filter). **Bewusst KEINE phonetische Lauterkennung** —
+      generischer Gradmesser für Artikulationsschärfe (Anzahl/Dauer/Burst-Schärfe der
+      erkannten Verschluss-Ereignisse), motiviert durch das Dysarthrie-Fernziel des Projekts
+      (Nutzerwunsch 2026-07-21: "Schweregrad einordnen, nicht Inhalt entschlüsseln").
+      Verifiziert an allen 3 Testaufnahmen: 32-33 Ereignisse, Ø-Verschlussdauer 31-37ms,
+      Ø-Burst-Schärfe 252-270 dB/s — sehr konsistent über unabhängige Lesungen desselben
+      Texts (gute Baseline-Reproduzierbarkeit). **Noch keine dysarthrische Vergleichsaufnahme
+      vorhanden** — aktuell nur an gesunder Sprache kalibriert, siehe Dysarthrie-Konzept unten.
 
 ### Stufe 6 — CPP als robusteres Alternativmaß zu Jitter/Shimmer bei Fließsprache
 - [ ] Cepstral Peak Prominence für Freisprache/Lesetext (da Jitter/Shimmer dort unzuverlässig sind)
@@ -132,6 +138,39 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
   Normwert-Basis für Stufe-1-Phonation-Features nutzbar, statt eigene Normwerte mühsam zu erheben.
 - **Fortis/Lenis im Deutschen ≠ Englisch**: siehe Stufe 5 oben — Verschlussdauer statt VOT/Aspiration
   ist das primäre Unterscheidungsmerkmal deutscher Plosive.
+
+## Fernziel: Werkzeug für Patient:innen mit Sprechstörungen (bulbäre Dysarthrie) — Konzept 2026-07-21
+
+Nutzerwunsch: Ein Werkzeug, das hilft, Patient:innen mit **bulbärer Dysarthrie** zu verstehen —
+Sprache undeutlich, Zunge kaum/nicht nutzbar, aber Stimmbildung (Kehlkopf) noch intakt.
+
+**Priorisierte Reihenfolge (Entscheidung 2026-07-21)**: Erst **Schweregrad einordnen**
+("wie stark ist die Artikulation beeinträchtigt"), NICHT versuchen, den gesprochenen Inhalt
+zu entschlüsseln — deutlich realistischer als offene Spracherkennung bei schwerer Dysarthrie.
+
+- **Ehrlicher Ausgangspunkt**: WhisperX/Whisper ist auf normale, flüssige Sprache trainiert.
+  Bei schwerer Dysarthrie ist mit sehr hoher Wortfehlerrate zu rechnen (daher existieren
+  dedizierte Korpora wie TORGO/UASpeech — beide Englisch, kein bekannter deutscher
+  Vergleichskorpus). Unsere bisherigen Tests (27/27 Wörter) beweisen nur Funktionsfähigkeit
+  bei gesunder Sprache, sagen nichts über die Zielgruppe aus.
+- **Stufenverschiebung für diese Zielgruppe**: Bei "Stimmbildung intakt, Zunge eingeschränkt"
+  werden die **artikulatorischen** Stufen (2: Formanten/Vokalraum, 5: Artikulationsschärfe)
+  aussagekräftiger als Stufe 1 (Phonation) — Vokalraum-Zentralisierung und reduzierte
+  Verschluss-Schärfe sind die erwarteten akustischen Fingerabdrücke.
+- [x] Stufe 5 (Artikulationsschärfe) als erster Baustein umgesetzt — siehe oben.
+- [ ] **Notwendiger nächster Schritt**: Mindestens eine echte oder bewusst nachgeahmte
+      dysarthrische Testaufnahme besorgen — ohne Vergleichsdaten ist jede Kalibrierung reine
+      Spekulation. Optionen: bewusst mit eingeschränkter Zungenbewegung sprechen, oder mit
+      einem öffentlichen (englischen) Dysarthrie-Korpus grob vortesten.
+- [ ] Geschlossenes-Vokabular-Modus (Keyword-Spotting gegen eine begrenzte Zielwortliste)
+      als realistischere Alternative zu offener Transkription bei sehr schwerer Dysarthrie —
+      noch nicht begonnen, eigenständiger Baustein.
+- [ ] Prosodie-basierte Zusatzinformation (Silbenzahl/Rhythmus aus Stufe 3, auch wenn Wörter
+      selbst unverständlich sind) als Ergänzung, nicht Ersatz.
+- **Bewusst zurückgestellt**: Patienten-individuelle Modell-Kalibrierung, Fine-Tuning auf
+  dysarthrischer Sprache (deutsche Trainingsdaten fehlen, eigene Erhebung wäre nötig — echte
+  Patientenpopulation, eigene ethische/Einwilligungsfragen, deutlich über private
+  Testaufnahmen hinaus) — beides erst relevant, wenn Schweregrad-Einordnung steht.
 
 ## Offene fundamentale Fragen (aus Konzeptphase, zu klären bevor Phase 2 beginnt)
 
