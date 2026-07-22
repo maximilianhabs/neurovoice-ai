@@ -17,7 +17,8 @@ from core.audio import (
     phonation_features,
     prosody_features,
 )
-from core.plots import intensity_figure, spectrogram_figure, waveform_figure
+from core.plots import gauge_figure, intensity_figure, radar_figure, spectrogram_figure, waveform_figure
+from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones, verdict_for_value
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 # Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
@@ -44,6 +45,11 @@ def _load_cached_transcript(recording) -> dict | None:
 def _save_transcript_cache(recording, transcript: dict) -> None:
     with open(_transcript_cache_path(recording), "w", encoding="utf-8") as f:
         json.dump(transcript, f, ensure_ascii=False, indent=2)
+
+
+def _fmt(value, decimals=2):
+    return f"{value:.{decimals}f}" if value is not None else "–"
+
 
 st.set_page_config(page_title="NeuroVoice AI — Analyse-Dashboard", layout="wide", page_icon="🎙️")
 st.title("🎙️ NeuroVoice AI — Analyse-Dashboard")
@@ -82,108 +88,205 @@ col3.metric("Bittiefe", f"{stats['bit_depth']} bit")
 col4.metric("Kanäle", stats["channels"])
 col5.metric("Peak-Lautstärke", f"{stats['peak_dbfs']:.1f} dBFS")
 
-# --- Visualisierungen ---
+# --- 1. Visualisierungen (zuerst, siehe Normwert-Konzept 2026-07-21) ---
 sound = parselmouth.Sound(recording.path)
 
 st.subheader("Wellenform")
-st.pyplot(waveform_figure(sound), use_container_width=True)
+st.pyplot(waveform_figure(sound), width='stretch')
 
-st.subheader("Spektrogramm mit Tonhöhenverlauf (F0)")
-st.pyplot(spectrogram_figure(sound), use_container_width=True)
+st.subheader("Spektrogramm mit Tonhöhenverlauf (F0) + Formant-Tracks")
+st.pyplot(spectrogram_figure(sound), width='stretch')
 
 st.subheader("Lautstärkeverlauf")
-st.pyplot(intensity_figure(sound), use_container_width=True)
+st.pyplot(intensity_figure(sound), width='stretch')
 
-# --- Feature-Tabelle (Phonation, Stufe 1 aus docs/backlog.md) ---
-st.subheader("Phonation-Features")
-
-if recording.task != "vokal":
-    st.info(
-        "⚠️ Jitter/Shimmer sind laut Literaturrecherche (docs/literatur_review.md) nur bei "
-        "**gehaltenem Vokal** zuverlässig — diese Aufnahme ist Task-Typ "
-        f"**„{recording.task}“**, die Werte unten sind entsprechend nur eingeschränkt aussagekräftig."
-    )
-
+# --- Alle Kennwerte einmal berechnen (Basis für Gauges, Tabelle und Glossar-Kontext) ---
 features = phonation_features(recording.path)
 formants = formant_features(recording.path)
 cpp = cpp_features(recording.path)
-
-rows = [
-    ("F0 Mittelwert", features["f0_mean_hz"], "Hz", "Mittlere Grundfrequenz (Tonhöhe)"),
-    ("F0 Standardabweichung", features["f0_sd_hz"], "Hz", "Tonhöhen-Variabilität (\"Monopitch\"-Maß)"),
-    ("Jitter (local)", features["jitter_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Grundfrequenz — nur bei gehaltenem Vokal zuverlässig"),
-    ("Shimmer (local)", features["shimmer_local_pct"], "%", "Zyklus-zu-Zyklus-Schwankung der Amplitude — nur bei gehaltenem Vokal zuverlässig"),
-    ("HNR (Mittelwert)", features["hnr_mean_db"], "dB", "Harmonics-to-Noise-Ratio (Stimmklangqualität)"),
-    ("CPPS (Stufe 6)", cpp["cpps_db"], "dB", "Cepstral Peak Prominence — Stimmklang-Alternative zu Jitter/Shimmer, robust bei Fließsprache/Lesetext"),
-    ("F1 Mittelwert", formants["f1_mean_hz"], "Hz", "1. Formant — korreliert mit Zungenhöhe (offen/geschlossen)"),
-    ("F2 Mittelwert", formants["f2_mean_hz"], "Hz", "2. Formant — korreliert mit Zungenposition (vorne/hinten)"),
-    ("F3 Mittelwert", formants["f3_mean_hz"], "Hz", "3. Formant — Klangfarbe/Artikulationsschärfe"),
-]
-df = pd.DataFrame(rows, columns=["Feature", "Wert", "Einheit", "Erklärung"])
-df["Wert"] = df["Wert"].apply(lambda v: f"{v:.2f}" if v is not None else "–")
-st.dataframe(df, use_container_width=True, hide_index=True)
-
-st.caption(
-    "Referenzwerte: Saarbrücken Voice Database (deutsch, 869 gesunde Sprecher:innen) — "
-    "siehe docs/literatur_review.md. Formanten sind Mittelwerte über die gesamte Aufnahme, "
-    "noch keine Vokalraum-Fläche (dafür braucht es mehrere unterschiedliche Vokale in einer "
-    "Aufnahme, siehe docs/backlog.md). CPPS ist — anders als Jitter/Shimmer — bewusst auch bei "
-    "Fließsprache/Lesetext aussagekräftig, aber stark von den gewählten Analyse-Parametern "
-    "abhängig (Fenstergrößen, Trendlinie) — Werte aus anderen Tools/Studien nicht ungeprüft als "
-    "Normwert übernehmen. Weitere Feature-Stufen (Prosodie/Artikulationssauberkeit) "
-    "folgen laut docs/backlog.md."
-)
-
-# --- Prosodie (Stufe 4 aus docs/backlog.md) ---
-st.subheader("Prosodie")
-
 prosody = prosody_features(recording.path)
-
-prosody_rows = [
-    ("Monopitch (F0-SD)", features["f0_sd_hz"], "Hz", "= F0-Standardabweichung oben — niedrige Werte können auf eine eintönige Sprechweise hindeuten"),
-    ("Monoloudness (Intensitäts-SD)", prosody["monoloudness_intensity_sd_db"], "dB", "Lautstärke-Variabilität — niedrige Werte können auf eine gleichbleibende, wenig modulierte Lautstärke hindeuten"),
-]
-prosody_df = pd.DataFrame(prosody_rows, columns=["Feature", "Wert", "Einheit", "Erklärung"])
-prosody_df["Wert"] = prosody_df["Wert"].apply(lambda v: f"{v:.2f}" if v is not None else "–")
-st.dataframe(prosody_df, use_container_width=True, hide_index=True)
-
-st.caption(
-    "Rhythmus (nPVI) erscheint weiter unten im Transkriptions-Bereich, da er die "
-    "Wort-Zeitstempel aus der Transkription braucht. Referenzwerte für Monopitch/Monoloudness "
-    "sind noch nicht hinterlegt (siehe docs/backlog.md, offene Frage zu Normwerten)."
-)
-
-# --- Artikulationssauberkeit (Stufe 5 aus docs/backlog.md) ---
-st.subheader("Artikulationssauberkeit")
-
-st.info(
-    "ℹ️ Erkennt akustisch **Verschluss-Löse-Muster** (kurzer Energieeinbruch + scharfer "
-    "Wiederanstieg), wie sie bei Plosiven (p/b, t/d, k/g) typisch sind — **keine phonetische "
-    "Erkennung einzelner Laute**. Ziel ist eine grobe Gradmesser-Kennzahl für "
-    "Artikulationspräzision (weniger/unschärfere/längere Verschlüsse können auf eingeschränkte "
-    "Zungen-/Lippenbeweglichkeit hindeuten), nicht die Identifikation, welcher Laut gemeint war."
-)
-
 articulation = articulation_features(recording.path)
+cached_transcript = _load_cached_transcript(recording)
+speech_metrics = None
+if cached_transcript is not None:
+    from core.speech_metrics import compute_speech_metrics
 
-art_rows = [
-    ("Anzahl erkannter Verschluss-Ereignisse", articulation["n_stop_events"], "", "Grobes Maß für artikulatorische Aktivität"),
-    ("Ø Verschlussdauer", articulation["mean_closure_duration_s"] * 1000 if articulation["mean_closure_duration_s"] else None, "ms", "Deutsch: Lenis ~5-20ms, Fortis ~40-60ms (Literatur) — längere Werte können auf unscharfe Artikulation hindeuten"),
-    ("Ø Burst-Schärfe", articulation["mean_burst_sharpness_db_s"], "dB/s", "Wie schnell der Pegel nach dem Verschluss wieder ansteigt — schwächere Werte = weniger scharfe Löseartikulation"),
-]
-art_df = pd.DataFrame(art_rows, columns=["Feature", "Wert", "Einheit", "Erklärung"])
-art_df["Wert"] = art_df["Wert"].apply(lambda v: f"{v:.1f}" if v is not None else "–")
-st.dataframe(art_df, use_container_width=True, hide_index=True)
+    speech_metrics = compute_speech_metrics(cached_transcript["words"], total_duration_s=stats["duration_s"])
 
+# --- 2. Werte auf einen Blick (Konzept 2026-07-21: hierarchisch nach Auswertbarkeit beim Lesetext) ---
+st.subheader("Werte auf einen Blick")
 st.caption(
-    "Noch keine Referenzwerte aus dysarthrischen Aufnahmen vorhanden — aktuell nur an "
-    "gesunden Testaufnahmen kalibriert (siehe docs/backlog.md). Werte über mehrere Takes "
-    "derselben Person/desselben Texts sind gut vergleichbar (Baseline), sagen aber noch "
-    "nichts über pathologische Abweichungen aus."
+    "Sortiert nach Auswertbarkeit beim Lesetext — unserem hauptsächlichen Aufnahme-Typ —, "
+    "nicht nur nach Literatur-Robustheit: Werte, die aus jeder Aufnahme berechenbar sind, "
+    "stehen groß und vorne. Werte, die einen gehaltenen Vokal brauchen, stehen klein und "
+    "zurückhaltend weiter unten, auch wenn sie in der Literatur gut belegt sind."
 )
 
-# --- Transkription + Sprechfluss (Chunk 3/4 aus docs/backlog.md) ---
-st.subheader("Transkription & Sprechfluss")
+st.markdown("**Immer auswertbar**")
+g1, g2, g3, g4, g5 = st.columns(5)
+
+with g1:
+    if speech_metrics and speech_metrics["net_speech_rate_wpm"] is not None:
+        lo, hi, zones = speech_rate_zones()
+        value = speech_metrics["net_speech_rate_wpm"]
+        st.pyplot(gauge_figure("Sprechrate", value, "WPM", lo, hi, zones), width='stretch')
+        _, verdict = verdict_for_value(value, lo, hi, zones)
+        st.caption(verdict)
+    else:
+        st.pyplot(
+            gauge_figure("Sprechrate", na=True, na_reason="Noch nicht transkribiert — siehe unten"),
+            width='stretch',
+        )
+
+with g2:
+    lo, hi, zones = hnr_zones()
+    value = features["hnr_mean_db"]
+    st.pyplot(gauge_figure("HNR", value, "dB", lo, hi, zones), width='stretch')
+    _, verdict = verdict_for_value(value, lo, hi, zones) if value is not None else (None, "–")
+    st.caption(f"{verdict} · eingeschränkt bei Fließsprache")
+
+with g3:
+    st.pyplot(gauge_figure("Monopitch (F0-SD)", features["f0_sd_hz"], "Hz", 0, 80), width='stretch')
+    st.caption("informativ, kein fester Normwert")
+
+with g4:
+    st.pyplot(
+        gauge_figure("Artikulationsschärfe", articulation["mean_burst_sharpness_db_s"], "dB/s", 100, 400),
+        width='stretch',
+    )
+    st.caption("experimentell, nur Eigenvergleich")
+
+with g5:
+    st.pyplot(gauge_figure("CPPS", cpp["cpps_db"], "dB", 0, 20), width='stretch')
+    st.caption("informativ, parameterabhängig")
+
+# --- Radar-Profil ---
+radar_axes, radar_values = [], []
+if speech_metrics and speech_metrics["net_speech_rate_wpm"] is not None:
+    lo, hi, _ = speech_rate_zones()
+    radar_axes.append("Sprechrate")
+    radar_values.append(max(0.0, min(1.0, (speech_metrics["net_speech_rate_wpm"] - lo) / (hi - lo))))
+lo, hi, _ = hnr_zones()
+radar_axes.append("HNR")
+radar_values.append(max(0.0, min(1.0, ((features["hnr_mean_db"] or 0) - lo) / (hi - lo))))
+radar_axes.append("Monopitch")
+radar_values.append(max(0.0, min(1.0, (features["f0_sd_hz"] or 0) / 80)))
+radar_axes.append("Artikulation")
+radar_values.append(max(0.0, min(1.0, (articulation["mean_burst_sharpness_db_s"] or 0) / 400)))
+
+if len(radar_axes) >= 3:
+    rc1, rc2 = st.columns([1, 1.4])
+    with rc1:
+        st.pyplot(radar_figure(radar_axes, radar_values), width='stretch')
+    with rc2:
+        st.markdown("**Profil auf einen Blick**")
+        st.caption(
+            "Ausgefülltes, symmetrisches Vieleck nahe außen = unauffällig in allen vier "
+            "Dimensionen. Keine Diagnose, nur Orientierung — Achsen sind normalisiert (0-1), "
+            "nicht direkt mit den Rohwerten oben vergleichbar."
+        )
+
+st.markdown("**Braucht gehaltenen Vokal** — bei Lesetext meist nicht auswertbar")
+s1, s2, s3 = st.columns(3)
+with s1:
+    st.pyplot(
+        gauge_figure("Jitter (local)", na=True, na_reason="Nur bei gehaltenem Vokal zuverlässig"),
+        width='stretch',
+    )
+with s2:
+    st.pyplot(
+        gauge_figure("Shimmer (local)", na=True, na_reason="Nur bei gehaltenem Vokal zuverlässig"),
+        width='stretch',
+    )
+with s3:
+    st.pyplot(
+        gauge_figure("Vokalraum-Fläche", na=True, na_reason="Braucht mehrere Vokale pro Aufnahme, noch nicht möglich"),
+        width='stretch',
+    )
+
+if recording.task != "vokal":
+    st.info(
+        "⚠️ Diese Aufnahme ist Task-Typ "
+        f"**„{recording.task}“** (kein gehaltener Vokal) — Jitter/Shimmer/VSA sind deshalb "
+        "oben bewusst als „nicht auswertbar“ markiert, statt eine irreführende Ampel zu zeigen."
+    )
+
+# --- 3. Tabellarische Übersicht ---
+st.subheader("Tabellarische Übersicht")
+st.caption("Alle Parameter dieser Aufnahme mit Erklärung und Referenzwert.")
+
+table_rows = [
+    ("Sprechrate (netto)",
+     f"{_fmt(speech_metrics['net_speech_rate_wpm'], 0)} WPM" if speech_metrics else "noch nicht transkribiert",
+     "Wörter pro Minute, bezogen auf die Gesamtdauer", "IReST Deutsch ø179 WPM (Vorlesen)", "immer"),
+    ("HNR", f"{_fmt(features['hnr_mean_db'])} dB",
+     "Verhältnis harmonischer Stimmklang zu Rauschanteil",
+     ">20 klar · 15–20 grenzwertig · <15 auffällig", "eingeschraenkt"),
+    ("F0 Mittelwert", f"{_fmt(features['f0_mean_hz'])} Hz", "Mittlere Tonhöhe der Stimme",
+     "geschlechtsabhängig (~85–155Hz M, ~165–255Hz W)", "immer"),
+    ("Monopitch (F0-SD)", f"{_fmt(features['f0_sd_hz'])} Hz", "Tonhöhen-Variabilität über die Aufnahme",
+     "kein fester Normwert — Richtung: niedrig = auffällig bei PD", "immer"),
+    ("Monoloudness", f"{_fmt(prosody['monoloudness_intensity_sd_db'])} dB",
+     "Lautstärke-Variabilität über die Aufnahme", "kein fester Normwert hinterlegt", "immer"),
+    ("Rhythmus (nPVI)", f"{_fmt(speech_metrics['rhythm_npvi'], 1)}" if speech_metrics else "noch nicht transkribiert",
+     "Variabilität aufeinanderfolgender Wortdauern", "kein klinischer Normwert (eher sprachtypologisch)", "immer"),
+    ("Pausen (Anzahl)", str(speech_metrics["pause_count"]) if speech_metrics else "noch nicht transkribiert",
+     "Anzahl Sprechpausen ≥250ms", "kein Normwert, textlängenabhängig", "immer"),
+    ("Flüssigkeits-Score", _fmt(speech_metrics["fluency_score"]) if speech_metrics else "noch nicht transkribiert",
+     "Anteil der Sprechspanne ohne auffällige Pausen", "eigene Heuristik, kein Normwert", "immer"),
+    ("Artikulationsschärfe",
+     f"{articulation['n_stop_events']} Ereign. · {_fmt(articulation['mean_burst_sharpness_db_s'], 0)} dB/s",
+     "Klarheit/Anzahl erkannter Verschlusslaute", "eigene Heuristik, nur Eigenvergleich über Takes", "immer"),
+    ("Formanten F1–F3",
+     f"{_fmt(formants['f1_mean_hz'], 0)} · {_fmt(formants['f2_mean_hz'], 0)} · {_fmt(formants['f3_mean_hz'], 0)} Hz",
+     "Vokaltrakt-Resonanzen (Zungenposition)", "kein Normwert ohne bekannte Vokal-Identität", "immer"),
+    ("CPPS", f"{_fmt(cpp['cpps_db'])} dB", "Alternatives Stimmklang-Maß, robuster bei Fließsprache",
+     "parameterabhängig, kein fixer Cutoff hinterlegt", "immer"),
+    ("Jitter (local)", f"{_fmt(features['jitter_local_pct'])} %",
+     "Tonhöhen-Perturbation von Zyklus zu Zyklus", "<1% normal (allg. Stimmklinik-Literatur)", "vokal"),
+    ("Shimmer (local)", f"{_fmt(features['shimmer_local_pct'])} %",
+     "Amplituden-Perturbation von Zyklus zu Zyklus", "<3–5% normal", "vokal"),
+    ("Vokalraum-Fläche (VSA)", "noch nicht möglich", "Wie unterschiedlich verschiedene Vokale klingen",
+     "braucht mehrere Vokale pro Aufnahme", "vokal"),
+]
+
+table_df = pd.DataFrame(table_rows, columns=["Parameter", "Wert", "Was es misst", "Referenz / Normwert", "fit"])
+table_df["Auswertbar bei"] = table_df["fit"].map(FIT_LABELS)
+table_df = table_df.drop(columns=["fit"])
+st.dataframe(table_df, width='stretch', hide_index=True)
+
+st.caption(
+    "Referenzwerte für Jitter/Shimmer/HNR/Sprechrate aus allgemeiner stimmklinischer "
+    "Literatur bzw. der IReST-Studie (siehe docs/literatur_review.md) — noch nicht aus der "
+    "Saarbrücker Voice Database projektspezifisch gezogen. CPPS-Werte sind stark "
+    "parameterabhängig (Fenstergrößen, Trendlinie) und nicht 1:1 mit anderen Tools vergleichbar."
+)
+
+# --- 4. Glossar ---
+st.subheader("Glossar")
+
+glossary = [
+    ("F0", "Grundfrequenz — wie oft die Stimmbänder pro Sekunde schwingen. Wird als Tonhöhe wahrgenommen."),
+    ("Formanten (F1, F2, F3)", "Resonanzfrequenzen des Vokaltrakts, die den Vokalklang formen. F1 hängt vor allem mit der Zungenhöhe zusammen, F2 mit der Zungenposition vorne/hinten, F3 mit der Klangschärfe."),
+    ("Jitter", "Wie stark die Tonhöhe von einem Stimmzyklus zum nächsten schwankt — nur bei gehaltenem Vokal zuverlässig messbar."),
+    ("Shimmer", "Wie stark die Lautstärke von einem Stimmzyklus zum nächsten schwankt — ebenfalls nur bei gehaltenem Vokal zuverlässig."),
+    ("HNR", "Harmonics-to-Noise-Ratio — Verhältnis von klarem, harmonischem Stimmklang zu Rauschanteil. Höher = klarere Stimme."),
+    ("CPP(S)", "Cepstral Peak Prominence (geglättet) — alternatives Stimmklang-Maß, das anders als Jitter/Shimmer auch bei fließender Sprache zuverlässig funktioniert."),
+    ("Monopitch", "Wie wenig sich die Tonhöhe über eine Äußerung verändert. Sehr geringe Variation kann auf eintönige Sprechweise hindeuten."),
+    ("Monoloudness", "Wie wenig sich die Lautstärke über eine Äußerung verändert."),
+    ("nPVI (Rhythmus)", "Normalisierter Pairwise Variability Index — misst, wie unterschiedlich lang aufeinanderfolgende Wörter sind. Hoch = abwechslungsreicher Rhythmus."),
+    ("Artikulationsschärfe", "Wie klar/scharf Verschlusslaute (p, t, k, b, d, g) gebildet werden — erkannt über kurze Energieeinbrüche mit anschließendem scharfem Anstieg."),
+    ("Vokalraum-Fläche (VSA)", "Wie unterschiedlich verschiedene Vokale (i, a, u) im Formant-Raum klingen. Braucht mehrere Vokale in einer Aufnahme."),
+    ("Fluency-Score", "Anteil der Sprechspanne, der ohne auffällig lange Pausen gesprochen wird."),
+]
+gl_cols = st.columns(3)
+for i, (term, definition) in enumerate(glossary):
+    with gl_cols[i % 3]:
+        st.markdown(f"**{term}**")
+        st.caption(definition)
+
+# --- 5. Transkription + Sprechfluss (Chunk 3/4 aus docs/backlog.md) ---
+st.subheader("Transkription & Sprechfluss (Detailansicht)")
 
 try:
     import core.transcription  # noqa: F401  -- nur um ImportError frueh + eindeutig zu fangen
@@ -198,8 +301,6 @@ if not transcription_available:
         "siehe docs/backlog.md, Chunk 5). Läuft aktuell nur in der lokalen Testumgebung."
     )
 else:
-    cached_transcript = _load_cached_transcript(recording)
-
     if cached_transcript is not None:
         transcript = cached_transcript
         st.caption("✅ Transkript aus dem Cache geladen (bereits einmal berechnet, kein erneutes Warten nötig).")
@@ -256,7 +357,7 @@ else:
 
         from core.speech_metrics import compute_speech_metrics
 
-        metrics = compute_speech_metrics(transcript["words"], total_duration_s=stats["duration_s"])
+        detail_metrics = compute_speech_metrics(transcript["words"], total_duration_s=stats["duration_s"])
         scores = [w["score"] for w in transcript["words"] if w.get("score") is not None]
         mean_confidence = sum(scores) / len(scores) if scores else None
         low_confidence_count = sum(1 for s in scores if s < CONFIDENCE_WARN_THRESHOLD)
@@ -266,27 +367,23 @@ else:
         c2.metric("Unsichere Wörter (<75%)", low_confidence_count)
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Wörter", metrics["n_words"])
-        m2.metric("Sprechrate (Netto)", f"{metrics['net_speech_rate_wpm']:.0f} Wörter/min" if metrics["net_speech_rate_wpm"] else "–")
-        m3.metric("Sprechrate (Artikulation)", f"{metrics['articulation_rate_wpm']:.0f} Wörter/min" if metrics["articulation_rate_wpm"] else "–")
-        m4.metric("Flüssigkeits-Score", f"{metrics['fluency_score']:.2f}" if metrics["fluency_score"] is not None else "–")
+        m1.metric("Wörter", detail_metrics["n_words"])
+        m2.metric("Sprechrate (Netto)", f"{detail_metrics['net_speech_rate_wpm']:.0f} Wörter/min" if detail_metrics["net_speech_rate_wpm"] else "–")
+        m3.metric("Sprechrate (Artikulation)", f"{detail_metrics['articulation_rate_wpm']:.0f} Wörter/min" if detail_metrics["articulation_rate_wpm"] else "–")
+        m4.metric("Flüssigkeits-Score", f"{detail_metrics['fluency_score']:.2f}" if detail_metrics["fluency_score"] is not None else "–")
 
         p1, p2, p3, p4 = st.columns(4)
-        p1.metric("Pausen (≥250ms)", metrics["pause_count"])
-        p2.metric("Ø Pausendauer", f"{metrics['mean_pause_duration_s']:.2f} s" if metrics["mean_pause_duration_s"] else "–")
-        p3.metric("Max. Pausendauer", f"{metrics['max_pause_duration_s']:.2f} s" if metrics["max_pause_duration_s"] else "–")
-        p4.metric("Rhythmus (nPVI)", f"{metrics['rhythm_npvi']:.1f}" if metrics["rhythm_npvi"] is not None else "–")
+        p1.metric("Pausen (≥250ms)", detail_metrics["pause_count"])
+        p2.metric("Ø Pausendauer", f"{detail_metrics['mean_pause_duration_s']:.2f} s" if detail_metrics["mean_pause_duration_s"] else "–")
+        p3.metric("Max. Pausendauer", f"{detail_metrics['max_pause_duration_s']:.2f} s" if detail_metrics["max_pause_duration_s"] else "–")
+        p4.metric("Rhythmus (nPVI)", f"{detail_metrics['rhythm_npvi']:.1f}" if detail_metrics["rhythm_npvi"] is not None else "–")
 
         with st.expander("Wort-Zeitstempel (Detailtabelle)"):
             words_df = pd.DataFrame(transcript["words"])
-            st.dataframe(words_df, use_container_width=True, hide_index=True)
+            st.dataframe(words_df, width='stretch', hide_index=True)
 
         st.caption(
             "Sprechrate/Pausen basieren auf Wort-Zeitstempeln aus der Transkription (WhisperX), "
             "nicht auf reiner akustischer Stille-Erkennung — präziser, da bekannt ist, WAS "
-            "zwischen den Pausen gesprochen wurde. Details: docs/backlog.md, Stufe 3 / Chunk 3. "
-            "Rhythmus (nPVI, Stufe 4): normalisierter Pairwise Variability Index über die "
-            "Wortdauern — hohe Werte = stark wechselnde Wortdauern (\"lebendiger\" Rhythmus), "
-            "niedrige Werte = gleichförmiger/eintöniger. Näherung auf Wortebene, da keine "
-            "Silbensegmentierung vorliegt."
+            "zwischen den Pausen gesprochen wurde. Details: docs/backlog.md, Stufe 3 / Chunk 3."
         )

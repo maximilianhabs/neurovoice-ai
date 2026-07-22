@@ -1,8 +1,11 @@
-"""Visualisierungen: Wellenform, Spektrogramm mit Pitch-/Intensitäts-Overlay."""
+"""Visualisierungen: Wellenform, Spektrogramm mit Pitch-/Intensitäts-Overlay, Normwert-Gauges."""
+
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
 import parselmouth
+from matplotlib.patches import Circle, Wedge
 
 
 def waveform_figure(sound: parselmouth.Sound):
@@ -62,5 +65,79 @@ def intensity_figure(sound: parselmouth.Sound):
     ax.set_xlabel("Zeit (s)")
     ax.set_ylabel("Intensität (dB)")
     ax.set_title("Lautstärkeverlauf")
+    fig.tight_layout()
+    return fig
+
+
+def gauge_figure(
+    label: str,
+    value: float | None = None,
+    unit: str = "",
+    lo: float = 0,
+    hi: float = 1,
+    zones: list[tuple[float, float, str]] | None = None,
+    na: bool = False,
+    na_reason: str = "",
+):
+    """Halbkreis-Gauge (Tacho-Stil), siehe Normwert-Konzept vom 2026-07-21.
+
+    `zones=None` und `na=False` => informative Nadel ohne Farbwertung (Tier B/C:
+    Richtung bekannt, aber kein harter Cutoff). `na=True` => grau/nicht auswertbar
+    (z.B. Jitter/Shimmer bei Lesetext-Aufnahmen).
+    """
+    fig, ax = plt.subplots(figsize=(3.0, 2.1), subplot_kw={"aspect": "equal"})
+    ax.set_xlim(-1.15, 1.15)
+    ax.set_ylim(-0.25, 1.15)
+    ax.axis("off")
+    ax.text(0, 1.05, label, ha="center", va="bottom", fontsize=9.5, fontweight="bold", wrap=True)
+
+    if na:
+        wedge = Wedge((0, 0), 1, 0, 180, width=0.28, facecolor="#a3adb8", alpha=0.3)
+        ax.add_patch(wedge)
+        ax.text(0, 0.35, "n/a", ha="center", va="center", fontsize=13, color="#7c8998")
+        ax.text(0, -0.05, na_reason, ha="center", va="top", fontsize=7, color="#7c8998", wrap=True)
+        fig.tight_layout()
+        return fig
+
+    if zones:
+        for f0, f1, color in zones:
+            theta0 = 180 - f0 * 180
+            theta1 = 180 - f1 * 180
+            ax.add_patch(Wedge((0, 0), 1, theta1, theta0, width=0.28, facecolor=color))
+    else:
+        ax.add_patch(Wedge((0, 0), 1, 0, 180, width=0.28, facecolor="#cfd6dd"))
+
+    frac = max(0.0, min(1.0, (value - lo) / (hi - lo))) if value is not None else 0.5
+    angle = math.radians(180 - frac * 180)
+    ax.plot([0, 0.7 * math.cos(angle)], [0, 0.7 * math.sin(angle)], color="#1b2530", linewidth=2.5, solid_capstyle="round")
+    ax.add_patch(Circle((0, 0), 0.045, color="#1b2530"))
+
+    value_text = f"{value:.1f}{(' ' + unit) if unit else ''}" if value is not None else "–"
+    ax.text(0, -0.08, value_text, ha="center", va="top", fontsize=12.5, fontweight="bold")
+
+    fig.tight_layout()
+    return fig
+
+
+def radar_figure(labels: list[str], values: list[float]):
+    """Radar-/Spinnennetz-Profil ueber mehrere normalisierte (0-1) Werte, siehe Normwert-Konzept."""
+    n = len(labels)
+    angles = [i / n * 2 * math.pi for i in range(n)]
+    angles += angles[:1]
+    vals = list(values) + [values[0]]
+
+    fig, ax = plt.subplots(figsize=(4.2, 4.2), subplot_kw={"projection": "polar"})
+    ax.set_theta_offset(math.pi / 2)
+    ax.set_theta_direction(-1)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, fontsize=8.5)
+    ax.set_ylim(0, 1)
+    ax.set_yticklabels([])
+    ax.spines["polar"].set_color("#dde3ea")
+    ax.grid(color="#dde3ea")
+
+    ax.plot(angles, vals, color="#2b6cb0", linewidth=2)
+    ax.fill(angles, vals, color="#2b6cb0", alpha=0.22)
+
     fig.tight_layout()
     return fig
