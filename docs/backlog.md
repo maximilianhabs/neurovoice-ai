@@ -376,6 +376,40 @@ statt dass alles über die feste Ordnerstruktur (`data/raw/<patient_id>/...`) l�
   nur eine Frage für später. Vor einer echten Umsetzung nochmal explizit durchdenken.
 - **Explizit nur Konzeptarbeit für jetzt** — kein Implementierungsauftrag.
 
+### Konkretisierung Stufe B (Konzept, 2026-07-22): Tailscale-Freigabe + 10s-Upload-Pipeline
+
+Nutzer-Präzisierung: Zugriff soll NICHT komplettes öffentliches Internet sein, sondern gezielt
+**einzelne Personen über Tailscale** — die bekommen Zugriff aufs Tool, aber nicht automatisch
+auf die anderen Heimnetz-Dienste (Immich, Paperless etc.).
+
+**Zugriffsmodell (zu prüfen)**: Tailscale bietet eine "Share"-Funktion, mit der einzelne
+Geräte/Nodes gezielt mit fremden Tailscale-Konten geteilt werden können, ohne die Person ins
+eigene Tailnet aufzunehmen (anders als "jeder im eigenen Tailnet erreicht alles"). Muss noch
+verifiziert werden, ob sich das so granular auf einen einzelnen Dienst/Port einschränken lässt
+oder nur auf ganze Geräte — falls nur ganze Geräte teilbar sind, wäre ein dediziertes,
+isoliertes Gerät/Container nur für NeuroVoice sauberer als das gesamte Beelink-Gerät zu teilen.
+
+**Upload-Pipeline-Skizze (Konzept, kein Code)**:
+1. `st.file_uploader` (WAV/M4A) statt/zusätzlich zur Ordner-Auswahl in der Sidebar
+2. **Dauer-Validierung**: Toleranzbereich um die Ziel-Dauer 10s (z.B. 7-13s) — außerhalb davon
+   klare Fehlermeldung statt stiller Fehlanalyse ("Bitte eine Aufnahme zwischen 7 und 13
+   Sekunden hochladen, aktuell: X Sekunden")
+3. **Task-Typ-Abfrage**: Bei eigenen Uploads ist (anders als bei der bisherigen Ordnerstruktur)
+   nicht bekannt, ob es ein Vokal/Lesetext/DDK-Task war — müsste aktiv erfragt werden (z.B.
+   Auswahlfeld), damit die Ampel-Einordnung (Tier A/B/"nur Vokal") korrekt angewendet wird und
+   nicht z.B. Jitter/Shimmer bei einem Lesetext-Upload fälschlich mit Ampel gezeigt wird
+4. Automatische Konvertierung + Verifikation (heutige `convert_and_verify.sh`-Logik direkt in
+   die App integriert statt SSH-Skript)
+5. Analyse mit den bestehenden Funktionen (`phonation_features()`, `formant_features()` etc.)
+   — technisch keine neue Analyse-Logik nötig, nur ein neuer Zugangsweg zu den Daten
+6. **Aufbewahrung bewusst anders als bei den eigenen Testaufnahmen**: Fremde Uploads NICHT
+   automatisch dauerhaft in `data/raw/` ablegen — eher temporär verarbeiten und nach der
+   Session löschen, außer die Person stimmt einer dauerhaften Speicherung aktiv zu (Konsens-
+   Frage, noch nicht ausformuliert)
+
+**Weiterhin offen**: exakte Formatliste, finaler Instruktionstext, Einwilligungstext vor
+Upload, ob überhaupt ein Klarname/Pseudonym abgefragt wird oder komplett anonym verarbeitet wird.
+
 ## Später (explizit nicht Teil des aktuellen Auftrags)
 
 - Whisper-Transkription
