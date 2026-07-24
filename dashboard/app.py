@@ -14,6 +14,7 @@ from core.audio import (
     formant_features,
     list_patients,
     list_recordings,
+    phonation_dynamics_features,
     phonation_features,
     prosody_features,
 )
@@ -106,6 +107,7 @@ formants = formant_features(recording.path)
 cpp = cpp_features(recording.path)
 prosody = prosody_features(recording.path)
 articulation = articulation_features(recording.path)
+dynamics = phonation_dynamics_features(recording.path)
 cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
 if cached_transcript is not None:
@@ -226,6 +228,20 @@ table_rows = [
      "geschlechtsabhängig (~85–155Hz M, ~165–255Hz W)", "immer"),
     ("Monopitch (F0-SD)", f"{_fmt(features['f0_sd_hz'])} Hz", "Tonhöhen-Variabilität über die Aufnahme",
      "kein fester Normwert — Richtung: niedrig = auffällig bei PD", "immer"),
+    ("F0 5./95. Perzentil",
+     f"{_fmt(dynamics['f0_p5_hz'], 0)}–{_fmt(dynamics['f0_p95_hz'], 0)} Hz",
+     "Streuung der Tonhöhe, robuster gegen Ausreißer als reine SD",
+     "kein fester Normwert hinterlegt", "immer"),
+    ("Pitch Slope",
+     f"{_fmt(dynamics['pitch_slope_hz_per_s'], 2)} Hz/s",
+     "Linearer Trend der Tonhöhe über die Zeit — möglicher Fatigue-Marker bei längeren Aufnahmen",
+     "kein Normwert; bei kurzen ~10s-Snippets eher verrauscht", "immer"),
+    ("Voice Breaks",
+     f"{dynamics['voice_breaks_count']} · {_fmt(dynamics['voice_breaks_degree_pct'], 1)}%"
+     if dynamics["voice_breaks_count"] is not None else "–",
+     "Anzahl/Anteil unterbrochener Stimmgebung (Praat-Standardmaß)",
+     "nur bei gehaltenem Vokal aussagekräftig — bei Lesetext durch normale Wortpausen/"
+     "stimmlose Konsonanten erwartbar hoch, keine Auffälligkeit", "vokal"),
     ("Monoloudness", f"{_fmt(prosody['monoloudness_intensity_sd_db'])} dB",
      "Lautstärke-Variabilität über die Aufnahme", "kein fester Normwert hinterlegt", "immer"),
     ("Rhythmus (nPVI)", f"{_fmt(speech_metrics['rhythm_npvi'], 1)}" if speech_metrics else "noch nicht transkribiert",
@@ -267,6 +283,9 @@ st.subheader("Glossar")
 
 glossary = [
     ("F0", "Grundfrequenz — wie oft die Stimmbänder pro Sekunde schwingen. Wird als Tonhöhe wahrgenommen."),
+    ("F0-Perzentile", "5. und 95. Perzentil der Tonhöhe über die Aufnahme — zeigt die Streuung robuster als die reine Standardabweichung, weniger anfällig für einzelne Ausreißer."),
+    ("Pitch Slope", "Linearer Trend der Tonhöhe über die Zeit einer Aufnahme. Ein fallender Trend über eine längere Äußerung kann auf stimmliche Ermüdung hindeuten."),
+    ("Voice Breaks", "Anzahl/Anteil an Stellen, an denen die Stimmgebung unterbrochen ist. Nur bei gehaltenem Vokal aussagekräftig — bei normaler Sprache durch Wortpausen und stimmlose Laute (s, f, ch) ohnehin häufig, ohne dass das pathologisch ist."),
     ("Formanten (F1, F2, F3)", "Resonanzfrequenzen des Vokaltrakts, die den Vokalklang formen. F1 hängt vor allem mit der Zungenhöhe zusammen, F2 mit der Zungenposition vorne/hinten, F3 mit der Klangschärfe."),
     ("Jitter", "Wie stark die Tonhöhe von einem Stimmzyklus zum nächsten schwankt — nur bei gehaltenem Vokal zuverlässig messbar."),
     ("Shimmer", "Wie stark die Lautstärke von einem Stimmzyklus zum nächsten schwankt — ebenfalls nur bei gehaltenem Vokal zuverlässig."),

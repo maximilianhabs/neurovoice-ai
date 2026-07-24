@@ -269,3 +269,50 @@ def cpp_features(path: str) -> dict:
         "Parabolic", 0.001, 0.05, "Straight", "Robust",
     )
     return {"cpps_db": float(cpps_db)}
+
+
+def phonation_dynamics_features(path: str) -> dict:
+    """Erweiterung zu Stufe 1 (Audit 2026-07-22): geht ueber die reine Momentaufnahme
+    (Mittelwert/SD) hinaus.
+
+    F0-Perzentile und Pitch Slope sind aus JEDER Aufnahme berechenbar (immer auswertbar).
+    Voice Breaks (Praats Standard-"Voice report") dagegen sind -- genau wie Jitter/Shimmer --
+    nur bei GEHALTENEM VOKAL sauber interpretierbar: bei Fliessprache erzeugen normale
+    Wortpausen und stimmlose Konsonanten (s, f, ch, ...) zwangslaeufig viele "Breaks", die
+    nichts mit einer pathologischen Stimmbandfunktion zu tun haben. Verifiziert an Take 3
+    (Lesetext): 24 Voice Breaks, 26% Anteil -- das ist bei Fliessprache erwartbar hoch und
+    NICHT als Auffaelligkeit zu werten (siehe docs/bugtracker.md-Prinzip Jitter/Shimmer).
+    """
+    sound = parselmouth.Sound(path)
+    pitch = sound.to_pitch()
+    f0_values = pitch.selected_array["frequency"]
+    voiced = f0_values[f0_values > 0]
+
+    f0_p5 = float(np.percentile(voiced, 5)) if len(voiced) else None
+    f0_p95 = float(np.percentile(voiced, 95)) if len(voiced) else None
+
+    # Pitch Slope: linearer Trend der F0-Kontur ueber die Zeit (Hz/s) -- Fatigue-Marker.
+    # Bei kurzen ~10s-Snippets ist der Trend vermutlich verrauscht/wenig aussagekraeftig,
+    # bei laengeren Freisprache-Aufnahmen aber sinnvoll (siehe docs/backlog.md).
+    times = pitch.xs()
+    voiced_mask = f0_values > 0
+    if voiced_mask.sum() >= 2:
+        slope, _ = np.polyfit(times[voiced_mask], f0_values[voiced_mask], 1)
+        pitch_slope_hz_per_s = float(slope)
+    else:
+        pitch_slope_hz_per_s = None
+
+    point_process = parselmouth.praat.call(sound, "To PointProcess (periodic, cc)", 75, 500)
+    report = parselmouth.praat.call(
+        [sound, pitch, point_process], "Voice report", 0, 0, 75, 500, 1.3, 1.6, 0.03, 0.45,
+    )
+    breaks_match = re.search(r"Number of voice breaks:\s*(\d+)", report)
+    degree_match = re.search(r"Degree of voice breaks:\s*([\d.]+)%", report)
+
+    return {
+        "f0_p5_hz": f0_p5,
+        "f0_p95_hz": f0_p95,
+        "pitch_slope_hz_per_s": pitch_slope_hz_per_s,
+        "voice_breaks_count": int(breaks_match.group(1)) if breaks_match else None,
+        "voice_breaks_degree_pct": float(degree_match.group(1)) if degree_match else None,
+    }
