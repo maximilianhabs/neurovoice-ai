@@ -121,7 +121,12 @@ reiner akustischer Pausenerkennung, weil das präziser ist (siehe dort).
 
 ### Stufe 2 — Spektralanalyse/Klangfarbe/Artikulationsort (Zunge, harter/weicher Gaumen)
 - [x] Formanten F1-F3 — im Dashboard umgesetzt (siehe Phase 2b oben), F1↔Zungenhöhe, F2↔Zungenposition vorne/hinten (siehe docs/literatur_review.md)
-- [ ] MFCCs (allgemeine Klangfarbe)
+- [x] **MFCCs (allgemeine Klangfarbe)** ✅ UMGESETZT (2026-07-22) — `mfcc_features()`, Praats
+      natives "To MFCC"-Kommando, nur stimmhafte Frames. **Wichtiger Befund**: MFCC 1-4
+      streuen zwischen den 3 Testaufnahmen deutlich mehr als andere Kennzahlen (z.B.
+      Formanten) — vermutlich Aufnahmebedingungen (Mikrofonabstand/Raumakustik), nicht echte
+      Sprechunterschiede. MFCCs sind literaturbekannt kanal-/mikrofonempfindlich — Werte
+      v.a. innerhalb derselben Session vergleichbar, im Dashboard entsprechend markiert.
 - [ ] Vowel Space Area / Formant-Ratios (mit Vorsicht — Literatur uneinheitlich, siehe Review)
 - [ ] Ort-der-Artikulation-Differenzierung bei Konsonanten (velar/harter+weicher Gaumen vs. alveolar/Zungenspitze, spektrale Bursts — siehe Literatur-Review)
 - [x] **Zeitaufgelöste Formantanalyse** ✅ UMGESETZT (2026-07-22) — `formant_dynamics_features()`
