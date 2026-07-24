@@ -8,8 +8,42 @@ Rate", "Duration of Pause Intervals" als etablierte PD-Marker).
 
 from __future__ import annotations
 
+import math
+
 DEFAULT_PAUSE_THRESHOLD_S = 0.25  # ab hier gilt eine Woertluecke als "echte" Pause, nicht nur normale Koartikulation
 MACRO_PAUSE_THRESHOLD_S = 0.5  # ab hier gilt eine Pause als "Makropause" statt "Mikropause" (Audit 2026-07-22)
+ENTROPY_BINS = 8  # Anzahl Histogramm-Klassen fuer die prosodische Entropie (max. Entropie = log2(8) = 3 bit)
+
+
+def _shannon_entropy_bits(values: list[float], n_bins: int = ENTROPY_BINS) -> float | None:
+    """Shannon-Entropie (bit) ueber ein Histogramm der uebergebenen Werte.
+
+    Hoehere Werte = gleichmaessiger ueber viele verschiedene Dauern verteilt
+    ("unvorhersehbarer" Rhythmus), niedrigere Werte = auf wenige aehnliche Dauern
+    konzentriert (vorhersehbarer/monotoner Rhythmus). Ergaenzt nPVI, das nur
+    aufeinanderfolgende Paare vergleicht, um eine Gesamtverteilungs-Sicht.
+    """
+    if len(values) < 2:
+        return None
+    lo, hi = min(values), max(values)
+    # Toleranzschwelle statt exaktem hi<=lo-Vergleich: Wort-Zeitstempel aus Fliesskomma-
+    # Arithmetik koennen bei "identischen" Dauern durch Rundungsrauschen um ~1e-16 streuen --
+    # ohne Toleranz wuerde das faelschlich als hohe Entropie durchschlagen (Bugfix 2026-07-22,
+    # verifiziert mit einer synthetischen Testreihe identischer Wortdauern).
+    if hi - lo < 1e-6:
+        return 0.0
+    bin_width = (hi - lo) / n_bins
+    counts = [0] * n_bins
+    for v in values:
+        idx = min(int((v - lo) / bin_width), n_bins - 1)
+        counts[idx] += 1
+    total = len(values)
+    entropy = 0.0
+    for c in counts:
+        if c > 0:
+            p = c / total
+            entropy -= p * math.log2(p)
+    return entropy
 
 
 def compute_speech_metrics(
@@ -47,6 +81,7 @@ def compute_speech_metrics(
             "macro_pause_count": 0,
             "mean_micro_pause_duration_s": None,
             "mean_macro_pause_duration_s": None,
+            "prosodic_entropy_bits": None,
         }
 
     speech_start = valid_words[0]["start"]
@@ -100,6 +135,10 @@ def compute_speech_metrics(
             pvi_diffs.append(abs(d1 - d2) / ((d1 + d2) / 2))
     rhythm_npvi = (100 * sum(pvi_diffs) / len(pvi_diffs)) if pvi_diffs else None
 
+    # Prosodische Entropie (Stufe 4, Audit 2026-07-22): ergaenzt nPVI (nur benachbarte Paare)
+    # um eine Gesamtverteilungs-Sicht auf die Wortdauern -- siehe _shannon_entropy_bits().
+    prosodic_entropy_bits = _shannon_entropy_bits(word_durations)
+
     return {
         "n_words": n_words,
         "net_speech_rate_wpm": net_speech_rate_wpm,
@@ -115,4 +154,5 @@ def compute_speech_metrics(
         "macro_pause_count": len(macro_pauses),
         "mean_micro_pause_duration_s": mean_micro_pause_duration_s,
         "mean_macro_pause_duration_s": mean_macro_pause_duration_s,
+        "prosodic_entropy_bits": prosodic_entropy_bits,
     }
