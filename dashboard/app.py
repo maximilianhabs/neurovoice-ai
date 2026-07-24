@@ -15,6 +15,7 @@ from core.audio import (
     formant_features,
     list_patients,
     list_recordings,
+    mfcc_features,
     phonation_dynamics_features,
     phonation_features,
     prosody_features,
@@ -110,6 +111,7 @@ prosody = prosody_features(recording.path)
 articulation = articulation_features(recording.path)
 dynamics = phonation_dynamics_features(recording.path)
 formant_dynamics = formant_dynamics_features(recording.path)
+mfcc = mfcc_features(recording.path)
 cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
 if cached_transcript is not None:
@@ -278,6 +280,12 @@ table_rows = [
      "kein Normwert, nur Eigenvergleich über Takes", "immer"),
     ("CPPS", f"{_fmt(cpp['cpps_db'])} dB", "Alternatives Stimmklang-Maß, robuster bei Fließsprache",
      "parameterabhängig, kein fixer Cutoff hinterlegt", "immer"),
+    ("MFCC 1-4 (Mittelwerte)",
+     f"{_fmt(mfcc['mfcc_1_mean'], 0)} · {_fmt(mfcc['mfcc_2_mean'], 0)} · "
+     f"{_fmt(mfcc['mfcc_3_mean'], 0)} · {_fmt(mfcc['mfcc_4_mean'], 0)}",
+     "Allgemeine Klangfarbe (Mel-Frequency Cepstral Coefficients) — ⚠️ empfindlich gegenüber "
+     "Mikrofonabstand/Raumakustik, v.a. innerhalb derselben Session vergleichbar",
+     "kein Normwert, kanal-/mikrofonabhängig", "immer"),
     ("Jitter (local)", f"{_fmt(features['jitter_local_pct'])} %",
      "Tonhöhen-Perturbation von Zyklus zu Zyklus", "<1% normal (allg. Stimmklinik-Literatur)", "vokal"),
     ("Shimmer (local)", f"{_fmt(features['shimmer_local_pct'])} %",
@@ -324,6 +332,7 @@ glossary = [
     ("Prosodische Entropie", "Wie vorhersehbar der Sprechrhythmus insgesamt ist (Shannon-Entropie über die Verteilung aller Wortdauern), nicht nur zwischen benachbarten Wörtern wie beim nPVI. Niedrig = monoton/gleichförmig, hoch = abwechslungsreich."),
     ("Artikulationsschärfe", "Wie klar/scharf Verschlusslaute (p, t, k, b, d, g) gebildet werden — erkannt über kurze Energieeinbrüche mit anschließendem scharfem Anstieg."),
     ("Voice Onset Time (VOT)", "Zeit zwischen der Lösung eines Verschlusslauts (z.B. bei p, t, k) und dem Einsetzen der Stimmbandschwingung danach. Im Deutschen meist kürzer/unaspirierter als im Englischen — die Verschlussdauer selbst gilt hier als aussagekräftiger."),
+    ("MFCC", "Mel-Frequency Cepstral Coefficients — Standardmaß für die allgemeine Klangfarbe eines Signals. Empfindlich gegenüber Aufnahmebedingungen (Mikrofonabstand, Raumakustik), deshalb v.a. innerhalb derselben Aufnahme-Session vergleichbar."),
     ("Vokalraum-Fläche (VSA)", "Wie unterschiedlich verschiedene Vokale (i, a, u) im Formant-Raum klingen. Braucht mehrere Vokale in einer Aufnahme."),
     ("Fluency-Score", "Anteil der Sprechspanne, der ohne auffällig lange Pausen gesprochen wird."),
 ]

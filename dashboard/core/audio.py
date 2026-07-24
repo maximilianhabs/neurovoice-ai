@@ -424,3 +424,52 @@ def phonation_dynamics_features(path: str) -> dict:
         "voice_breaks_count": int(breaks_match.group(1)) if breaks_match else None,
         "voice_breaks_degree_pct": float(degree_match.group(1)) if degree_match else None,
     }
+
+
+MFCC_N_COEFFS = 12
+
+
+def mfcc_features(path: str, n_coeffs: int = MFCC_N_COEFFS) -> dict:
+    """Stufe-2-Feature (Audit 2026-07-22): MFCCs (Mel-Frequency Cepstral Coefficients) --
+    allgemeine Klangfarben-Beschreibung, ergaenzt die formantbasierten Merkmale.
+
+    Nutzt Praats natives "To MFCC"-Kommando + `to_array()` fuer eine schnelle Matrix-
+    Extraktion (kein langsames Frame-fuer-Frame-Auslesen ueber einzelne Praat-Aufrufe).
+    Der 0. Koeffizient (Gesamtenergie) wird bewusst ausgelassen -- das deckt sich bereits
+    mit der bestehenden Monoloudness-Kennzahl (Intensitaets-SD, siehe prosody_features()),
+    keine Redundanz noetig. Nur stimmhafte Frames (ueber die Pitch-Kontur bestimmt) werden
+    beruecksichtigt, analog zu formant_dynamics_features() -- reduziert Kontamination durch
+    Stille/Hintergrundrauschen an den Aufnahmeraendern.
+
+    WICHTIGER VORBEHALT (verifiziert an allen 3 Testaufnahmen, 2026-07-22): MFCCs 1-4
+    streuen zwischen den drei unabhaengigen Lesungen desselben Texts deutlich mehr als
+    andere Kennzahlen in diesem Projekt (z.B. Formanten) -- das liegt vermutlich an
+    Aufnahmebedingungen (Mikrofonabstand/-ausrichtung, Raumakustik), nicht an echten
+    Sprechunterschieden. MFCCs sind literaturbekannt kanal-/mikrofonempfindlich (in der
+    ASR-Forschung wird das ueblicherweise mit "Cepstral Mean Normalization" kompensiert,
+    hier bewusst NICHT gemacht). Werte sind deshalb v.a. INNERHALB derselben Aufnahme-
+    Session vergleichbar, nicht unbedingt ueber Sessions mit unterschiedlichem Aufnahme-
+    Setup hinweg.
+    """
+    sound = parselmouth.Sound(path)
+    mfcc = parselmouth.praat.call(sound, "To MFCC", n_coeffs, 0.015, 0.005, 100, 100, 0)
+    arr = mfcc.to_array()  # shape (n_coeffs+1, n_frames); Zeile 0 = C0 (Energie), ausgelassen
+
+    pitch = sound.to_pitch()
+    pitch_times = pitch.xs()
+    voiced_pitch_times = pitch_times[pitch.selected_array["frequency"] > 0]
+
+    n_frames = arr.shape[1]
+    frame_times = np.array([mfcc.frame_number_to_time(i + 1) for i in range(n_frames)])
+    # Ein MFCC-Frame gilt als stimmhaft, wenn es nahe (< 5ms) an einem stimmhaften Pitch-Frame liegt.
+    voiced_mask = np.zeros(n_frames, dtype=bool)
+    if len(voiced_pitch_times) > 0:
+        for i, t in enumerate(frame_times):
+            voiced_mask[i] = np.min(np.abs(voiced_pitch_times - t)) < 0.005
+
+    means = {}
+    for c in range(1, n_coeffs + 1):
+        row = arr[c][voiced_mask]
+        row = row[np.isfinite(row)]
+        means[f"mfcc_{c}_mean"] = float(np.mean(row)) if len(row) else None
+    return means
