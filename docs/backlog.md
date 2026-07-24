@@ -282,17 +282,29 @@ Aufnahmen mit dem iPhone**, jede Aufgabe zielt auf einen anderen Teil der Analys
 - Bereits etabliert: "Nordwind und Sonne", erster Satz, ~10-12s (docs/lesetext_nordwind_sonne.md).
   Keine Änderung nötig, nur als dritte feste Aufgabe im Protokoll bestätigt.
 
-### Offene Fragen vor der Umsetzung
-- **Video vs. Audio**: Nutzer sprach von "Videoaufnahmen" — falls tatsächlich Video (nicht nur
-  Voice Memos/Audio) gewünscht ist, bräuchte die Pipeline einen zusätzlichen Schritt
-  (Audio-Spur aus Video extrahieren, z.B. `.mov`/`.mp4` → `.wav` per ffmpeg) UND es entstünde
-  die Möglichkeit, Lippen-/Zungenbewegung zukünftig auch visuell auszuwerten — das wäre aber
-  ein eigenständiges, deutlich größeres Vorhaben (Video-Analyse ist bisher gar nicht Teil des
-  Projekts). Muss vor der Umsetzung geklärt werden: reicht Audio, oder ist Video bewusst gewollt?
+### Klargestellt (2026-07-22): reines Audio, kein Video
+Nutzer hat bestätigt: **nur Audio**, kein Video-Modul. Die Video-Option (Audio-Extraktion +
+mögliche künftige visuelle Lippen-/Zungenanalyse) ist damit vom Tisch, nicht mehr offen.
+
+### Unterstützte Audioformate je Gerät (muss den Patient:innen klar kommuniziert werden)
+- **iPhone (Voice Memos App)**: Einstellung "Verlustfrei" → ALAC in `.m4a` (empfohlen,
+  unsere Standard-Annahme bisher). Einstellung "Komprimiert" → AAC in `.m4a` (funktioniert
+  technisch auch, aber nicht mehr verlustfrei — siehe docs/bugtracker.md BEFUND-02).
+- **Android (Standard-"Recorder"-Apps, z.B. Google/Samsung)**: Typischerweise AAC in `.m4a`
+  oder `.3gp`, geräteabhängig unterschiedlich. Unsere Pipeline ist ffmpeg-basiert und sollte
+  das technisch verarbeiten können — **aber bisher noch NIE mit einer echten
+  Android-Aufnahme getestet**. Vor jeder Zusage an Android-Nutzer:innen erst mit einer
+  realen Beispieldatei verifizieren (gleiches Vorgehen wie schon bei anderen
+  Format-Annahmen im Projekt — nicht einfach annehmen, sondern mit `ffprobe` prüfen).
+- **Allgemein**: Ziel-Formate für einen künftigen Upload sind WAV oder M4A (AAC/ALAC) —
+  finale, für Laien verständliche Formulierung noch offen.
+
+### Weitere offene Punkte
 - **Namensschema erweitern**: Aktuelles Schema (`task-vokal`, `task-lesetext`) müsste um
   `task-vokal-a/i/u` und `task-ddk-pa/ta/ka/pataka` ergänzt werden.
-- **Patienten-Instruktionstext**: Obige Entwürfe sind ein erster Wurf, noch nicht final
-  abgestimmt (Tonfall, exakte Wortwahl, evtl. mit Bebilderung/Audio-Beispiel für Laien).
+- **Patienten-Instruktionstext**: Obige Entwürfe (Aufgaben 1-3 + Geräte-/Formathinweis) sind
+  ein erster Wurf, noch nicht final abgestimmt (Tonfall, exakte Wortwahl, evtl. mit
+  Bebilderung/Audio-Beispiel für Laien).
 
 ## Self-Supervised-Learning-Embeddings (neue Initiative, Audit 2026-07-22)
 
