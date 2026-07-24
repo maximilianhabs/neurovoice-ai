@@ -286,6 +286,7 @@ glossary = [
     ("F0-Perzentile", "5. und 95. Perzentil der Tonhöhe über die Aufnahme — zeigt die Streuung robuster als die reine Standardabweichung, weniger anfällig für einzelne Ausreißer."),
     ("Pitch Slope", "Linearer Trend der Tonhöhe über die Zeit einer Aufnahme. Ein fallender Trend über eine längere Äußerung kann auf stimmliche Ermüdung hindeuten."),
     ("Voice Breaks", "Anzahl/Anteil an Stellen, an denen die Stimmgebung unterbrochen ist. Nur bei gehaltenem Vokal aussagekräftig — bei normaler Sprache durch Wortpausen und stimmlose Laute (s, f, ch) ohnehin häufig, ohne dass das pathologisch ist."),
+    ("Mikro-/Makropausen", "Sprechpausen nach Dauer unterschieden (Schwelle 500ms). Mikropausen entsprechen meist normalen Atem-/Wortgrenzen, Makropausen eher auffälligen Zögerungen oder Wortsuche."),
     ("Formanten (F1, F2, F3)", "Resonanzfrequenzen des Vokaltrakts, die den Vokalklang formen. F1 hängt vor allem mit der Zungenhöhe zusammen, F2 mit der Zungenposition vorne/hinten, F3 mit der Klangschärfe."),
     ("Jitter", "Wie stark die Tonhöhe von einem Stimmzyklus zum nächsten schwankt — nur bei gehaltenem Vokal zuverlässig messbar."),
     ("Shimmer", "Wie stark die Lautstärke von einem Stimmzyklus zum nächsten schwankt — ebenfalls nur bei gehaltenem Vokal zuverlässig."),
@@ -397,6 +398,20 @@ else:
         p3.metric("Max. Pausendauer", f"{detail_metrics['max_pause_duration_s']:.2f} s" if detail_metrics["max_pause_duration_s"] else "–")
         p4.metric("Rhythmus (nPVI)", f"{detail_metrics['rhythm_npvi']:.1f}" if detail_metrics["rhythm_npvi"] is not None else "–")
 
+        q1, q2 = st.columns(2)
+        q1.metric(
+            "Mikropausen (250-500ms)",
+            f"{detail_metrics['micro_pause_count']} · Ø {detail_metrics['mean_micro_pause_duration_s']:.2f}s"
+            if detail_metrics["mean_micro_pause_duration_s"] is not None
+            else f"{detail_metrics['micro_pause_count']}",
+        )
+        q2.metric(
+            "Makropausen (≥500ms)",
+            f"{detail_metrics['macro_pause_count']} · Ø {detail_metrics['mean_macro_pause_duration_s']:.2f}s"
+            if detail_metrics["mean_macro_pause_duration_s"] is not None
+            else f"{detail_metrics['macro_pause_count']}",
+        )
+
         with st.expander("Wort-Zeitstempel (Detailtabelle)"):
             words_df = pd.DataFrame(transcript["words"])
             st.dataframe(words_df, width='stretch', hide_index=True)
@@ -404,5 +419,8 @@ else:
         st.caption(
             "Sprechrate/Pausen basieren auf Wort-Zeitstempeln aus der Transkription (WhisperX), "
             "nicht auf reiner akustischer Stille-Erkennung — präziser, da bekannt ist, WAS "
-            "zwischen den Pausen gesprochen wurde. Details: docs/backlog.md, Stufe 3 / Chunk 3."
+            "zwischen den Pausen gesprochen wurde. Mikro-/Makropausen (Schwelle 500ms) können "
+            "auf unterschiedliche Ursachen hindeuten — Mikropausen eher normale Atem-/"
+            "Wortgrenzen, Makropausen eher auffällige Zögerungen. Details: docs/backlog.md, "
+            "Stufe 3 / Chunk 3."
         )

@@ -9,6 +9,7 @@ Rate", "Duration of Pause Intervals" als etablierte PD-Marker).
 from __future__ import annotations
 
 DEFAULT_PAUSE_THRESHOLD_S = 0.25  # ab hier gilt eine Woertluecke als "echte" Pause, nicht nur normale Koartikulation
+MACRO_PAUSE_THRESHOLD_S = 0.5  # ab hier gilt eine Pause als "Makropause" statt "Mikropause" (Audit 2026-07-22)
 
 
 def compute_speech_metrics(
@@ -42,6 +43,10 @@ def compute_speech_metrics(
             "total_pause_time_s": 0.0,
             "fluency_score": None,
             "rhythm_npvi": None,
+            "micro_pause_count": 0,
+            "macro_pause_count": 0,
+            "mean_micro_pause_duration_s": None,
+            "mean_macro_pause_duration_s": None,
         }
 
     speech_start = valid_words[0]["start"]
@@ -67,6 +72,14 @@ def compute_speech_metrics(
 
     mean_pause_duration_s = total_pause_time_s / len(real_pauses) if real_pauses else None
     max_pause_duration_s = max(real_pauses) if real_pauses else None
+
+    # Mikro-/Makropausen-Verteilung (Audit 2026-07-22): Pausen bislang nur als eine Kategorie
+    # gezaehlt -- Unterscheidung nach Dauer kann auf unterschiedliche Ursachen hindeuten
+    # (Mikropausen = normale Atem-/Wortgrenzen, Makropausen = auffaellige Zoegerungen/Suchen).
+    micro_pauses = [p for p in real_pauses if p < MACRO_PAUSE_THRESHOLD_S]
+    macro_pauses = [p for p in real_pauses if p >= MACRO_PAUSE_THRESHOLD_S]
+    mean_micro_pause_duration_s = sum(micro_pauses) / len(micro_pauses) if micro_pauses else None
+    mean_macro_pause_duration_s = sum(macro_pauses) / len(macro_pauses) if macro_pauses else None
 
     # Fluessigkeits-Score: Anteil der Sprechspanne, der tatsaechlich mit Sprechen (statt Pausen)
     # gefuellt ist. 1.0 = keine nennenswerten Pausen, niedrigere Werte = mehr/laengere Pausen
@@ -98,4 +111,8 @@ def compute_speech_metrics(
         "total_pause_time_s": total_pause_time_s,
         "fluency_score": fluency_score,
         "rhythm_npvi": rhythm_npvi,
+        "micro_pause_count": len(micro_pauses),
+        "macro_pause_count": len(macro_pauses),
+        "mean_micro_pause_duration_s": mean_micro_pause_duration_s,
+        "mean_macro_pause_duration_s": mean_macro_pause_duration_s,
     }
