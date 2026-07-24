@@ -140,9 +140,10 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
 - [x] Flüssigkeits-Score (Anteil der Sprechspanne ohne echte Pausen) — im Dashboard umgesetzt
 - [ ] Diadochokinetische Rate (separater Task "pa-ta-ka" nötig — jetzt als fixes Modul in der
       Task-Batterie vorgesehen, siehe "Task-Batterie" unten, nicht mehr nur offene Frage)
-- [ ] **Mikro-/Makropausen-Verteilung** (Audit 2026-07-22) — Pausen aktuell nur als eine Kategorie
-      (≥250ms) gezählt. Erweiterung: nach Dauer klassifizieren (z.B. Mikro <500ms, Makro ≥500ms)
-      und getrennt auswerten. Technisch einfach, `speech_metrics.py` erweitern.
+- [x] **Mikro-/Makropausen-Verteilung** (Audit 2026-07-22, umgesetzt 2026-07-22) — Pausen nach
+      Dauer klassifiziert (Schwelle 500ms): Mikropausen (normale Atem-/Wortgrenzen) vs.
+      Makropausen (auffällige Zögerungen/Wortsuche), getrennt ausgewertet in
+      `compute_speech_metrics()`. Verifiziert mit synthetischer Wortliste + headless gegen Take 3.
 - [ ] **Filled Pauses ("äh", "mhm") und Selbstkorrekturen/Wortabbrüche** (Audit 2026-07-22) —
       ⚠️ **Wichtiger Vorbehalt vor Zusage**: WhisperX/Whisper-Modelle neigen bekanntermaßen dazu,
       Füllwörter/Disfluencies beim Transkribieren zu glätten/wegzulassen (Trainingsdaten-bedingt) —
