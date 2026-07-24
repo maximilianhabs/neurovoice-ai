@@ -11,6 +11,7 @@ from core.audio import (
     articulation_features,
     basic_stats,
     cpp_features,
+    formant_dynamics_features,
     formant_features,
     list_patients,
     list_recordings,
@@ -108,6 +109,7 @@ cpp = cpp_features(recording.path)
 prosody = prosody_features(recording.path)
 articulation = articulation_features(recording.path)
 dynamics = phonation_dynamics_features(recording.path)
+formant_dynamics = formant_dynamics_features(recording.path)
 cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
 if cached_transcript is not None:
@@ -256,6 +258,14 @@ table_rows = [
     ("Formanten F1–F3",
      f"{_fmt(formants['f1_mean_hz'], 0)} · {_fmt(formants['f2_mean_hz'], 0)} · {_fmt(formants['f3_mean_hz'], 0)} Hz",
      "Vokaltrakt-Resonanzen (Zungenposition)", "kein Normwert ohne bekannte Vokal-Identität", "immer"),
+    ("Formant-Streuung (F1/F2-IQR)",
+     f"{_fmt(formant_dynamics['f1_iqr_hz'], 0)} · {_fmt(formant_dynamics['f2_iqr_hz'], 0)} Hz",
+     "Proxy für genutzten Vokalraum (kein Ersatz für echte Vokalraum-Fläche) — schmale Streuung "
+     "kann auf Zentralisierung hindeuten", "kein Normwert, nur Eigenvergleich über Takes", "immer"),
+    ("Formant-Geschwindigkeit (F1)",
+     f"{_fmt(formant_dynamics['f1_velocity_mean_hz_s'], 0)} Hz/s",
+     "Wie schnell sich F1 im zeitlichen Mittel ändert — Näherung für Zungen-/Kieferbeweglichkeit",
+     "kein Normwert, nur Eigenvergleich über Takes", "immer"),
     ("CPPS", f"{_fmt(cpp['cpps_db'])} dB", "Alternatives Stimmklang-Maß, robuster bei Fließsprache",
      "parameterabhängig, kein fixer Cutoff hinterlegt", "immer"),
     ("Jitter (local)", f"{_fmt(features['jitter_local_pct'])} %",
@@ -275,7 +285,11 @@ st.caption(
     "Referenzwerte für Jitter/Shimmer/HNR/Sprechrate aus allgemeiner stimmklinischer "
     "Literatur bzw. der IReST-Studie (siehe docs/literatur_review.md) — noch nicht aus der "
     "Saarbrücker Voice Database projektspezifisch gezogen. CPPS-Werte sind stark "
-    "parameterabhängig (Fenstergrößen, Trendlinie) und nicht 1:1 mit anderen Tools vergleichbar."
+    "parameterabhängig (Fenstergrößen, Trendlinie) und nicht 1:1 mit anderen Tools vergleichbar. "
+    "Formant-Streuung/-Geschwindigkeit sind zeitaufgelöste Annäherungen, kein Ersatz für eine "
+    "echte Vokalraum-Messung — nur stimmhafte, physiologisch plausible Frames werden "
+    "berücksichtigt (Praats Formant-Tracker kann sonst auf falsche Werte springen, siehe "
+    "docs/backlog.md)."
 )
 
 # --- 4. Glossar ---
@@ -288,6 +302,8 @@ glossary = [
     ("Voice Breaks", "Anzahl/Anteil an Stellen, an denen die Stimmgebung unterbrochen ist. Nur bei gehaltenem Vokal aussagekräftig — bei normaler Sprache durch Wortpausen und stimmlose Laute (s, f, ch) ohnehin häufig, ohne dass das pathologisch ist."),
     ("Mikro-/Makropausen", "Sprechpausen nach Dauer unterschieden (Schwelle 500ms). Mikropausen entsprechen meist normalen Atem-/Wortgrenzen, Makropausen eher auffälligen Zögerungen oder Wortsuche."),
     ("Formanten (F1, F2, F3)", "Resonanzfrequenzen des Vokaltrakts, die den Vokalklang formen. F1 hängt vor allem mit der Zungenhöhe zusammen, F2 mit der Zungenposition vorne/hinten, F3 mit der Klangschärfe."),
+    ("Formant-Streuung", "Wie stark F1/F2 über die Aufnahme hinweg variieren (Interquartilsabstand). Kein Ersatz für die klassische Vokalraum-Fläche (die feste Eckvokale i/a/u bräuchte), aber ein Hinweis darauf, wie viel vokalischer Raum überhaupt genutzt wird."),
+    ("Formant-Geschwindigkeit", "Wie schnell sich ein Formant (meist F1) über die Zeit ändert. Funktioniert ohne bekannte Vokal-Identität und dient als Näherung für Zungen-/Kieferbeweglichkeit."),
     ("Jitter", "Wie stark die Tonhöhe von einem Stimmzyklus zum nächsten schwankt — nur bei gehaltenem Vokal zuverlässig messbar."),
     ("Shimmer", "Wie stark die Lautstärke von einem Stimmzyklus zum nächsten schwankt — ebenfalls nur bei gehaltenem Vokal zuverlässig."),
     ("HNR", "Harmonics-to-Noise-Ratio — Verhältnis von klarem, harmonischem Stimmklang zu Rauschanteil. Höher = klarere Stimme."),

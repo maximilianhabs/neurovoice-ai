@@ -144,6 +144,92 @@ def formant_features(path: str) -> dict:
     }
 
 
+MAX_ADJACENT_FRAME_GAP_S = 0.03  # Formant-Frames weiter auseinander gelten als nicht direkt benachbart
+# Physiologisch plausible Bereiche fuer erwachsene Sprecher (grosszuegig, beide Geschlechter).
+# Noetig, weil Praats Formant-Tracker (to_formant_burg) gelegentlich auf falsche Spektralpeaks
+# "springt" (z.B. F1 faelschlich >1500Hz) -- verifiziert an Take 3: ~10% der Frames ausserhalb
+# dieses Bereichs, klar erkennbare Tracking-Fehler, keine echten Sprachwerte.
+F1_PLAUSIBLE_RANGE_HZ = (150, 1100)
+F2_PLAUSIBLE_RANGE_HZ = (500, 3500)
+
+
+def formant_dynamics_features(path: str) -> dict:
+    """Zeitaufgeloeste Formantanalyse (Audit 2026-07-22) -- Grundlage fuer Vokalzentralisierung
+    und Formant-Dynamik, die formant_features() (reiner Ganzaufnahme-Mittelwert) nicht liefern kann.
+
+    EHRLICHKEIT UEBER DIE GRENZEN: Ohne Phonem-/Vokal-Identifikation (wir haben nur Wort-
+    Zeitstempel, keine Silben-/Lautsegmentierung) ist dies KEIN Ersatz fuer die klassische
+    Vokalraum-Flaeche (VSA, feste Eckvokale i/a/u -- siehe docs/backlog.md, weiterhin nicht
+    moeglich). Stattdessen zwei einfachere, aber ehrliche Annaeherungen:
+
+    - Formant-Streuung (Dispersion) ueber alle stimmhaften Abschnitte: ein Proxy dafuer, wie
+      viel vokalischer Raum in der Aufnahme ueberhaupt genutzt wird. Schmale Streuung KANN auf
+      Zentralisierung hindeuten, ist aber kein direkter Ersatz fuer eine echte VSA-Messung.
+    - Formant-Geschwindigkeit (F1-/F2-Aenderung pro Zeit): wie schnell sich die Formanten
+      aendern, als Naeherung fuer Zungen-/Kieferbeweglichkeit -- funktioniert OHNE Vokal-Identitaet.
+
+    Nur stimmhafte Frames (ueber die Pitch-Kontur bestimmt) werden beruecksichtigt, da
+    Formant-Schaetzungen bei Stille/stimmlosen Lauten unzuverlaessig sind. Geschwindigkeiten
+    werden nur zwischen zeitlich direkt benachbarten Frames berechnet (siehe
+    MAX_ADJACENT_FRAME_GAP_S) -- sonst wuerde ein Sprung ueber eine stimmlose Luecke
+    faelschlich als schnelle Formant-Bewegung gezaehlt.
+    """
+    sound = parselmouth.Sound(path)
+    pitch = sound.to_pitch()
+    formant = sound.to_formant_burg()
+
+    times = pitch.xs()
+    f0_values = pitch.selected_array["frequency"]
+    voiced_times = times[f0_values > 0]
+
+    f1_lo, f1_hi = F1_PLAUSIBLE_RANGE_HZ
+    f2_lo, f2_hi = F2_PLAUSIBLE_RANGE_HZ
+
+    f1_list, f2_list, t_list = [], [], []
+    for t in voiced_times:
+        f1 = formant.get_value_at_time(1, t)
+        f2 = formant.get_value_at_time(2, t)
+        if (
+            f1 is not None and f2 is not None and not np.isnan(f1) and not np.isnan(f2)
+            and f1_lo <= f1 <= f1_hi and f2_lo <= f2 <= f2_hi
+        ):
+            f1_list.append(f1)
+            f2_list.append(f2)
+            t_list.append(t)
+
+    f1_arr = np.array(f1_list)
+    f2_arr = np.array(f2_list)
+    t_arr = np.array(t_list)
+
+    empty_result = {
+        "n_voiced_frames": len(f1_arr),
+        "f1_range_hz": None, "f2_range_hz": None,
+        "f1_iqr_hz": None, "f2_iqr_hz": None,
+        "f1_velocity_mean_hz_s": None, "f1_velocity_max_hz_s": None,
+        "f2_velocity_mean_hz_s": None,
+    }
+    if len(f1_arr) < 2:
+        return empty_result
+
+    f1_velocities, f2_velocities = [], []
+    for i in range(1, len(t_arr)):
+        dt = t_arr[i] - t_arr[i - 1]
+        if 0 < dt <= MAX_ADJACENT_FRAME_GAP_S:
+            f1_velocities.append(abs(f1_arr[i] - f1_arr[i - 1]) / dt)
+            f2_velocities.append(abs(f2_arr[i] - f2_arr[i - 1]) / dt)
+
+    return {
+        "n_voiced_frames": len(f1_arr),
+        "f1_range_hz": float(np.max(f1_arr) - np.min(f1_arr)),
+        "f2_range_hz": float(np.max(f2_arr) - np.min(f2_arr)),
+        "f1_iqr_hz": float(np.percentile(f1_arr, 75) - np.percentile(f1_arr, 25)),
+        "f2_iqr_hz": float(np.percentile(f2_arr, 75) - np.percentile(f2_arr, 25)),
+        "f1_velocity_mean_hz_s": float(np.mean(f1_velocities)) if f1_velocities else None,
+        "f1_velocity_max_hz_s": float(np.max(f1_velocities)) if f1_velocities else None,
+        "f2_velocity_mean_hz_s": float(np.mean(f2_velocities)) if f2_velocities else None,
+    }
+
+
 def prosody_features(path: str) -> dict:
     """Stufe-4-Features (siehe docs/backlog.md): Monoloudness via Parselmouth.
 
