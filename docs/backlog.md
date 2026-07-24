@@ -99,22 +99,25 @@ Wort-Zeitstempel, siehe Phase 2b Chunks). **Reorganisiert 2026-07-21**: Nutzerwu
 aber Stufe 3 nutzt jetzt bewusst die Wort-Zeitstempel aus der Transkription (Chunk 3) statt
 reiner akustischer Pausenerkennung, weil das präziser ist (siehe dort).
 
-### Stufe 1 — Phonation/Stimmbandarbeit, gehaltener Vokal ✅ SOLIDE BASIS, ERWEITERUNG OFFEN
+### Stufe 1 — Phonation/Stimmbandarbeit, gehaltener Vokal ✅ ERWEITERT (2026-07-22)
 - [x] F0 (Mittelwert, SD)
 - [x] Jitter
 - [x] Shimmer
 - [x] HNR/NHR
 - [x] CPPS (siehe Stufe 6)
 - [ ] Referenzwerte/Normalisierung nach Geschlecht (Saarbrücken Voice Database) noch nicht hinterlegt — Werte werden angezeigt, aber noch nicht eingeordnet ("normal" vs. "auffällig")
-- [ ] **F0-Perzentile (5./95.)** — Audit 2026-07-22: reine SD verpasst Ausreißer/Verteilungsform.
-      Technisch einfach (`numpy.percentile` auf die vorhandenen F0-Werte), kein neuer Task nötig.
-- [ ] **Pitch Slope (Fatigue-Marker)** — linearer Trend der F0-Kontur über die Zeit (lineare
-      Regression). Sinnvoll v.a. bei längeren Aufnahmen (Freisprache) — bei einem 10s-Lesetext-
-      Snippet ist der Trend vermutlich zu kurz, um Ermüdung sauber zu zeigen; ggf. längere
-      Aufnahmedauer für diesen speziellen Zweck nötig (siehe Aufnahme-Konzept unten).
-- [ ] **Voice Breaks (Stimmabrisse)** — Erkennung von Lücken in der F0-Kontur trotz vorhandener
-      Sprachenergie (Intensität > Schwelle, aber Pitch nicht erkennbar). Technisch machbar mit
-      vorhandenen Parselmouth-Objekten (Pitch + Intensity kombiniert), noch nicht implementiert.
+- [x] **F0-Perzentile (5./95.)** — `phonation_dynamics_features()`, robuster gegen Ausreißer als
+      reine SD. Verifiziert an allen 3 Takes (78-86Hz / 130-150Hz).
+- [x] **Pitch Slope (Fatigue-Marker)** — linearer Trend der F0-Kontur über die Zeit. Alle 3 Takes
+      zeigen konsistent negativen Trend (-1,17 bis -1,97 Hz/s) — reproduzierbares Muster, auch
+      wenn bei 10-12s-Snippets als Fatigue-Indikator noch unsicher (eher für längere
+      Freisprache-Aufnahmen gedacht).
+- [x] **Voice Breaks** — Praats Standard-"Voice report", `phonation_dynamics_features()`.
+      **Wichtiger Befund beim Implementieren**: wie Jitter/Shimmer nur bei gehaltenem Vokal
+      sauber interpretierbar — bei Fließsprache erzeugen normale Wortpausen/stimmlose
+      Konsonanten zwangsläufig viele "Breaks" (24 Ereignisse, 26% bei Take 3 — kein
+      Alarmsignal). Deshalb in der Tabelle als "nur bei gehaltenem Vokal" markiert, nicht als
+      primäre Ampel-Kennzahl.
 
 ### Stufe 2 — Spektralanalyse/Klangfarbe/Artikulationsort (Zunge, harter/weicher Gaumen)
 - [x] Formanten F1-F3 — im Dashboard umgesetzt (siehe Phase 2b oben), F1↔Zungenhöhe, F2↔Zungenposition vorne/hinten (siehe docs/literatur_review.md)
