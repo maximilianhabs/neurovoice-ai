@@ -473,3 +473,67 @@ def mfcc_features(path: str, n_coeffs: int = MFCC_N_COEFFS) -> dict:
         row = row[np.isfinite(row)]
         means[f"mfcc_{c}_mean"] = float(np.mean(row)) if len(row) else None
     return means
+
+
+PHRASE_GAP_THRESHOLD_S = 0.25  # ab hier gilt eine Stimmluecke als Phrasengrenze, nicht nur Konsonant
+MIN_PHRASE_DURATION_S = 0.3
+MIN_PHRASE_POINTS = 3
+FLAT_SLOPE_THRESHOLD_HZ_S = 5.0  # |Steigung| darunter gilt als "flach", nicht steigend/fallend
+
+
+def intonation_contour_features(path: str) -> dict:
+    """Stufe-4-Feature (Audit 2026-07-22): Intonationskontur pro Phrase statt nur ein
+    einziger Trend ueber die gesamte Aufnahme (siehe phonation_dynamics_features()
+    "Pitch Slope", das nur einen Gesamttrend liefert).
+
+    Segmentiert rein akustisch (ueber Luecken in der stimmhaften Pitch-Kontur, OHNE
+    Transkript-Abhaengigkeit -- funktioniert also auch ohne Chunk-5-Transkription) in
+    "Phrasen" und klassifiziert pro Phrase einen linearen Trend als steigend/fallend/flach.
+    Bewusst erster, einfacher Wurf: nur linearer Trend, keine Kruemmungs-/Formanalyse der
+    Kontur (das waere ein groesserer Ausbauschritt, siehe docs/backlog.md).
+    """
+    sound = parselmouth.Sound(path)
+    pitch = sound.to_pitch()
+    times = pitch.xs()
+    f0_values = pitch.selected_array["frequency"]
+
+    voiced_idx = np.where(f0_values > 0)[0]
+    if len(voiced_idx) < MIN_PHRASE_POINTS:
+        return {"n_phrases": 0, "pct_falling": None, "pct_rising": None, "pct_flat": None, "mean_phrase_slope_hz_s": None}
+
+    # Phrasengrenzen: Luecken zwischen aufeinanderfolgenden stimmhaften Frames, die groesser
+    # als PHRASE_GAP_THRESHOLD_S sind (Pause/laengere stimmlose Passage), nicht jede einzelne
+    # kurze Konsonanten-Unterbrechung.
+    phrase_bounds = [0]
+    for i in range(1, len(voiced_idx)):
+        gap = times[voiced_idx[i]] - times[voiced_idx[i - 1]]
+        if gap > PHRASE_GAP_THRESHOLD_S:
+            phrase_bounds.append(i)
+    phrase_bounds.append(len(voiced_idx))
+
+    slopes = []
+    for start, end in zip(phrase_bounds, phrase_bounds[1:]):
+        idx = voiced_idx[start:end]
+        if len(idx) < MIN_PHRASE_POINTS:
+            continue
+        phrase_times = times[idx]
+        if phrase_times[-1] - phrase_times[0] < MIN_PHRASE_DURATION_S:
+            continue
+        slope, _ = np.polyfit(phrase_times, f0_values[idx], 1)
+        slopes.append(float(slope))
+
+    if not slopes:
+        return {"n_phrases": 0, "pct_falling": None, "pct_rising": None, "pct_flat": None, "mean_phrase_slope_hz_s": None}
+
+    n = len(slopes)
+    n_falling = sum(1 for s in slopes if s < -FLAT_SLOPE_THRESHOLD_HZ_S)
+    n_rising = sum(1 for s in slopes if s > FLAT_SLOPE_THRESHOLD_HZ_S)
+    n_flat = n - n_falling - n_rising
+
+    return {
+        "n_phrases": n,
+        "pct_falling": 100 * n_falling / n,
+        "pct_rising": 100 * n_rising / n,
+        "pct_flat": 100 * n_flat / n,
+        "mean_phrase_slope_hz_s": float(np.mean(slopes)),
+    }

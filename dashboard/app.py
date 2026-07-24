@@ -13,6 +13,7 @@ from core.audio import (
     cpp_features,
     formant_dynamics_features,
     formant_features,
+    intonation_contour_features,
     list_patients,
     list_recordings,
     mfcc_features,
@@ -112,6 +113,7 @@ articulation = articulation_features(recording.path)
 dynamics = phonation_dynamics_features(recording.path)
 formant_dynamics = formant_dynamics_features(recording.path)
 mfcc = mfcc_features(recording.path)
+intonation = intonation_contour_features(recording.path)
 cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
 if cached_transcript is not None:
@@ -257,6 +259,12 @@ table_rows = [
      "kein Normwert, nur Eigenvergleich über Takes", "immer"),
     ("Pausen (Anzahl)", str(speech_metrics["pause_count"]) if speech_metrics else "noch nicht transkribiert",
      "Anzahl Sprechpausen ≥250ms", "kein Normwert, textlängenabhängig", "immer"),
+    ("Intonationskontur",
+     f"{intonation['n_phrases']} Phrasen · {_fmt(intonation['pct_falling'], 0)}% fallend · "
+     f"{_fmt(intonation['pct_rising'], 0)}% steigend" if intonation["n_phrases"] else "–",
+     "Tonhöhen-Trend pro Sprechphrase (rein akustisch segmentiert, kein Transkript nötig) — "
+     "erster einfacher Wurf: nur linearer Trend, keine Kurvenform",
+     "kein Normwert, kleine Fallzahl pro Aufnahme (nur 2-4 Phrasen)", "immer"),
     ("Flüssigkeits-Score", _fmt(speech_metrics["fluency_score"]) if speech_metrics else "noch nicht transkribiert",
      "Anteil der Sprechspanne ohne auffällige Pausen", "eigene Heuristik, kein Normwert", "immer"),
     ("Artikulationsschärfe",
@@ -333,6 +341,7 @@ glossary = [
     ("Artikulationsschärfe", "Wie klar/scharf Verschlusslaute (p, t, k, b, d, g) gebildet werden — erkannt über kurze Energieeinbrüche mit anschließendem scharfem Anstieg."),
     ("Voice Onset Time (VOT)", "Zeit zwischen der Lösung eines Verschlusslauts (z.B. bei p, t, k) und dem Einsetzen der Stimmbandschwingung danach. Im Deutschen meist kürzer/unaspirierter als im Englischen — die Verschlussdauer selbst gilt hier als aussagekräftiger."),
     ("MFCC", "Mel-Frequency Cepstral Coefficients — Standardmaß für die allgemeine Klangfarbe eines Signals. Empfindlich gegenüber Aufnahmebedingungen (Mikrofonabstand, Raumakustik), deshalb v.a. innerhalb derselben Aufnahme-Session vergleichbar."),
+    ("Intonationskontur", "Der Tonhöhen-Verlauf innerhalb einzelner Sprechphrasen (z.B. steigend am Satzanfang, fallend am Ende). Wird hier durch Pausen in der Stimmgebung abgegrenzt, nicht durch das Transkript."),
     ("Vokalraum-Fläche (VSA)", "Wie unterschiedlich verschiedene Vokale (i, a, u) im Formant-Raum klingen. Braucht mehrere Vokale in einer Aufnahme."),
     ("Fluency-Score", "Anteil der Sprechspanne, der ohne auffällig lange Pausen gesprochen wird."),
 ]
