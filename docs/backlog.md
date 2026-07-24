@@ -242,6 +242,58 @@ herhalten muss.
 **Nächster konkreter Schritt**: Aufnahme-Konzept (README.md) um Task-Typen 2 und 4 erweitern,
 inkl. konkretem Bildmaterial für die Bildbeschreibung (noch auszuwählen) und PATAKA-Anleitung.
 
+## Patienten-Testprotokoll mit 3 Aufgaben (Konzept, 2026-07-22)
+
+Konkretisierung der Task-Batterie-Module 1-3 zu einem tatsächlich nutzbaren Ablauf: die
+Person bekommt klare, unmissverständliche Anweisungen und erzeugt eigenständig **3 kurze
+Aufnahmen mit dem iPhone**, jede Aufgabe zielt auf einen anderen Teil der Analyse ab.
+**Reine Konzeptarbeit — keine Implementierung, kein neuer Code.**
+
+### Aufgabe 1 — Gehaltener Vokal
+- **Anweisung (Entwurf)**: "Atme normal ein und sprich dann 'AAAAA' in gleichbleibender
+  Lautstärke und Tonhöhe, bis du sanft ausatmest — ca. 5 Sekunden."
+- **Warum genau /a/**: Deckt sich mit der Saarbrücker Voice Database (SVD) — dort werden
+  exakt /a/, /i/, /u/ als gehaltene Vokale erhoben (siehe docs/literatur_review.md). Passung
+  zur SVD-Konvention macht die bislang offene Frage "Referenzwerte aus SVD ziehen" später
+  einfacher.
+- **Ausbaustufe**: Wenn zusätzlich /i/ und /u/ als kurze Wiederholung derselben Aufgabe
+  aufgenommen werden (3 statt 1 Vokal-Take), wird endlich die bislang blockierte **echte
+  Vokalraum-Fläche (VSA)** möglich — bisher immer als "nicht möglich, braucht mehrere
+  Vokale" vermerkt (siehe Stufe 2). Das wäre ein direkter Zusatznutzen dieses Protokolls.
+
+### Aufgabe 2 — Diadochokinese (DDK)
+- **Anweisung (Entwurf)**: "Sprich so schnell und gleichmäßig wie möglich nacheinander:
+  zuerst nur 'pa-pa-pa-pa...' (ca. 5s), dann nur 'ta-ta-ta-ta...' (ca. 5s), dann nur
+  'ka-ka-ka-ka...' (ca. 5s)."
+- **Wichtiger Design-Punkt**: **Einzelsilben getrennt** (pa / ta / ka), nicht nur die
+  kombinierte Folge "pa-ta-ka" — jede Einzelsilbe testet einen anderen Artikulator isoliert:
+  - "pa-pa-pa" → Lippenschluss
+  - "ta-ta-ta" → Zungenspitze/harter Gaumen (alveolar)
+  - "ka-ka-ka" → Zungenrücken/weicher Gaumen (velar)
+  Das erlaubt später eine **artikulatorspezifische Schweregrad-Einordnung** statt nur einem
+  Gesamtwert — direkt nützlich für das Dysarthrie-Fernziel ("wo genau liegt das Problem").
+- **Optionale Ergänzung**: zusätzlich die klassische Wechselfolge "pa-ta-ka-pa-ta-ka..."
+  (ca. 10s) für die koordinierte Rate über alle drei Artikulationsorte hinweg (DDK-Rate,
+  siehe Stufe 5).
+- Führt zu bis zu 4 Kurzaufnahmen für diese eine Aufgabe (pa/ta/ka einzeln + kombiniert) —
+  falls das zu viel wird, ggf. nur die kombinierte Folge nehmen; Priorisierung noch offen.
+
+### Aufgabe 3 — Standardisierter Lesetext
+- Bereits etabliert: "Nordwind und Sonne", erster Satz, ~10-12s (docs/lesetext_nordwind_sonne.md).
+  Keine Änderung nötig, nur als dritte feste Aufgabe im Protokoll bestätigt.
+
+### Offene Fragen vor der Umsetzung
+- **Video vs. Audio**: Nutzer sprach von "Videoaufnahmen" — falls tatsächlich Video (nicht nur
+  Voice Memos/Audio) gewünscht ist, bräuchte die Pipeline einen zusätzlichen Schritt
+  (Audio-Spur aus Video extrahieren, z.B. `.mov`/`.mp4` → `.wav` per ffmpeg) UND es entstünde
+  die Möglichkeit, Lippen-/Zungenbewegung zukünftig auch visuell auszuwerten — das wäre aber
+  ein eigenständiges, deutlich größeres Vorhaben (Video-Analyse ist bisher gar nicht Teil des
+  Projekts). Muss vor der Umsetzung geklärt werden: reicht Audio, oder ist Video bewusst gewollt?
+- **Namensschema erweitern**: Aktuelles Schema (`task-vokal`, `task-lesetext`) müsste um
+  `task-vokal-a/i/u` und `task-ddk-pa/ta/ka/pataka` ergänzt werden.
+- **Patienten-Instruktionstext**: Obige Entwürfe sind ein erster Wurf, noch nicht final
+  abgestimmt (Tonfall, exakte Wortwahl, evtl. mit Bebilderung/Audio-Beispiel für Laien).
+
 ## Self-Supervised-Learning-Embeddings (neue Initiative, Audit 2026-07-22)
 
 WavLM/HuBERT/wav2vec2 liefern 512-1024-dimensionale Embeddings als "Blackbox-Signatur" für
