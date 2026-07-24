@@ -165,10 +165,13 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
 - [x] Monoloudness (SD Intensität) — `prosody_features()`, verifiziert an allen 3 Testaufnahmen (10,9-12,7 dB)
 - [x] Rhythmus (nPVI) — `speech_metrics.py`, Näherung auf Wortebene (keine Silbensegmentierung), Teil der Sprechfluss-Metriken
 - **Bug unterwegs gefunden+behoben**: Praat-Sentinel -300dB (Stille) verzerrte den ersten Monoloudness-Wert massiv (26,18 statt 12,75 dB) — betraf auch die Lautstärkekurve. Siehe docs/bugtracker.md BUG-11.
-- [ ] **Intonationskontur-Analyse** (Audit 2026-07-22) — aktuell wird F0-Variabilität nur als
-      EIN Wert (SD über die gesamte Aufnahme) betrachtet, der eigentliche Spannungsbogen
-      (steigend/fallend pro Phrase/Satz) fehlt. Braucht Segmentierung in Phrasen (z.B. über
-      Satzzeichen im Transkript oder Pausen-Grenzen) + Trend-/Krümmungsanalyse pro Segment.
+- [x] **Intonationskontur-Analyse** ✅ ERSTER WURF UMGESETZT (2026-07-22) —
+      `intonation_contour_features()`, Segmentierung rein akustisch über Lücken in der
+      stimmhaften Pitch-Kontur (kein Transkript nötig, anders als ursprünglich angenommen),
+      linearer F0-Trend pro Phrase klassifiziert als steigend/fallend/flach. Verifiziert an
+      allen 3 Takes: 2-4 Phrasen, überwiegend fallender Trend (konsistent mit dem bereits
+      gefundenen negativen Gesamt-Pitch-Slope). **Bewusst nur erster Wurf**: linearer Trend,
+      keine Krümmungsanalyse — das wäre ein größerer Ausbauschritt, noch offen.
 - [x] **Prosodische Entropie** ✅ UMGESETZT (2026-07-22) — Shannon-Entropie über die
       Wortdauer-Verteilung (`_shannon_entropy_bits()`), ergänzt nPVI um eine
       Gesamtverteilungs-Sicht statt nur benachbarter Wortpaare. Verifiziert an Take 3
