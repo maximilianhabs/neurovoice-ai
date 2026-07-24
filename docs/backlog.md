@@ -185,9 +185,11 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
 
 **Audit 2026-07-22: "größter blinder Fleck" des Projekts** — die physiologischen Zungen-/
 Lippenmotorik-Marker fehlen noch komplett:
-- [ ] **Voice Onset Time (VOT) bei Plosiven** — bislang bewusst durch Verschlussdauer ersetzt
-      (siehe oben, deutsch-spezifische Begründung), VOT selbst aber nie zusätzlich gemessen.
-      Als Zusatzmaß nachrüsten (VOT = Zeit zwischen Verschlusslösung und Stimmbandeinsatz).
+- [x] **Voice Onset Time (VOT) bei Plosiven** ✅ UMGESETZT (2026-07-22) — als Zusatzmaß zur
+      Verschlussdauer in `articulation_features()` ergänzt, baut auf der bestehenden
+      Burst-Erkennung auf (kein neuer Detektionsschritt nötig). Verifiziert an allen 3
+      Testaufnahmen: 23,6-33,1ms, 28-29 von 32-33 Ereignissen messbar — plausibel für
+      unaspirierte deutsche Plosive.
 - [x] **Vokalzentralisierung (Annäherung)** ✅ TEILWEISE UMGESETZT (2026-07-22) — echte
       Vokalzentralisierung bräuchte bekannte Vokal-Identität (welcher Zeitpunkt = welcher
       Vokal), die wir nicht haben. Als ehrliche Annäherung stattdessen "Formant-Streuung"
