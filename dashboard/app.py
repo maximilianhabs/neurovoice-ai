@@ -260,6 +260,11 @@ table_rows = [
     ("Artikulationsschärfe",
      f"{articulation['n_stop_events']} Ereign. · {_fmt(articulation['mean_burst_sharpness_db_s'], 0)} dB/s",
      "Klarheit/Anzahl erkannter Verschlusslaute", "eigene Heuristik, nur Eigenvergleich über Takes", "immer"),
+    ("Voice Onset Time (VOT)",
+     f"{_fmt(articulation['mean_vot_s'] * 1000, 1) if articulation['mean_vot_s'] else '–'} ms "
+     f"({articulation['vot_count']} Ereign.)",
+     "Zeit von Verschlusslösung bis Stimmbandeinsatz — Zusatzmaß zur Verschlussdauer",
+     "im Deutschen meist kurz/unaspiriert, kein etablierter Cutoff für Praat-Messung", "immer"),
     ("Formanten F1–F3",
      f"{_fmt(formants['f1_mean_hz'], 0)} · {_fmt(formants['f2_mean_hz'], 0)} · {_fmt(formants['f3_mean_hz'], 0)} Hz",
      "Vokaltrakt-Resonanzen (Zungenposition)", "kein Normwert ohne bekannte Vokal-Identität", "immer"),
@@ -318,6 +323,7 @@ glossary = [
     ("nPVI (Rhythmus)", "Normalisierter Pairwise Variability Index — misst, wie unterschiedlich lang aufeinanderfolgende Wörter sind. Hoch = abwechslungsreicher Rhythmus."),
     ("Prosodische Entropie", "Wie vorhersehbar der Sprechrhythmus insgesamt ist (Shannon-Entropie über die Verteilung aller Wortdauern), nicht nur zwischen benachbarten Wörtern wie beim nPVI. Niedrig = monoton/gleichförmig, hoch = abwechslungsreich."),
     ("Artikulationsschärfe", "Wie klar/scharf Verschlusslaute (p, t, k, b, d, g) gebildet werden — erkannt über kurze Energieeinbrüche mit anschließendem scharfem Anstieg."),
+    ("Voice Onset Time (VOT)", "Zeit zwischen der Lösung eines Verschlusslauts (z.B. bei p, t, k) und dem Einsetzen der Stimmbandschwingung danach. Im Deutschen meist kürzer/unaspirierter als im Englischen — die Verschlussdauer selbst gilt hier als aussagekräftiger."),
     ("Vokalraum-Fläche (VSA)", "Wie unterschiedlich verschiedene Vokale (i, a, u) im Formant-Raum klingen. Braucht mehrere Vokale in einer Aufnahme."),
     ("Fluency-Score", "Anteil der Sprechspanne, der ohne auffällig lange Pausen gesprochen wird."),
 ]

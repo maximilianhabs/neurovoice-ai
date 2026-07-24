@@ -273,10 +273,17 @@ def articulation_features(path: str) -> dict:
 
     Deutsche Besonderheit (siehe docs/literatur_review.md): Fortis/Lenis wird im
     Deutschen primaer ueber Verschlussdauer signalisiert, nicht ueber Aspiration/VOT --
-    macht Verschlussdauer als Kennzahl besonders relevant fuer diese Sprache.
+    macht Verschlussdauer als Kennzahl besonders relevant fuer diese Sprache. VOT wird
+    hier trotzdem zusaetzlich als Zusatzmass gemessen (Audit 2026-07-22), da es in der
+    internationalen Literatur trotzdem haeufig zitiert wird -- Zeit von der Verschluss-
+    loesung (Burst-Beginn) bis zum ersten stimmhaften Pitch-Frame danach.
     """
     sound = parselmouth.Sound(path)
     intensity = sound.to_intensity()
+    pitch = sound.to_pitch()
+    pitch_times = pitch.xs()
+    pitch_f0 = pitch.selected_array["frequency"]
+
     times = intensity.xs()
     values = intensity.values[0].copy()
 
@@ -285,7 +292,10 @@ def articulation_features(path: str) -> dict:
     values = values[valid]
 
     if len(values) < 10:
-        return {"n_stop_events": 0, "mean_closure_duration_s": None, "mean_burst_sharpness_db_s": None}
+        return {
+            "n_stop_events": 0, "mean_closure_duration_s": None, "mean_burst_sharpness_db_s": None,
+            "mean_vot_s": None, "vot_count": 0,
+        }
 
     dt = float(np.median(np.diff(times)))
 
@@ -295,6 +305,8 @@ def articulation_features(path: str) -> dict:
 
     closure_durations = []
     burst_sharpness = []
+    vot_durations = []
+    VOT_MAX_WINDOW_S = 0.15  # VOT ueberschreitet selbst bei starker Aspiration selten 100-150ms
 
     for idx in valley_idx:
         valley_val = values[idx]
@@ -326,10 +338,20 @@ def articulation_features(path: str) -> dict:
         closure_durations.append(closure_duration)
         burst_sharpness.append(rise / time_span)
 
+        # VOT: Zeit von der Verschlussloesung (Burst-Beginn, times[idx]) bis zum ersten
+        # stimmhaften Pitch-Frame danach, innerhalb eines physiologisch plausiblen Fensters.
+        release_time = times[idx]
+        window_mask = (pitch_times >= release_time) & (pitch_times <= release_time + VOT_MAX_WINDOW_S)
+        voiced_after = pitch_times[window_mask][pitch_f0[window_mask] > 0]
+        if len(voiced_after) > 0:
+            vot_durations.append(float(voiced_after[0] - release_time))
+
     return {
         "n_stop_events": len(closure_durations),
         "mean_closure_duration_s": float(np.mean(closure_durations)) if closure_durations else None,
         "mean_burst_sharpness_db_s": float(np.mean(burst_sharpness)) if burst_sharpness else None,
+        "mean_vot_s": float(np.mean(vot_durations)) if vot_durations else None,
+        "vot_count": len(vot_durations),
     }
 
 
