@@ -164,9 +164,12 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
       EIN Wert (SD über die gesamte Aufnahme) betrachtet, der eigentliche Spannungsbogen
       (steigend/fallend pro Phrase/Satz) fehlt. Braucht Segmentierung in Phrasen (z.B. über
       Satzzeichen im Transkript oder Pausen-Grenzen) + Trend-/Krümmungsanalyse pro Segment.
-- [ ] **Prosodische Entropie** (Audit 2026-07-22) — Shannon-Entropie über die Wortdauer- oder
-      Pausendauer-Verteilung als Maß für rhythmische Vorhersehbarkeit. Ergänzt nPVI (das nur
-      aufeinanderfolgende Paare misst), noch nicht implementiert.
+- [x] **Prosodische Entropie** ✅ UMGESETZT (2026-07-22) — Shannon-Entropie über die
+      Wortdauer-Verteilung (`_shannon_entropy_bits()`), ergänzt nPVI um eine
+      Gesamtverteilungs-Sicht statt nur benachbarter Wortpaare. Verifiziert an Take 3
+      (2,50 bit). Bug beim Testen gefunden+behoben: Fließkomma-Rundungsrauschen bei nahezu
+      identischen Wortdauern führte zu künstlich hoher Entropie — Toleranzschwelle statt
+      exaktem Vergleich behebt das, siehe docs/bugtracker.md.
 
 ### Stufe 5 — Artikulationssauberkeit (Plosive/Konsonanten) ✅ ERSTE VERSION IM DASHBOARD (2026-07-21)
 - [x] **Verschlussdauer (Closure Duration) bei Plosiven statt VOT** — `articulation_features()`,

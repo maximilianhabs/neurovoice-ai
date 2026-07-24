@@ -50,6 +50,31 @@ Formant-Tracker können "falsche aber gültige" Zahlen liefern, die kein Filter 
 
 ---
 
+## BUG-13 — Prosodische Entropie durch Fließkomma-Rundungsrauschen verzerrt ✅ BEHOBEN
+
+**Symptom:** Beim Testen mit einer synthetischen Wortliste aus **identischen** Wortdauern
+(erwartete Entropie: 0.0) lieferte `_shannon_entropy_bits()` fälschlich 1,295 bit.
+
+**Root Cause:** Wortdauern wurden aus `start`/`end`-Fließkommazahlen berechnet
+(`i*0.5+0.3 - i*0.5`), die bei eigentlich identischen Werten durch Rundung um ~1e-16
+voneinander abwichen. Der exakte Vergleich `hi <= lo` griff deshalb nicht, die Funktion
+teilte die (eigentlich identischen) Werte per Histogramm mit einer astronomisch kleinen
+Bin-Breite auf viele Klassen auf — numerisch instabil, künstlich hohe Entropie.
+
+**Fix:** Toleranzschwelle (`hi - lo < 1e-6`) statt exaktem Vergleich — 1 Mikrosekunde liegt
+weit unter jeder sinnvollen Wort-Zeitstempel-Präzision aus WhisperX.
+
+**Verifiziert:** Identische Dauern → 0.0 (korrekt), variierte Dauern → 2.12 (unverändert
+korrekt), echte Take-3-Daten → 2.50 bit.
+
+**Lehre**: Bei jedem neuen Vergleich von Fließkomma-Werten, die aus unabhängig berechneten
+Differenzen stammen (hier: `end - start` für viele verschiedene Wörter), auf Rundungsrauschen
+prüfen — exakte Gleichheits-/Ordnungsvergleiche (`==`, `<=`) sind dafür ungeeignet, eine
+Toleranzschwelle ist nötig. Gefunden durch bewusstes Testen eines Edge-Case (identische
+Werte), nicht durch Zufall — solche Tests lohnen sich.
+
+---
+
 ## RANDNOTIZ-10 — Transkript-Cache-Dateien gehören `root` ⚠️ OFFEN (kosmetisch)
 
 **Symptom:** Neu angelegte `/derived/<patient_id>/*.transcript.json`-Dateien gehören auf dem
