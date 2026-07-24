@@ -266,15 +266,53 @@ subtile Muster, die klassische Akustik-Features verpassen könnten.
       bereits mehrfach vermieden haben (siehe docs/literatur_review.md "Diskrepanz automatisierte
       Metriken vs. klinischer Eindruck"). **Nicht vor echten Validierungsdaten umsetzen.**
 
+## Online-Verfügbarkeit & Self-Service-Upload (Konzept, Stand 2026-07-22)
+
+Nutzerwunsch: Die Applikation soll irgendwann "online" laufen. Zwei unterschiedliche Ausbaustufen,
+beide bewusst nur als Konzept/Idee festgehalten, noch nicht umzusetzen:
+
+### Stufe A — Fernzugriff auf die bestehende Beelink-Installation
+- Über Tailscale ist das im Grunde **bereits heute möglich** — jedes Gerät im eigenen Tailnet
+  erreicht `100.67.129.76:8501` von überall, nicht nur im Heimnetz. Kein Zusatzaufwand nötig,
+  nur bewusst machen, dass "online von unterwegs" schon funktioniert, solange Tailscale aktiv ist.
+- Alternative: Deployment auf dem **Hetzner-Server** (neuro-vibe.de, `deploy@178.105.255.72`),
+  wo bereits EEG-Navigator/CWCMS/EDF-Analyzer öffentlich (mit Passwortschutz) laufen.
+  ⚠️ **Ressourcen-Check (2026-07-22)**: Hetzner hat nur **3,7GB RAM, 2 Kerne, 6,7GB freien
+  Speicherplatz** (82% Disk belegt) — deutlich knapper als der Beelink (10GB RAM, 4 Kerne).
+  Unser Dashboard-Image ist mit WhisperX/Torch bereits 14,6GB groß und hat auf dem Beelink
+  ein 7GB-RAM-Limit gebraucht (siehe docs/bugtracker.md INFRA-BEFUND-09) — **das passt so
+  nicht auf den aktuellen Hetzner-Server**, weder RAM- noch Disk-mäßig. Optionen bei Bedarf:
+  (a) Hetzner-Server aufrüsten (mehr RAM/Disk), oder (b) nur die leichten Analyse-Features
+  (ohne WhisperX/Transkription) dort deployen und die Transkription weiter auf dem Beelink
+  laufen lassen, oder (c) beim Beelink-Deployment bleiben und nur Tailscale-Fernzugriff nutzen.
+
+### Stufe B — Self-Service-Upload für fremde Nutzer:innen (größerer Produkt-Pivot)
+Fernziel: Nutzer:innen laden ihre eigene iPhone-Aufnahme selbst hoch und bekommen die Analyse,
+statt dass alles über die feste Ordnerstruktur (`data/raw/<patient_id>/...`) läuft.
+
+- [ ] Klare Formatanforderungen kommunizieren, BEVOR hochgeladen wird (z.B. WAV oder ALAC/M4A
+      verlustfrei, 48kHz, Mono/Stereo — muss noch exakt festgelegt werden, orientiert an dem,
+      was `convert_and_verify.sh`/das Dashboard aktuell verarbeiten können)
+- [ ] Upload-UI (Streamlit `st.file_uploader` wäre der naheliegende Baustein) statt/zusätzlich
+      zur bisherigen Ordner-Auswahl
+- [ ] Serverseitige Validierung + automatische Konvertierung hochgeladener Dateien (heutige
+      `convert_and_verify.sh`-Logik müsste in die App selbst wandern statt nur als SSH-Skript
+      zu laufen)
+- ⚠️ **Datenschutz-Dimension wird hier deutlich größer**: Sobald fremde Personen eigene
+  Aufnahmen hochladen, wird die bisher zurückgestellte Frage nach echter Pseudonymisierung/
+  Zuordnungstabelle (siehe "Offene fundamentale Fragen" unten) sofort relevant — nicht mehr
+  nur eine Frage für später. Vor einer echten Umsetzung nochmal explizit durchdenken.
+- **Explizit nur Konzeptarbeit für jetzt** — kein Implementierungsauftrag.
+
 ## Später (explizit nicht Teil des aktuellen Auftrags)
 
 - Whisper-Transkription
 - OpenSMILE/eGeMAPS als Ergänzung/Vergleich zu Parselmouth
 - ML-Klassifikation / longitudinale Trend-Modelle
 - Lokales LLM für Verlaufsberichte
-- Web-App/UI für geführte Angehörigen-Nutzung
 - Externes USB-Mikro als Aufnahmequelle
-- Echte Pseudonymisierungs-/Zuordnungstabelle (sobald echte Testpersonen dazukommen)
+- Echte Pseudonymisierungs-/Zuordnungstabelle (sobald echte Testpersonen dazukommen — siehe auch
+  Self-Service-Upload-Konzept oben, das genau diese Frage akut machen würde)
 
 ## Sprache: Deutsch (Muttersprache) — Konsequenzen für die Pipeline
 
