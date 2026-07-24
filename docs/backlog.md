@@ -227,8 +227,19 @@ sprachstatistische oder semantische Auswertung. Braucht deutsches NLP-Tooling (z
 `de_core_news_*`-Modell), das noch nicht Teil des Projekts ist — eigener Technik-Stack, nicht
 einfach mit Parselmouth/WhisperX erledigt.
 
-- [ ] Lexikalische Diversität (MTLD, Type-Token-Ratio) — aus dem Transkript-Text ableitbar,
-      technisch überschaubar, sobald ein Tokenizer vorhanden ist
+- [x] **Lexikalische Diversität (TTR, MTLD)** ✅ UMGESETZT (2026-07-24) — neues Modul
+      `core/linguistics.py`, bewusst OHNE spaCy: nutzt die von WhisperX ohnehin schon
+      segmentierten Wörter als Tokens (regex-Normalisierung auf Kleinbuchstaben/
+      Satzzeichen-frei), kein neuer NLP-Stack nötig. TTR = Types/Tokens, MTLD bidirektional
+      (vorwärts+rückwärts gemittelt, Standardschwelle 0.72 nach McCarthy & Jarvis 2010).
+      Verifiziert headless via AppTest an allen 3 Testaufnahmen (identisch, da alle den
+      gleichen Nordwind-Satz vorlesen: TTR 0,96, MTLD 204,1) sowie an synthetischen
+      Testfällen (repetitiver Text → niedrige TTR/MTLD, komplett unterschiedliche Wörter →
+      hohe TTR/MTLD, Satzzeichen-/Groß-Kleinschreibung verfälscht TTR nicht). **Wichtiger
+      Vorbehalt, im Dashboard vermerkt**: MTLD wurde für deutlich längere Texte entwickelt
+      (Literatur empfiehlt >100 Wörter) — bei unseren ~10s-Snippets (~15-30 Wörter) bleibt
+      die TTR meist durchgehend über der Schwelle, wodurch MTLD auf einen Wert nahe der
+      Tokenzahl "deckelt" (kein Bug, bekannte Grenze des Verfahrens bei kurzen Texten).
 - [ ] Syntaktische Komplexität (mittlere Satzlänge/MLU, POS-Tag-Dichte) — braucht POS-Tagging
       (spaCy o.ä.), noch nicht evaluiert für Deutsch
 - [ ] Semantische Kohärenz / Informationsdichte — deutlich komplexer als die anderen beiden

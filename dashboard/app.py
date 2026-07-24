@@ -116,10 +116,13 @@ mfcc = mfcc_features(recording.path)
 intonation = intonation_contour_features(recording.path)
 cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
+lexical = None
 if cached_transcript is not None:
     from core.speech_metrics import compute_speech_metrics
+    from core.linguistics import lexical_diversity_features
 
     speech_metrics = compute_speech_metrics(cached_transcript["words"], total_duration_s=stats["duration_s"])
+    lexical = lexical_diversity_features(cached_transcript["words"])
 
 # --- 2. Werte auf einen Blick (Konzept 2026-07-21: hierarchisch nach Auswertbarkeit beim Lesetext) ---
 st.subheader("Werte auf einen Blick")
@@ -259,6 +262,12 @@ table_rows = [
      "kein Normwert, nur Eigenvergleich über Takes", "immer"),
     ("Pausen (Anzahl)", str(speech_metrics["pause_count"]) if speech_metrics else "noch nicht transkribiert",
      "Anzahl Sprechpausen ≥250ms", "kein Normwert, textlängenabhängig", "immer"),
+    ("Lexikalische Diversität (TTR / MTLD)",
+     f"{_fmt(lexical['ttr'], 2)} / {_fmt(lexical['mtld'], 1)}" if lexical and lexical["ttr"] is not None else "–",
+     "Wie viele unterschiedliche Wörter im Verhältnis zur Textlänge benutzt werden — MTLD "
+     "ist textlängen-robuster als die reine Type-Token-Ratio",
+     "kein Normwert; MTLD wurde für deutlich längere Texte entwickelt, bei ~10s-Snippets "
+     "nur eingeschränkt aussagekräftig", "immer"),
     ("Intonationskontur",
      f"{intonation['n_phrases']} Phrasen · {_fmt(intonation['pct_falling'], 0)}% fallend · "
      f"{_fmt(intonation['pct_rising'], 0)}% steigend" if intonation["n_phrases"] else "–",
@@ -342,6 +351,8 @@ glossary = [
     ("Voice Onset Time (VOT)", "Zeit zwischen der Lösung eines Verschlusslauts (z.B. bei p, t, k) und dem Einsetzen der Stimmbandschwingung danach. Im Deutschen meist kürzer/unaspirierter als im Englischen — die Verschlussdauer selbst gilt hier als aussagekräftiger."),
     ("MFCC", "Mel-Frequency Cepstral Coefficients — Standardmaß für die allgemeine Klangfarbe eines Signals. Empfindlich gegenüber Aufnahmebedingungen (Mikrofonabstand, Raumakustik), deshalb v.a. innerhalb derselben Aufnahme-Session vergleichbar."),
     ("Intonationskontur", "Der Tonhöhen-Verlauf innerhalb einzelner Sprechphrasen (z.B. steigend am Satzanfang, fallend am Ende). Wird hier durch Pausen in der Stimmgebung abgegrenzt, nicht durch das Transkript."),
+    ("Type-Token-Ratio (TTR)", "Anteil unterschiedlicher Wörter (Types) an allen Wörtern (Tokens) im Transkript. Sinkt mit zunehmender Textlänge allein durch Wiederholungen häufiger Wörter (z.B. Artikel) — deshalb bei unterschiedlich langen Aufnahmen nicht direkt vergleichbar."),
+    ("MTLD", "Measure of Textual Lexical Diversity — misst lexikalische Vielfalt textlängen-robuster als die reine TTR, indem der Text in Abschnitte bis zu einer TTR-Schwelle zerlegt wird. Wurde ursprünglich für deutlich längere Texte entwickelt als unsere ~10s-Snippets."),
     ("Vokalraum-Fläche (VSA)", "Wie unterschiedlich verschiedene Vokale (i, a, u) im Formant-Raum klingen. Braucht mehrere Vokale in einer Aufnahme."),
     ("Fluency-Score", "Anteil der Sprechspanne, der ohne auffällig lange Pausen gesprochen wird."),
 ]
