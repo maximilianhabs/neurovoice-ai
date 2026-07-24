@@ -11,6 +11,7 @@ from core.audio import (
     articulation_features,
     basic_stats,
     cpp_features,
+    ddk_rate_features,
     formant_dynamics_features,
     formant_features,
     intonation_contour_features,
@@ -114,6 +115,7 @@ dynamics = phonation_dynamics_features(recording.path)
 formant_dynamics = formant_dynamics_features(recording.path)
 mfcc = mfcc_features(recording.path)
 intonation = intonation_contour_features(recording.path)
+ddk = ddk_rate_features(recording.path)
 cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
 lexical = None
@@ -279,6 +281,12 @@ table_rows = [
     ("Artikulationsschärfe",
      f"{articulation['n_stop_events']} Ereign. · {_fmt(articulation['mean_burst_sharpness_db_s'], 0)} dB/s",
      "Klarheit/Anzahl erkannter Verschlusslaute", "eigene Heuristik, nur Eigenvergleich über Takes", "immer"),
+    ("Diadochokinese-Rate (DDK)",
+     f"{_fmt(ddk['ddk_rate_hz'], 1)} Hz · CV {_fmt(ddk['cycle_interval_cv'], 2)}" if ddk["n_cycles"] >= 3 else "–",
+     "Silbenzyklen pro Sekunde beim \"pa-ta-ka\"-Sprechen + Regelmäßigkeit der Zyklen "
+     "(Variationskoeffizient) — unregelmäßige Raten können auf ataktische Dysarthrie hindeuten",
+     "kein Normwert; bei Aufnahmen mit mehreren Teilblöcken (z.B. pa/ta/ka nacheinander "
+     "statt gemischt) verzerren Pausen zwischen Blöcken die Regelmäßigkeits-Kennzahl", "ddk"),
     ("Voice Onset Time (VOT)",
      f"{_fmt(articulation['mean_vot_s'] * 1000, 1) if articulation['mean_vot_s'] else '–'} ms "
      f"({articulation['vot_count']} Ereign.)",
@@ -349,6 +357,7 @@ glossary = [
     ("Prosodische Entropie", "Wie vorhersehbar der Sprechrhythmus insgesamt ist (Shannon-Entropie über die Verteilung aller Wortdauern), nicht nur zwischen benachbarten Wörtern wie beim nPVI. Niedrig = monoton/gleichförmig, hoch = abwechslungsreich."),
     ("Artikulationsschärfe", "Wie klar/scharf Verschlusslaute (p, t, k, b, d, g) gebildet werden — erkannt über kurze Energieeinbrüche mit anschließendem scharfem Anstieg."),
     ("Voice Onset Time (VOT)", "Zeit zwischen der Lösung eines Verschlusslauts (z.B. bei p, t, k) und dem Einsetzen der Stimmbandschwingung danach. Im Deutschen meist kürzer/unaspirierter als im Englischen — die Verschlussdauer selbst gilt hier als aussagekräftiger."),
+    ("Diadochokinese-Rate (DDK)", "Wie schnell und wie regelmäßig Silbenfolgen wie \"pa-ta-ka\" wiederholt werden können. Braucht den eigenen DDK-Task, nicht aus Lesetext/Spontansprache ableitbar. Unregelmäßige Zyklen (hoher Variationskoeffizient) gelten als möglicher Hinweis auf ataktische Sprechstörungen."),
     ("MFCC", "Mel-Frequency Cepstral Coefficients — Standardmaß für die allgemeine Klangfarbe eines Signals. Empfindlich gegenüber Aufnahmebedingungen (Mikrofonabstand, Raumakustik), deshalb v.a. innerhalb derselben Aufnahme-Session vergleichbar."),
     ("Intonationskontur", "Der Tonhöhen-Verlauf innerhalb einzelner Sprechphrasen (z.B. steigend am Satzanfang, fallend am Ende). Wird hier durch Pausen in der Stimmgebung abgegrenzt, nicht durch das Transkript."),
     ("Type-Token-Ratio (TTR)", "Anteil unterschiedlicher Wörter (Types) an allen Wörtern (Tokens) im Transkript. Sinkt mit zunehmender Textlänge allein durch Wiederholungen häufiger Wörter (z.B. Artikel) — deshalb bei unterschiedlich langen Aufnahmen nicht direkt vergleichbar."),

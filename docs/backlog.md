@@ -44,8 +44,14 @@ Feature-Umfang.
 - [x] Feature-Tabelle Stufe 1 (F0 Mittelwert/SD, Jitter, Shimmer, HNR) mit Warnhinweis bei Nicht-Vokal-Tasks
 - [x] Formant-Tracks (F1-F3) als Overlay im Spektrogramm + Mittelwerte in der Feature-Tabelle
       (Stufe 2 aus Phase 2), verifiziert an Take 3 (F1≈729Hz, F2≈1776Hz, F3≈2733Hz, plausibel)
-- [ ] Vokalraum-Plot (F1/F2) für Vokal-Task — braucht mehrere unterschiedliche Vokale in einer
-      Aufnahme, aktuelles Aufnahme-Konzept liefert nur einen gehaltenen Vokal pro Take
+- [ ] Vokalraum-Plot (F1/F2) für Vokal-Task — braucht mehrere unterschiedliche Vokale, jetzt
+      als getrennte Aufnahmen statt einer kombinierten Aufnahme (Konzept angepasst). **Stand
+      2026-07-24**: /i/ und /u/ liegen jetzt als eigene Testaufnahmen vor (`vokali`/`vokalu`,
+      formant_features() liefert für beide plausible F1/F2-Werte), aber /a/ fehlt weiterhin
+      als isolierte gehaltene Vokal-Aufnahme (bisherige "vokal"-Aufnahme stellte sich als
+      Lesetext heraus, siehe Projekt-Historie) — echte Vokalraum-Fläche (VSA) braucht alle
+      3 Eckvokale, bewusst NICHT mit nur 2 von 3 Punkten vorgetäuscht. Nächster Schritt:
+      eine gehaltene /a/-Aufnahme (`vokala`), dann VSA per Dreiecksformel umsetzbar.
 - [x] Transkript-Caching: Ergebnis wird nach `/derived/<patient_id>/*.transcript.json`
       geschrieben (getrennt vom read-only `/data`-Mount), läuft nur noch einmal pro Datei
       statt bei jedem Dashboard-Aufruf neu — Button "Neu transkribieren" überschreibt bewusst
@@ -156,8 +162,8 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
 - [x] Sprechrate (Wörter pro Minute, netto + artikulationsbezogen) — im Dashboard umgesetzt
 - [x] Pausenstatistik zwischen Wörtern (Anzahl, Ø/Max-Dauer) aus Wort-Zeitstempeln — im Dashboard umgesetzt
 - [x] Flüssigkeits-Score (Anteil der Sprechspanne ohne echte Pausen) — im Dashboard umgesetzt
-- [ ] Diadochokinetische Rate (separater Task "pa-ta-ka" nötig — jetzt als fixes Modul in der
-      Task-Batterie vorgesehen, siehe "Task-Batterie" unten, nicht mehr nur offene Frage)
+- [x] **Diadochokinetische Rate** ✅ UMGESETZT (2026-07-24) — siehe Stufe 5 unten
+      (`ddk_rate_features()`), jetzt mit echten DDK-Testaufnahmen möglich.
 - [x] **Mikro-/Makropausen-Verteilung** (Audit 2026-07-22, umgesetzt 2026-07-22) — Pausen nach
       Dauer klassifiziert (Schwelle 500ms): Mikropausen (normale Atem-/Wortgrenzen) vs.
       Makropausen (auffällige Zögerungen/Wortsuche), getrennt ausgewertet in
@@ -217,9 +223,18 @@ Lippenmotorik-Marker fehlen noch komplett:
 - [x] **Formant-Dynamik (F1-Geschwindigkeit)** ✅ UMGESETZT (2026-07-22) — `formant_dynamics_features()`
       in Stufe 2, F1-Änderungsrate (Hz/s) als Näherung für Zungen-/Kieferbeweglichkeit.
       Funktioniert ohne Vokal-Identität, da reine Geschwindigkeit gemessen wird, nicht Position.
-- [ ] **Diadochokinese-Rate (DDK-Zyklen/Sekunde, "pa-ta-ka")** — braucht den neuen DDK-Task aus
-      der Task-Batterie (siehe unten). Berechnung selbst wäre einfach (Silbenzyklen pro Sekunde
-      aus Intensitäts-/Burst-Erkennung, ähnlich der bestehenden Verschluss-Erkennung).
+- [x] **Diadochokinese-Rate (DDK-Zyklen/Sekunde, "pa-ta-ka")** ✅ UMGESETZT (2026-07-24) —
+      `ddk_rate_features()` in `core/audio.py`, nutzt bewusst dieselbe (unveränderte)
+      Verschluss-/Burst-Erkennung wie `articulation_features()` (Täler in der
+      Intensitätskontur, gleiche Prominence-/Plausibilitätsschwellen), liefert Rate
+      (Zyklen/Sekunde) UND Regelmäßigkeit (Variationskoeffizient der Zyklus-Intervalle —
+      unregelmäßige DDK-Raten gelten in der Literatur als möglicher Hinweis auf ataktische
+      Dysarthrie). Verifiziert an den neuen DDK-Testaufnahmen: `ddkgemischt` 3,4 Hz/CV 0,37,
+      `ddkeinzeln` 2,3 Hz/CV 0,69 (höherer CV plausibel erklärbar — die "einzeln"-Aufnahme
+      enthält mehrere Teilblöcke mit Pausen dazwischen statt eines durchgehenden Zyklus,
+      siehe Caveat in der Dashboard-Tabelle). Kontrollen (Lesetext ~2,8 Hz, Vokal-Aufnahmen
+      korrekt "–" wegen zu weniger Zyklen) unauffällig. Headless via AppTest über alle 8
+      Aufnahmen ohne Exception bestätigt.
 - [ ] **Koartikulation** — vage im Audit benannt, noch nicht konkretisiert. Müsste erst als
       messbare Kennzahl definiert werden (z.B. Formant-Übergangsrate zwischen Nachbarlauten),
       bevor es umsetzbar ist — vorerst nur als Idee vermerkt.

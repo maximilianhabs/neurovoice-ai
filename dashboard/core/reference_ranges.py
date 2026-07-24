@@ -24,11 +24,13 @@ NEUTRAL = "#9aa6b2"
 FIT_IMMER = "immer"
 FIT_EINGESCHRAENKT = "eingeschraenkt"
 FIT_VOKAL = "vokal"
+FIT_DDK = "ddk"
 
 FIT_LABELS = {
     FIT_IMMER: "immer auswertbar",
     FIT_EINGESCHRAENKT: "eingeschränkt aussagekräftig bei Fließsprache",
     FIT_VOKAL: "nur bei gehaltenem Vokal",
+    FIT_DDK: 'nur beim DDK-Task ("pa-ta-ka")',
 }
 
 

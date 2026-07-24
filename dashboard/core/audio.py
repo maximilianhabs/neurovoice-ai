@@ -537,3 +537,78 @@ def intonation_contour_features(path: str) -> dict:
         "pct_flat": 100 * n_flat / n,
         "mean_phrase_slope_hz_s": float(np.mean(slopes)),
     }
+
+
+MIN_DDK_CYCLES = 3  # unter 3 erkannten Zyklen ist eine Rate/Regelmaessigkeit nicht sinnvoll interpretierbar
+
+
+def ddk_rate_features(path: str) -> dict:
+    """Diadochokinese-Rate (Stufe 3, siehe docs/backlog.md) -- Silbenzyklen/Sekunde beim
+    "pa-ta-ka"-Task, jetzt umsetzbar seit den DDK-Testaufnahmen vom 2026-07-24.
+
+    Nutzt bewusst DIESELBE Verschluss-/Burst-Erkennung (Taeler in der Intensitaetskontur,
+    gleiche Prominence-/Plausibilitaetsschwellen) wie articulation_features(), NICHT ueber
+    einen Refactor geteilt -- die bestehende Erkennung ist an gesunden Aufnahmen kalibriert
+    und wird hier bewusst unangetastet gelassen (siehe feedback zu Vorsicht bei Aenderungen
+    an bereits verifizierter Signal-Erkennung), nur der Rueckgabewert unterscheidet sich
+    (Zyklus-Zeitpunkte statt nur Verschlussdauer/Burst-Schaerfe).
+
+    Liefert Rate (Zyklen/Sekunde, netto ueber die Gesamtdauer) UND eine Regelmaessigkeits-
+    Kennzahl (Variationskoeffizient der Zyklus-Intervalle) -- unregelmaessige DDK-Raten
+    sind in der Literatur ein moeglicher Hinweis auf ataktische Dysarthrie, nicht nur die
+    reine Rate.
+    """
+    sound = parselmouth.Sound(path)
+    intensity = sound.to_intensity()
+
+    times = intensity.xs()
+    values = intensity.values[0].copy()
+
+    valid = (~np.isnan(values)) & (values > -300)
+    times = times[valid]
+    values = values[valid]
+
+    empty = {
+        "n_cycles": 0, "duration_s": sound.duration, "ddk_rate_hz": None,
+        "mean_cycle_interval_s": None, "cycle_interval_cv": None,
+    }
+    if len(values) < 10:
+        return empty
+
+    dt = float(np.median(np.diff(times)))
+    valley_idx, _ = find_peaks(-values, prominence=8, distance=max(1, int(0.03 / dt)))
+
+    cycle_times = []
+    for idx in valley_idx:
+        valley_val = values[idx]
+        left = idx
+        while left > 0 and values[left - 1] <= valley_val + 3:
+            left -= 1
+        right = idx
+        while right < len(values) - 1 and values[right + 1] <= valley_val + 3:
+            right += 1
+        closure_duration = times[right] - times[left]
+        if not (0.01 <= closure_duration <= 0.3):
+            continue
+        cycle_times.append(float(times[idx]))
+
+    n_cycles = len(cycle_times)
+    duration_s = sound.duration
+    if n_cycles < MIN_DDK_CYCLES:
+        return {**empty, "n_cycles": n_cycles}
+
+    ddk_rate_hz = n_cycles / duration_s if duration_s > 0 else None
+
+    intervals = np.diff(cycle_times)
+    mean_interval = float(np.mean(intervals)) if len(intervals) else None
+    cycle_interval_cv = (
+        float(np.std(intervals) / mean_interval) if mean_interval and mean_interval > 0 else None
+    )
+
+    return {
+        "n_cycles": n_cycles,
+        "duration_s": duration_s,
+        "ddk_rate_hz": ddk_rate_hz,
+        "mean_cycle_interval_s": mean_interval,
+        "cycle_interval_cv": cycle_interval_cv,
+    }
