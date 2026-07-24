@@ -90,6 +90,26 @@ Aktuell keine funktionale Einschränkung, nur beim manuellen Aufräumen etwas um
 
 ---
 
+## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
+
+**Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,
+~11s) transkribiert sauber und vollständig ("Wir planen für unser Wochenende eine Wandertour...
+Mit Pausen für Verpflegung, Essen und Trinken.") — OHNE jedes Füllwort wie "äh"/"ähm", obwohl
+Spontansprache erfahrungsgemäß fast nie komplett füllwortfrei ist.
+
+**Einordnung:** Bestätigt exakt den bereits im Backlog vorab notierten Vorbehalt (Stufe 3,
+"Filled Pauses"): WhisperX/Whisper-Modelle sind darauf trainiert, Transkripte zu glätten, und
+lassen Disfluencies bekanntermaßen oft weg. Aus dieser einen Aufnahme lässt sich nicht sicher
+unterscheiden, ob (a) tatsächlich keine Füllwörter gesprochen wurden oder (b) welche gesprochen,
+aber vom Modell verschluckt wurden — ohne Referenz-Höraufnahme nicht auflösbar.
+
+**Konsequenz für Stufe 3 "Filled Pauses"**: Feature bleibt vorerst zurückgestellt. Bevor es
+umgesetzt wird, müsste entweder (a) eine Aufnahme mit bewusst deutlich übertriebenen Füllwörtern
+gemacht werden (Testfall: erkennt WhisperX sie überhaupt, wenn sie eindeutig da sind?), oder
+(b) ein WhisperX-Parameter/Prompt geprüft werden, der Disfluency-Glättung reduziert.
+
+---
+
 ## PROZESS-NOTIZ-08 — Docker-Testcontainer ohne Namen sorgen für Verwirrung ✅ ERLEDIGT (Vorsatz)
 
 **Symptom:** Ein isolierter WhisperX-Testcontainer (`docker run --rm ...` ohne `--name`) bekam

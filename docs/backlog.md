@@ -17,7 +17,16 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 - [x] Konvertierungsskript: `.m4a` (ALAC) → `.wav`, verlustfrei (Dekodierung, kein Re-Encoding) — `scripts/convert_and_verify.sh`, deployed auf Server
 - [x] Verifikationsskript: `ffprobe`-Check (Codec/Samplerate/Bittiefe) + Checksumme vor/nach Transfer — im selben Skript enthalten
 - [x] Erste Testaufnahme komplett durch die Pipeline (Vokal-Task, später zu Lesetext korrigiert, da tatsächlicher Inhalt der Nordwind-Satz war — Namenskonvention beim Umbenennen in Voice Memos auf Leerzeichen statt Unterstriche achten)
-- [ ] Restliche Testdatenbank auffüllen (aktuell: 1 von 5-6 Aufnahmen)
+- [x] **Testdatenbank erweitert (2026-07-24)** — 5 neue Kurzaufnahmen über Möbius Sync
+      integriert (unterwegs, Tailscale-Route `homeserver-fern`): Spontansprache (Wandertour-
+      Beschreibung), DDK kombiniert ("pataka" schnell wiederholt), DDK einzeln (pa/ta/ka
+      sequentiell in einer Aufnahme statt 3 getrennten Dateien — Wortliste zur Ort-der-
+      Artikulation-Differenzierung fehlt weiterhin), gehaltene Vokale /i/ und /u/ (ergänzen
+      das bereits vorhandene /a/ aus dem Lesetext). Dateien kamen mit unbrauchbaren Namen
+      an (z.B. "Pataka gesund.m4a") — vor Konvertierung ins Schema `<patient_id>_task-<typ>_
+      take<n>` umbenannt: `spontan`, `ddkgemischt`, `ddkeinzeln`, `vokali`, `vokalu`. Alle 8
+      Aufnahmen (3 alt + 5 neu) headless via AppTest ohne Exception durchlaufen. Restliche
+      offene Wortliste für Ort-der-Artikulation steht weiter aus.
 - [x] Lesetext festgelegt: "Nordwind und Sonne" (Standard-IPA-Referenztext, siehe docs/lesetext_nordwind_sonne.md)
 - [x] iPhone-Einstellung "Voice Memos → Audioqualität" auf "Verlustfrei" umgestellt (erste Testdatei war noch AAC/komprimiert, siehe homeserver-Repo LOG.md)
 
@@ -158,7 +167,9 @@ gesprochen wurde. Details/Status siehe Phase 2b, Chunk 3.
       Füllwörter/Disfluencies beim Transkribieren zu glätten/wegzulassen (Trainingsdaten-bedingt) —
       muss erst an einer echten Spontansprache-Aufnahme geprüft werden, ob das übliche
       Transkript sie überhaupt enthält, bevor wir das als zuverlässiges Feature versprechen.
-      Bislang keine Spontansprache-Aufnahme vorhanden (siehe Task-Batterie unten).
+      **Vorbehalt bestätigt (2026-07-24)**: erste echte Spontansprache-Aufnahme transkribiert
+      komplett füllwortfrei, obwohl das bei freier Rede untypisch ist — siehe
+      docs/bugtracker.md RANDNOTIZ-11. Feature bleibt deshalb weiter zurückgestellt.
 
 ### Stufe 4 — Prosodie/Sprechweise ✅ IM DASHBOARD UMGESETZT (2026-07-21)
 - [x] Monopitch-Maß (SD F0 über Äußerung) — wiederverwendet aus Stufe 1 (Phonation-Tabelle), keine doppelte Berechnung
