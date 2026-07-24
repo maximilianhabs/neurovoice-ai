@@ -28,6 +28,28 @@ Intensität=-300) — `NaN`-Filterung allein reicht nicht.
 
 ---
 
+## BUG-12 — Formant-Tracker "springt" auf physiologisch unmögliche Werte ✅ BEHOBEN
+
+**Symptom:** Erste Version von `formant_dynamics_features()` zeigte F1-Range bis 1837-1917 Hz
+über die drei Testaufnahmen — physiologisch unmöglich für einen einzelnen Sprecher (F1 liegt
+für erwachsene Stimmen praktisch nie über ~1000-1100 Hz). F1-Geschwindigkeit bis 180.000 Hz/s
+war ebenfalls absurd hoch.
+
+**Root Cause:** Praats `to_formant_burg()`-Tracker "springt" bei ca. 10% der stimmhaften Frames
+auf einen falschen Spektralpeak (bekanntes Verhalten bei Burg-LPC-basiertem Formant-Tracking,
+v.a. bei Rauschen/Übergängen) — verifiziert an Take 3: 95. Perzentil von F1 lag bei 1415 Hz,
+99. Perzentil bei 1735 Hz, klar erkennbare Tracking-Fehler statt echter Sprachwerte.
+
+**Fix:** Physiologisch plausible Wertebereiche als Filter ergänzt (F1: 150-1100 Hz,
+F2: 500-3500 Hz), Frames außerhalb werden verworfen. Nach dem Fix: F1-Range konsistent bei
+930-945 Hz über alle 3 Takes (vorher 1799-1917 Hz, stark streuend durch die Ausreißer).
+
+**Lehre**: Bei jeder neuen zeitaufgelösten Parselmouth-Kennzahl (nicht nur Sentinel-Werte wie
+bei BUG-11) auch auf physiologisch unplausible Werte prüfen, nicht nur auf NaN/Sentinel —
+Formant-Tracker können "falsche aber gültige" Zahlen liefern, die kein Filter automatisch fängt.
+
+---
+
 ## RANDNOTIZ-10 — Transkript-Cache-Dateien gehören `root` ⚠️ OFFEN (kosmetisch)
 
 **Symptom:** Neu angelegte `/derived/<patient_id>/*.transcript.json`-Dateien gehören auf dem

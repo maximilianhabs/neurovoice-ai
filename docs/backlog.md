@@ -124,12 +124,16 @@ reiner akustischer Pausenerkennung, weil das präziser ist (siehe dort).
 - [ ] MFCCs (allgemeine Klangfarbe)
 - [ ] Vowel Space Area / Formant-Ratios (mit Vorsicht — Literatur uneinheitlich, siehe Review)
 - [ ] Ort-der-Artikulation-Differenzierung bei Konsonanten (velar/harter+weicher Gaumen vs. alveolar/Zungenspitze, spektrale Bursts — siehe Literatur-Review)
-- ⚠️ **Wichtige Voraussetzung, Audit 2026-07-22**: `formant_features()` berechnet aktuell einen
-  **Mittelwert über die GESAMTE Aufnahme** (verifiziert im Code, 2026-07-22), nicht zeitaufgelöst
-  pro Vokal/Silbe. Das reicht nicht für Vokalzentralisierung oder Formant-Dynamik (siehe Stufe 5)
-  — beide brauchen echte Zeitreihen an konkreten Vokal-Zeitpunkten. Voraussetzung dafür: entweder
-  phonembasiertes Alignment (über die vorhandenen Wort-Zeitstempel hinaus) oder ein einfacherer
-  Ansatz über lokale Formant-Extrema. Noch nicht begonnen — **Blocker für mehrere Stufe-5-Punkte**.
+- [x] **Zeitaufgelöste Formantanalyse** ✅ UMGESETZT (2026-07-22) — `formant_dynamics_features()`
+      ergänzt den bisherigen Ganzaufnahme-Mittelwert um Formant-Streuung (F1/F2-IQR über
+      stimmhafte Frames, Proxy für genutzten Vokalraum) und Formant-Geschwindigkeit
+      (F1-Änderungsrate, Proxy für Zungen-/Kieferbeweglichkeit, funktioniert ohne Vokal-
+      Identität). **Bewusst KEIN Ersatz für echte Vokalraum-Fläche** (bräuchte feste Eckvokale
+      i/a/u) — ehrliche Annäherung, siehe Docstring. Bug unterwegs gefunden+behoben: Praats
+      Formant-Tracker "sprang" bei ~10% der Frames auf physiologisch unmögliche Werte
+      (F1 bis 1869Hz) — Plausibilitätsfilter (F1: 150-1100Hz, F2: 500-3500Hz) behebt das,
+      siehe docs/bugtracker.md BUG-12. Verifiziert an allen 3 Takes: F1-Range konsistent
+      930-945Hz nach Fix.
 
 ### Stufe 3 — Sprechrate/Pausen/Flüssigkeit **(= Speech-to-Text Chunk 3, siehe Phase 2b)**
 Nutzt die Wort-Zeitstempel aus der Transkription für granulare Pausenanalyse zwischen Wörtern,
@@ -181,16 +185,14 @@ Lippenmotorik-Marker fehlen noch komplett:
 - [ ] **Voice Onset Time (VOT) bei Plosiven** — bislang bewusst durch Verschlussdauer ersetzt
       (siehe oben, deutsch-spezifische Begründung), VOT selbst aber nie zusätzlich gemessen.
       Als Zusatzmaß nachrüsten (VOT = Zeit zwischen Verschlusslösung und Stimmbandeinsatz).
-- [ ] **Vokalzentralisierung (F1/F2-Shift Richtung Zentrum)** — Weiterentwicklung der bisher
-      blockierten Vowel-Space-Area-Idee. Wichtiger Unterschied: klassische VSA braucht 3 gezielt
-      gehaltene Eckvokale (i/a/u) — **Vokalzentralisierung ließe sich dagegen grundsätzlich schon
-      aus normalen Lesetext-Aufnahmen annähern**, indem man die Formantwerte an den tatsächlich
-      erkannten Vokal-Zeitpunkten sammelt (statt nur den Gesamt-Mittelwert zu bilden) und deren
-      Streuung/Zentroid-Distanz misst. Braucht die zeitaufgelöste Formant-Analyse aus Stufe 2
-      (aktuell Blocker).
-- [ ] **Formant-Dynamik (F1-Steigung, Zungenbeweglichkeit)** — ebenfalls blockiert durch die
-      fehlende zeitaufgelöste Formant-Verfolgung (Stufe 2). Als Kennzahl noch nicht extrahiert,
-      obwohl F1-F3 als Overlay im Spektrogramm bereits visuell zu sehen sind.
+- [x] **Vokalzentralisierung (Annäherung)** ✅ TEILWEISE UMGESETZT (2026-07-22) — echte
+      Vokalzentralisierung bräuchte bekannte Vokal-Identität (welcher Zeitpunkt = welcher
+      Vokal), die wir nicht haben. Als ehrliche Annäherung stattdessen "Formant-Streuung"
+      (F1/F2-IQR über alle stimmhaften Frames) in Stufe 2 umgesetzt — zeigt, wie viel
+      vokalischer Raum insgesamt genutzt wird, ohne zu wissen welcher Vokal wo war.
+- [x] **Formant-Dynamik (F1-Geschwindigkeit)** ✅ UMGESETZT (2026-07-22) — `formant_dynamics_features()`
+      in Stufe 2, F1-Änderungsrate (Hz/s) als Näherung für Zungen-/Kieferbeweglichkeit.
+      Funktioniert ohne Vokal-Identität, da reine Geschwindigkeit gemessen wird, nicht Position.
 - [ ] **Diadochokinese-Rate (DDK-Zyklen/Sekunde, "pa-ta-ka")** — braucht den neuen DDK-Task aus
       der Task-Batterie (siehe unten). Berechnung selbst wäre einfach (Silbenzyklen pro Sekunde
       aus Intensitäts-/Burst-Erkennung, ähnlich der bestehenden Verschluss-Erkennung).
