@@ -410,8 +410,20 @@ statt dass alles über die feste Ordnerstruktur (`data/raw/<patient_id>/...`) l�
 - [ ] Klare Formatanforderungen kommunizieren, BEVOR hochgeladen wird (z.B. WAV oder ALAC/M4A
       verlustfrei, 48kHz, Mono/Stereo — muss noch exakt festgelegt werden, orientiert an dem,
       was `convert_and_verify.sh`/das Dashboard aktuell verarbeiten können)
-- [ ] Upload-UI (Streamlit `st.file_uploader` wäre der naheliegende Baustein) statt/zusätzlich
-      zur bisherigen Ordner-Auswahl
+- [x] **Upload-UI, Phase A Schritt 1** ✅ UMGESETZT (2026-08-14) — Sidebar-Umschalter
+      "Vorhandene Aufnahmen" vs. "Datei hochladen (WAV)", `st.file_uploader` + neue Funktion
+      `save_uploaded_wav()` in `core/audio.py` (bewusst als reine, von Streamlit getrennte
+      Funktion, da AppTest `file_uploader`-Interaktion nicht unterstützt). Validiert: leere
+      Datei, ungültiges/kein WAV, >25MB, Pfad-Traversal im Dateinamen (sanitisiert) — alle
+      4 Fehlerfälle + Erfolgsfall isoliert getestet. Uploads landen in eigenem Namespace
+      `derived/_uploads/` (NICHT im read-only `/data`-Mount, NICHT vermischt mit echten
+      Testaufnahmen). Task-Typ ist bei Uploads noch `"unbekannt"` (nutzt den bereits
+      bestehenden Fallback aus `list_recordings()`) — echte Task-Typ-Abfrage ist der nächste
+      Schritt. Regressionstest: alle 8 bestehenden Aufnahmen weiterhin ohne Exception via
+      AppTest, End-to-End-Test (Upload → basic_stats/phonation_features) auf echter Datei
+      erfolgreich, Daten bit-identisch nach Upload-Roundtrip. Ein kosmetischer Bug beim
+      Testen gefunden+behoben (Einheiten-Mismatch in der Größenlimit-Fehlermeldung, siehe
+      docs/bugtracker.md BUG-14).
 - [ ] Serverseitige Validierung + automatische Konvertierung hochgeladener Dateien (heutige
       `convert_and_verify.sh`-Logik müsste in die App selbst wandern statt nur als SSH-Skript
       zu laufen)

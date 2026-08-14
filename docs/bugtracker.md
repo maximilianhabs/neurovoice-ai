@@ -90,6 +90,24 @@ Aktuell keine funktionale Einschränkung, nur beim manuellen Aufräumen etwas um
 
 ---
 
+## BUG-14 — Upload-Größenlimit: Fehlermeldung zeigt falsche Einheit (MiB vs. MB) ✅ BEHOBEN
+
+**Symptom:** `save_uploaded_wav()` (neue Upload-Funktion, Phase A Schritt 1, 2026-08-14)
+definierte `MAX_UPLOAD_BYTES = 25 * 1024 * 1024` (25 MiB = 26.214.400 Bytes), die
+Fehlermeldung rechnete das aber mit `/1_000_000` (dezimal) um — bei einer 26MB-Testdatei
+zeigte die Meldung fälschlich "Limit 26 MB" statt der beworbenen 25 MB.
+
+**Root Cause:** Einheiten-Mismatch zwischen Binärpräfix (1024²) für die Konstante und
+Dezimalpräfix (1000²) für die Anzeige — beim Test mit einer knapp über dem Limit liegenden
+Datei fiel die Diskrepanz auf.
+
+**Fix:** Konstante auf dezimal `25 * 1_000_000` umgestellt, passt jetzt exakt zur
+Anzeige/zum UI-Label ("max. 25 MB"). Gefunden beim gezielten Testen der Fehlerfälle
+(leere Datei, ungültiges WAV, Pfad-Traversal-Dateiname, Überschreitung des Limits) vor
+dem Deploy — keine Auswirkung auf echte Nutzer, da noch nicht live genutzt.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,

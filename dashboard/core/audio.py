@@ -3,6 +3,7 @@
 import os
 import re
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 import parselmouth
@@ -56,6 +57,77 @@ def list_recordings(data_dir: str, patient_id: str) -> list[Recording]:
                 date="?", task="unbekannt", take="?",
             ))
     return recordings
+
+
+# Phase A, Schritt 1 (Self-Service-Upload, siehe docs/backlog.md): eigener Patient-Namespace
+# fuer hochgeladene Dateien, damit sie nie mit echten Testaufnahmen im selben Ordner landen.
+UPLOAD_PATIENT_ID = "_uploads"
+# Grosszuegiges Sicherheitsnetz -- bisherige 10s-Testaufnahmen (48kHz/24bit/stereo) liegen
+# bei max. ~2,3MB, 25MB laesst deutlich Luft nach oben, verhindert aber trotzdem eine
+# versehentlich riesige Datei/einen simplen DoS-Versuch ueber die Upload-Flaeche.
+# Bewusst dezimal (1_000_000) definiert, NICHT 1024*1024 -- die Fehlermeldung unten
+# rechnet mit derselben Einheit um, sonst zeigt sie z.B. "Limit 26 MB" bei "25 MB" Absicht.
+MAX_UPLOAD_BYTES = 25 * 1_000_000
+
+
+def save_uploaded_wav(derived_dir: str, filename: str, data: bytes) -> Recording:
+    """Validiert + speichert eine hochgeladene WAV-Datei, gibt eine Recording zurueck.
+
+    Bewusst als reine Funktion getrennt von der Streamlit-file_uploader-Widget-Logik in
+    app.py, damit Validierung/Speicherung ohne laufende Streamlit-Session testbar sind
+    (Streamlit AppTest unterstuetzt file_uploader-Interaktion nur eingeschraenkt).
+
+    Speichert NICHT in `data_dir` (read-only gemountet, siehe docker-compose.yml), sondern
+    in `derived_dir/_uploads/` -- getrennt vom eigenen Testdaten-Patienten. Ersetzt noch
+    NICHT die Konvertierungs-/Verifikationslogik aus scripts/convert_and_verify.sh (nur
+    WAV-Uploads, kein M4A/ALAC) -- das ist ein spaeterer Schritt (siehe docs/backlog.md
+    "Self-Service-Upload", Schritt 4).
+
+    Raises:
+        ValueError: bei zu grosser Datei oder wenn die Datei kein gueltiges, nicht-leeres
+            WAV ist -- mit einer fuer die UI verstaendlichen Fehlermeldung.
+    """
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise ValueError(
+            f"Datei zu groß ({len(data) / 1_000_000:.1f} MB, Limit "
+            f"{MAX_UPLOAD_BYTES / 1_000_000:.0f} MB)."
+        )
+    if len(data) == 0:
+        raise ValueError("Datei ist leer.")
+
+    upload_dir = os.path.join(derived_dir, UPLOAD_PATIENT_ID)
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Dateiname sanitisieren -- kommt direkt vom Client, koennte theoretisch Pfad-
+    # Traversal-Zeichen enthalten (../../etc). Nur alphanumerisch + . _ - erlaubt.
+    safe_base = re.sub(r"[^a-zA-Z0-9_.-]", "_", os.path.basename(filename)) or "upload.wav"
+    if not safe_base.lower().endswith(".wav"):
+        safe_base += ".wav"
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    unique_name = f"{timestamp}_{safe_base}"
+    out_path = os.path.join(upload_dir, unique_name)
+
+    with open(out_path, "wb") as f:
+        f.write(data)
+
+    try:
+        info = sf.info(out_path)
+        if info.duration <= 0:
+            raise ValueError("Datei enthält keine Audiodaten (Dauer 0s).")
+    except Exception as exc:
+        os.remove(out_path)
+        if isinstance(exc, ValueError):
+            raise
+        raise ValueError(f"Datei ist keine gültige WAV-Datei (Lesefehler: {exc}).") from exc
+
+    return Recording(
+        patient_id=UPLOAD_PATIENT_ID,
+        filename=unique_name,
+        path=out_path,
+        date=timestamp[:10],
+        task="unbekannt",
+        take="1",
+    )
 
 
 _SUBTYPE_BITS = {"PCM_16": 16, "PCM_24": 24, "PCM_32": 32, "FLOAT": 32, "DOUBLE": 64}

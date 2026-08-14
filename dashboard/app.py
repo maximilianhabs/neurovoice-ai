@@ -21,6 +21,7 @@ from core.audio import (
     phonation_dynamics_features,
     phonation_features,
     prosody_features,
+    save_uploaded_wav,
 )
 from core.plots import gauge_figure, intensity_figure, radar_figure, spectrogram_figure, waveform_figure
 from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones, verdict_for_value
@@ -59,24 +60,42 @@ def _fmt(value, decimals=2):
 st.set_page_config(page_title="NeuroVoice AI — Analyse-Dashboard", layout="wide", page_icon="🎙️")
 st.title("🎙️ NeuroVoice AI — Analyse-Dashboard")
 
-# --- Sidebar: Datei auswählen ---
-patients = list_patients(DATA_DIR)
-if not patients:
-    st.warning(f"Keine Aufnahmen gefunden unter `{DATA_DIR}`.")
-    st.stop()
+# --- Sidebar: Datei auswählen ODER hochladen (Phase A, Schritt 1 -- siehe docs/backlog.md
+# "Self-Service-Upload"). Task-Typ-Abfrage fuer Uploads + Konvertierung anderer Formate als
+# WAV sind bewusst noch nicht Teil dieses Schritts, kommen als naechste kleine Schritte.
+source_mode = st.sidebar.radio("Quelle", ["Vorhandene Aufnahmen", "Datei hochladen (WAV)"])
 
-patient_id = st.sidebar.selectbox("Patient/Proband", patients)
-recordings = list_recordings(DATA_DIR, patient_id)
-if not recordings:
-    st.warning(f"Keine Aufnahmen für `{patient_id}` gefunden.")
-    st.stop()
+if source_mode == "Datei hochladen (WAV)":
+    uploaded_file = st.sidebar.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
+    if uploaded_file is None:
+        st.info("Bitte eine WAV-Datei in der Seitenleiste hochladen.")
+        st.stop()
+    try:
+        recording = save_uploaded_wav(DERIVED_DIR, uploaded_file.name, uploaded_file.getvalue())
+    except ValueError as exc:
+        st.sidebar.error(str(exc))
+        st.stop()
+    st.sidebar.success(f"Hochgeladen: {recording.filename}")
+else:
+    patients = list_patients(DATA_DIR)
+    if not patients:
+        st.warning(f"Keine Aufnahmen gefunden unter `{DATA_DIR}`.")
+        st.stop()
 
-labels = [f"{r.date} · {r.task} · Take {r.take}" for r in recordings]
-selected_idx = st.sidebar.selectbox("Aufnahme", range(len(recordings)), format_func=lambda i: labels[i])
-recording = recordings[selected_idx]
+    patient_id = st.sidebar.selectbox("Patient/Proband", patients)
+    recordings = list_recordings(DATA_DIR, patient_id)
+    if not recordings:
+        st.warning(f"Keine Aufnahmen für `{patient_id}` gefunden.")
+        st.stop()
+
+    labels = [f"{r.date} · {r.task} · Take {r.take}" for r in recordings]
+    selected_idx = st.sidebar.selectbox("Aufnahme", range(len(recordings)), format_func=lambda i: labels[i])
+    recording = recordings[selected_idx]
 
 st.sidebar.markdown(f"**Datei:** `{recording.filename}`")
 st.sidebar.markdown(f"**Task-Typ:** `{recording.task}`")
+if recording.task == "unbekannt":
+    st.sidebar.caption("Task-Typ bei Uploads noch nicht abfragbar — kommt als nächster Schritt.")
 
 # --- Player ---
 with open(recording.path, "rb") as f:
