@@ -150,8 +150,28 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       P8 (Live-Aufnahmedauer-Farbfeedback, zurückgestellt), P9 (Transkription als
       Hintergrund-Job, zurückgestellt) sowie eine echte Vergleichsansicht mehrerer Versuche
       nebeneinander (aktuell nur Liste mit Radio-Auswahl).
-- [ ] **P4 — Persistentes Speicherschema + Gesamtbericht**: strukturiertes Format je Sitzung
-      (Anknüpfung an Punkt 23 aus dem externen Audit oben, "Strukturiertes Analyse-Schema").
+- [x] **P4 — Persistentes Speicherschema + Gesamtbericht** ✅ UMGESETZT (2026-08-15) — neues
+      `core/session_store.py`: Sitzungs-Zustand wird bei jeder Take-Änderung (add/delete/select
+      in `core/module_state.py`) nach `derived/_sessions/<session_id>.json` geschrieben.
+      Session-ID lebt in der URL (`?session=...`, `st.query_params`), NICHT in einem Login-/
+      Patientensystem (gibt es noch nicht) — ein Reload derselben URL lädt die Sitzung
+      zurück, `app.py` ruft `load_session_snapshot()` zentral vor `pg.run()` auf. Schema
+      (Anknüpfung an Punkt 23 aus dem externen Audit, "Strukturiertes Analyse-Schema"):
+      `schema_version`, `session_id`, `created_at`/`updated_at`, je Take zusätzlich
+      `take_id` (Analysis-ID) + `recorded_at` (Zeitstempel) — bewusst OHNE rohe Audio-Bytes im
+      JSON (die liegen schon als WAV unter `derived/_uploads/`, nur per `recording_path`
+      referenziert, beim Laden neu von der Platte gelesen statt redundant gespeichert).
+      `views/gesamtbericht.py` zeigt jetzt die Sitzungs-ID + strukturierte Roh-Kennwerte des
+      jeweils gewählten "besten" Versuchs je Teilaufgabe (Normbereiche/Kontext-Kommentare
+      bleiben P5). **Verifiziert per komplettem Schreib-Lese-Zyklus**: `add_take()` in einem
+      Wegwerf-Skript aufgerufen (echte Persistenz-Logik, kein Mock), JSON-Datei-Inhalt
+      geprüft (korrekt ohne `audio_bytes`), dann in einer KOMPLETT NEUEN `AppTest`-Instanz
+      nur mit der Session-ID aus der URL geladen — Vokalisation UND Gesamtbericht rendern
+      fehlerfrei, `audio_bytes` wird korrekt neu von der Platte gelesen (835686 Bytes echte
+      WAV-Datei, obwohl beim Schreiben ein Platzhalter gespeichert war — beweist, dass
+      tatsächlich neu gelesen wird statt der alte Wert einfach durchgereicht wird), F0-Wert
+      exakt identisch zum Original. Regressionstest über alle 6 Seiten ohne Exception,
+      HTTP 200 nach Deploy.
 - [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
       `docs/literatur_review.md` um Krankheits-Assoziationen je Parameter.
 - [ ] **P6 — Recording-Quality-Check** (bereits Prio 1 im externen Audit oben) — passt hier

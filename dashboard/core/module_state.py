@@ -8,11 +8,19 @@ zu einer anderen Seite und zurueck ist der Widget-Wert wieder None (Streamlits U
 behalten ihren Wert nicht dauerhaft ueber Remounts), wodurch die UI faelschlich wie
 "Datei verloren" wirkte -- Datei UND Analyse waren tatsaechlich noch vorhanden, wurden nur
 nicht mehr angezeigt. Fix: IMMER aus `st.session_state` rendern, nie aus dem Widget-Rueckgabewert
-direkt."""
+direkt.
+
+P4 (2026-08-15): jede Aenderung (add/delete/select) wird zusaetzlich per
+core/session_store.py auf Platte gespiegelt -- ueberlebt damit auch einen Browser-Reload,
+nicht nur die Navigation zwischen Modulseiten innerhalb derselben Sitzung."""
 
 import os
+import uuid
+from datetime import datetime, timezone
 
 import streamlit as st
+
+from core.session_store import get_session_id, save_session_snapshot
 
 
 def get_takes(module: str, subtask: str) -> list[dict]:
@@ -22,11 +30,18 @@ def get_takes(module: str, subtask: str) -> list[dict]:
     return st.session_state["module_results"][module][subtask]
 
 
+def _persist() -> None:
+    save_session_snapshot(get_session_id())
+
+
 def add_take(module: str, subtask: str, take: dict) -> None:
     takes = get_takes(module, subtask)
+    take["take_id"] = uuid.uuid4().hex[:12]  # Analysis-ID fuer Reproduzierbarkeit
     take["take_number"] = len(takes) + 1
     take["selected"] = len(takes) == 0  # erster Versuch automatisch als "bester" markiert
+    take["recorded_at"] = datetime.now(timezone.utc).isoformat()
     takes.append(take)
+    _persist()
 
 
 def delete_take(module: str, subtask: str, index: int) -> None:
@@ -39,12 +54,14 @@ def delete_take(module: str, subtask: str, index: int) -> None:
         os.remove(path)
     if removed.get("selected") and takes:
         takes[0]["selected"] = True
+    _persist()
 
 
 def select_take(module: str, subtask: str, index: int) -> None:
     takes = get_takes(module, subtask)
     for i, t in enumerate(takes):
         t["selected"] = i == index
+    _persist()
 
 
 def selected_take(module: str, subtask: str) -> dict | None:

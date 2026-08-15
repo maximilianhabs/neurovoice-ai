@@ -5,10 +5,15 @@ den einzelnen Seiten aufrufen."""
 
 import streamlit as st
 
+from core.session_store import get_session_id, load_session_snapshot
 from core.shared import apply_global_style
 
 st.set_page_config(page_title="NeuroVoice AI — Analyse-Dashboard", layout="wide", page_icon="🎙️")
 apply_global_style()
+
+# P4 (siehe docs/backlog.md): Sitzung anhand der URL wiederherstellen, falls vorhanden --
+# muss VOR pg.run() passieren, damit alle Modulseiten schon befuellten session_state sehen.
+load_session_snapshot(get_session_id())
 
 pg = st.navigation(
     {
