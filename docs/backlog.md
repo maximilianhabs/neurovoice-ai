@@ -134,7 +134,22 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       Navigation ohne Exception, akustische Kennwerte gegen echte Testdatei geprüft, Cache-
       Transkript-Pfad (Text-Anzeige, Sprechrate, TTR/MTLD) mit synthetischem Transkript
       durchgetestet (kein 1-2-minütiger Warte-Zyklus nötig für den UI-Test), HTTP 200 nach
-      Deploy. Nur noch DDK (Modul 4) als Platzhalter offen.
+      Deploy.
+- [x] **P3 — Modul 4 „Diadochokinese" komplett gebaut** ✅ UMGESETZT (2026-08-15) —
+      `views/ddk.py`, 2 Tabs wie Vokalisation (DDK kombiniert = Pflicht, DDK einzeln =
+      optional), letztes Modul im Guide (motorisch anspruchsvollste Aufgabe). Kein
+      Transkriptions-Schritt (keine linguistische Auswertung bei DDK nötig) — Ergebnis sofort
+      nach Aufnahme verfügbar: DDK-Rate (informative Gauge, kein etablierter Normbereich),
+      Regelmäßigkeit (CV), Ø Zyklus-Intervall, Artikulationsschärfe-Gauge. Verifiziert: alle
+      6 Seiten + Navigation ohne Exception, Werte gegen echte Testdatei geprüft (18
+      Ereignisse, CV 0,37 — identisch zu den bereits früher in dieser Session gemessenen
+      Referenzwerten für dieselbe Datei), HTTP 200 nach Deploy.
+      **Damit ist P3 vollständig abgeschlossen — alle 4 Guide-Module sind fertig gebaut.**
+      Verbleibend aus der ursprünglichen Roadmap: P4 (persistentes Speicherschema), P5
+      (Laborwert-Stil-Interpretation), P6 (Recording-Quality-Check), P7 (Audit-Parameter),
+      P8 (Live-Aufnahmedauer-Farbfeedback, zurückgestellt), P9 (Transkription als
+      Hintergrund-Job, zurückgestellt) sowie eine echte Vergleichsansicht mehrerer Versuche
+      nebeneinander (aktuell nur Liste mit Radio-Auswahl).
 - [ ] **P4 — Persistentes Speicherschema + Gesamtbericht**: strukturiertes Format je Sitzung
       (Anknüpfung an Punkt 23 aus dem externen Audit oben, "Strukturiertes Analyse-Schema").
 - [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
