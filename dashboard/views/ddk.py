@@ -21,7 +21,13 @@ from core.audio import articulation_features, ddk_rate_features, recording_quali
 from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
-from core.shared import kpi_tile, quality_tiles
+from core.shared import (
+    SPECTROGRAM_LEGEND_CAPTION,
+    instruction_text_scale_control,
+    kpi_tile,
+    quality_tiles,
+    render_interpretation_table,
+)
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "ddk"
@@ -58,6 +64,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+instruction_text_scale_control()
 
 tabs = st.tabs([meta["label"] for meta in SUB_TASKS.values()])
 
@@ -127,6 +134,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 st.pyplot(waveform_figure(sound), width="stretch")
                 st.pyplot(intensity_figure(sound), width="stretch")
                 st.pyplot(spectrogram_figure(sound), width="stretch")
+                st.caption(SPECTROGRAM_LEGEND_CAPTION)
 
             ddk = take["ddk"]
             articulation = take["articulation"]
@@ -155,7 +163,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             with st.expander("Alle Werte im Detail"):
                 rows = build_rows(flat)
                 if rows:
-                    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+                    render_interpretation_table(rows)
                     for caveat in age_caveats_for(flat):
                         st.caption(caveat, help="Alters-/Geschlechts-Hinweis")
 

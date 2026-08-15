@@ -477,6 +477,88 @@ einheitliches Kachel-Vokabular app-weit statt bespoke Text je Aufrufstelle, deck
 Pitfall 6 aus dem Konzept (keine parallelen Varianten). Bei Bedarf könnte das über ein
 optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
 
+- [x] **Nachbesserung (2026-08-15, Nutzer-Testing nach der Design-Bereinigung)** ✅ UMGESETZT
+      — vier konkrete Funde beim ersten echten Durchklicken:
+  1. **Interpretations-Tabelle schnitt Text ab**: `st.dataframe()` (glide-data-grid) zeigt
+     lange Zellen ("Was es misst"/Kontext) mit Ellipsis ohne Volltext-Zugriff. Fix: neue
+     `core/shared.py::render_interpretation_table()` nutzt `st.table()` (umbricht normal statt
+     abzuschneiden) + CSS-Feinschliff, an allen 6 Aufrufstellen (4 Module + Gesamtbericht +
+     `testdaten.py`'s eigene Tabellarische-Übersicht) vereinheitlicht.
+  2. **Aufnahmequalität "erschließt sich nicht"**: `quality_tiles()` bekam eine eigene
+     umrandete Sektion (`st.container(border=True)`) mit Überschrift "Aufnahmequalität
+     prüfen" + eine zusammenfassende Bewertung ÜBER den 3 Einzel-Kacheln (schlechteste Zone
+     von Clipping/SNR gewinnt) — bei "danger" ein `st.warning()` mit konkreter Empfehlung,
+     die Aufnahme zu wiederholen, bei "warning" ein dezenterer `st.info()`-Hinweis, sonst ein
+     ruhiges "Unauffällig".
+  3. **Keine Textgrößen-Steuerung in den 4 Guide-Modulen**: gab es bisher nur im Testdaten-
+     Modus (`TEXT_SCALE`-Slider). In `core/shared.py::instruction_text_scale_control()`
+     extrahiert (Konsolidierung statt 5. Duplikat) und in alle 4 Module + `testdaten.py`
+     eingebaut — Instruktionstext ("Lies den folgenden Satz…"/"Halte den Vokal…") jetzt
+     überall vergrößerbar, wichtig für Patient:innen mit Leseschwäche.
+  4. **Formant-Tracks im Spektrogramm unerklärt**: F0/F1/F2/F3-Overlays (farbcodiert) hatten
+     keine Legende/Erklärung. Neue `core/shared.py::SPECTROGRAM_LEGEND_CAPTION`-Konstante
+     (was F0/F1/F2/F3 bedeuten, welche Farbe welcher Track ist) unter jedem Spektrogramm in
+     allen 5 Stellen (4 Module + `testdaten.py`).
+
+  Verifiziert: End-to-End mit echter Aufnahme (Vokalisation) — Textgrößen-Regler in der
+  Sidebar vorhanden, Formant-Caption vorhanden, Qualitäts-Überschrift + korrekter
+  "grenzwertig"-Hinweis bei SNR 24,3dB (identisch zur vorherigen Zonen-Berechnung), volle
+  Kontext-Texte (z.B. HNR-Kontext, 172 Zeichen) im `st.table()`-DataFrame bestätigt statt nur
+  angenommen. Regressionstest über alle 6 Seiten ohne Exception, HTTP 200 nach Deploy.
+
+- [ ] **P11 — Kompakte Übersicht + ausführliches Evidenz-Glossar trennen** (Nutzer-Feedback
+      2026-08-15, NICHT umgesetzt, größerer Content-/Recherche-Aufwand) — aktuell ist die
+      Interpretations-Tabelle (`build_rows()`) eine einzige Tabelle mit allen 6 Spalten
+      (Parameter/Wert/Normbereich/Status/Was es misst/Kontext). Nutzer-Vorschlag: analog zum
+      EDF-Analyzer (dort: knappe KPI-Kacheln/Tabelle + ausführlicher Referenz-/Methodik-
+      Textblock mit Evidenz-Sternebewertung je Parameter, siehe z.B. `views/ecg_hrv.py`s
+      HRV-Parametererklärungen) aufteilen in:
+  1. Eine KURZE, präzise tabellarische Übersicht (Parameter/Wert/Status — ohne die langen
+     Erklärungstexte)
+  2. Darunter ein ausführliches Glossar mit vollständiger Erklärung, Literaturbezug UND einer
+     Einordnung, wie etabliert/evidenzbasiert der jeweilige Parameter ist (analog den
+     Sternebewertungen beim EDF-Analyzer).
+      **Aufwand**: nicht nur Layout — pro Parameter müsste eine Evidenz-Einordnung (z.B.
+      Sterne 1-5 oder Kategorien "gut etabliert"/"vielversprechend, wenig repliziert"/"explorativ,
+      eigene Heuristik") recherchiert und in `core/interpretation.py::PARAMETER_INFO` ergänzt
+      werden — das ist inhaltliche Literaturarbeit, kein reiner Code-Umbau. Hängt eng mit P12
+      zusammen (fehlende Referenzwerte sind Teil derselben Recherche).
+- [ ] **P12 — Fehlende Referenzwerte/Normbereiche recherchieren** (Nutzer-Feedback 2026-08-15,
+      NICHT umgesetzt) — viele Parameter haben aktuell `zones_func: None` in
+      `core/interpretation.py::PARAMETER_INFO`, zeigen also nur "kein Normwert" ohne jede
+      Einordnung: u.a. DDK-Rate, DDK-Regelmäßigkeit (CV), Ø Zyklus-Intervall,
+      Artikulationsschärfe, Monopitch (F0-SD), Monoloudness, Formant F1/F2, Intonationskontur-
+      Phrasenzahl, TTR. Nutzer explizit: "da müssen wir uns was aus der Literatur
+      zusammensuchen". Braucht gezielte Literaturrecherche je Parameter (ähnlich der
+      bisherigen Arbeit in `docs/literatur_review.md`) — nicht alle werden einen etablierten
+      Cutoff haben (manche bleiben zurecht "eigene Heuristik, nur Eigenvergleich"), aber
+      sollte systematisch durchgegangen werden statt implizit offen zu bleiben.
+- [ ] **P13 — Zu fachsprachliche Parameter-Bezeichnungen vereinfachen** (Nutzer-Feedback
+      2026-08-15, NICHT umgesetzt) — konkret genannt: "Artikulationsschärfe", "DDK-Rate",
+      "DDK-Regelmäßigkeit (CV)", "Ø Zyklus-Intervall" seien zu fachmännisch für Patient:innen/
+      Laien. Braucht eine bewusste Namensfindung (nicht einfach spontan umbenennen, da die
+      Begriffe auch in `docs/literatur_review.md`/internen Notizen verankert sind) — ggf. mit
+      Nutzer gemeinsam Alternativbegriffe festlegen, dann konsistent in
+      `core/interpretation.py::PARAMETER_INFO["label"]` UND den Modul-Seiten (DDK-Tab-
+      Beschriftungen etc.) durchziehen. Betrifft möglicherweise weitere Parameter über die 4
+      genannten hinaus — bei Umsetzung einmal komplett durchgehen, nicht nur die 4 Beispiele.
+- [ ] **P14 — Excel-/PDF-Report-Export im Gesamtbericht** (Nutzer-Feedback 2026-08-15, NICHT
+      umgesetzt, analog EDF-Analyzer) — auf der Gesamtbericht-Seite (`views/gesamtbericht.py`)
+      soll es einen Button geben, der ON DEMAND (nicht automatisch) einen Export erzeugt,
+      sowohl als Excel-Tabelle als auch als PDF-Report. Größerer Feature-Aufwand:
+  - Excel: vermutlich `openpyxl`/`pandas.to_excel()`, neue Dependency falls nicht schon
+    vorhanden — prüfen, ob `openpyxl` bereits in `requirements.txt` steht.
+  - PDF: braucht eine Report-Vorlage (Layout, Logo/Titel, evtl. Diagramme eingebettet) —
+    beim EDF-Analyzer existiert dafür bereits eine PDF-Report-Pipeline
+    ([[project_edf_report_audit]]), die als Vorbild/Wiederverwendungs-Kandidat dienen könnte
+    (gleicher Tech-Stack? prüfen).
+  - Sollte den `st.session_state["module_results"]`-Sitzungszustand (bester Take je
+    Teilaufgabe, inkl. Metadaten wie Aufnahmezeitpunkt) vollständig abbilden, nicht nur die
+    aktuell sichtbare Tabelle.
+  - Hängt an P10 (Proband:innen-Erfassung) — ein Report ohne Zuordnung zu einem Subjekt ist
+    für die longitudinale Auswertung nur bedingt nützlich, beide Punkte sollten bei der
+    Umsetzung zusammen gedacht werden, auch wenn P10 technisch nicht Voraussetzung ist.
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser

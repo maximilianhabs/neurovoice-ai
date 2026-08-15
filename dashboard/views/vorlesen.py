@@ -32,7 +32,14 @@ from core.audio import (
 from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
-from core.shared import kpi_tile, quality_tiles, transcribe_with_progress
+from core.shared import (
+    SPECTROGRAM_LEGEND_CAPTION,
+    instruction_text_scale_control,
+    kpi_tile,
+    quality_tiles,
+    render_interpretation_table,
+    transcribe_with_progress,
+)
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "vorlesen"
@@ -76,6 +83,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+instruction_text_scale_control()
 
 st.markdown(
     f'<div class="dw-card-subtle"><b>Lies den folgenden Satz laut und in normalem Tempo vor:</b>'
@@ -142,6 +150,7 @@ else:
         st.pyplot(waveform_figure(sound), width="stretch")
         st.pyplot(intensity_figure(sound), width="stretch")
         st.pyplot(spectrogram_figure(sound), width="stretch")
+        st.caption(SPECTROGRAM_LEGEND_CAPTION)
 
     articulation = take["articulation"]
     formant_dyn = take["formant_dynamics"]
@@ -290,7 +299,7 @@ else:
         flat = flatten_take(take)
         rows = build_rows(flat)
         if rows:
-            st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+            render_interpretation_table(rows)
             for caveat in age_caveats_for(flat):
                 st.caption(caveat, help="Alters-/Geschlechts-Hinweis")
 

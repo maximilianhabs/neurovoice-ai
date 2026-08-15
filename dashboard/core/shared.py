@@ -6,6 +6,7 @@ Static-Serving nötig, kein CDN-Request (passt zum Datenschutz-Prinzip des Proje
 Begründung wie beim EDF-Analyzer-Fix gegen fonts.googleapis.com-Requests).
 """
 
+import pandas as pd
 import streamlit as st
 
 from core.design_tokens import (
@@ -95,6 +96,30 @@ def apply_global_style() -> None:
         border-radius: var(--dw-radius-md);
         overflow: hidden;
         border: 1px solid var(--dw-border);
+    }}
+
+    /* Statische st.table() -- fuer die Interpretations-Tabelle (core/shared.py::
+    render_interpretation_table()) statt st.dataframe(), da Letzteres lange Zellen abschneidet
+    (Nutzer-Feedback 2026-08-15). Text soll normal umbrechen, nicht abgeschnitten werden. */
+    div[data-testid="stTable"] table {{
+        border-collapse: collapse;
+        width: 100%;
+    }}
+    div[data-testid="stTable"] th, div[data-testid="stTable"] td {{
+        white-space: normal !important;
+        vertical-align: top;
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--dw-border);
+        font-size: 13.5px;
+        line-height: 1.4;
+    }}
+    div[data-testid="stTable"] th {{
+        font-weight: 600;
+        color: var(--dw-text-secondary);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
     }}
 
     /* Mikrofon-/Datei-Aufnahme deutlich größer (Nutzer-Feedback 2026-08-15: Steuerelemente
@@ -211,42 +236,115 @@ def apply_global_style() -> None:
     """, unsafe_allow_html=True)
 
 
+# Erklaerung der F0/F1-F3-Overlays im Spektrogramm (core/plots.py::spectrogram_figure()) --
+# Nutzer-Feedback 2026-08-15: die Formant-Tracks wurden angezeigt, aber nirgends erklaert, was
+# sie bedeuten. Geteilt statt 5x dupliziert (testdaten.py + 4 Guide-Module).
+SPECTROGRAM_LEGEND_CAPTION = (
+    "**F0** (türkis) — Grundfrequenz/Tonhöhe der Stimme. **F1** (grün) — Vokaltrakt-Resonanz, "
+    "hängt vor allem mit der Zungenhöhe zusammen (offen/geschlossen). **F2** (gelb) — "
+    "Vokaltrakt-Resonanz, hängt vor allem mit der Zungenposition vorne/hinten zusammen. "
+    "**F3** (rot) — dritte Resonanz, trägt zur Klangfarbe bei. F1-F3 zusammen formen den "
+    "Vokalklang; ihre Position/Streuung ist ein grober Anhaltspunkt für die genutzte "
+    "Artikulationsbeweglichkeit."
+)
+
+
+INSTRUCTION_TEXT_SCALE = {"Normal": 1.0, "Groß": 1.3, "Sehr groß": 1.6}
+
+
+def instruction_text_scale_control() -> None:
+    """Sidebar-Steuerung fuer die Schriftgroesse der Aufnahme-Instruktion (.dw-card-subtle,
+    z.B. "Lies den folgenden Satz vor..."/"Halte den Vokal..."). Bisher nur im Testdaten-Modus
+    vorhanden, Nutzer-Feedback 2026-08-15: fehlte in den 4 Guide-Modulen -- wichtig fuer
+    Patient:innen, die schlecht lesen koennen. Geteilt statt 5x dupliziert."""
+    text_size = st.sidebar.select_slider(
+        "Textgröße (Instruktionen)", options=list(INSTRUCTION_TEXT_SCALE.keys()), value="Normal",
+    )
+    if INSTRUCTION_TEXT_SCALE[text_size] != 1.0:
+        st.markdown(
+            f"<style>.dw-card-subtle, .dw-card-subtle * {{ font-size: {INSTRUCTION_TEXT_SCALE[text_size]}em !important; "
+            f"line-height: 1.5 !important; }}</style>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_interpretation_table(rows: list[dict]) -> None:
+    """Rendert die Laborwert-Interpretationstabelle (core.interpretation.build_rows()) so, dass
+    lange Texte ("Was es misst"/"Kontext") vollstaendig lesbar sind. Nutzer-Feedback
+    2026-08-15: st.dataframe() (glide-data-grid) schneidet lange Zellen mit Ellipsis ab, ohne
+    Moeglichkeit den Volltext zu sehen -- st.table() umbricht stattdessen normal. Geteilt
+    zwischen allen Modul-Seiten + Gesamtbericht, damit nicht 6x dieselbe Umstellung noetig ist,
+    falls die Darstellung nochmal wechselt."""
+    st.table(pd.DataFrame(rows))
+
+
+_QUALITY_ZONE_RANK = {"danger": 2, "warning": 1, "success": 0, "neutral": -1}
+
+
 def quality_tiles(q: dict) -> None:
-    """Rendert die Recording-Quality-Kacheln (Clipping/Stille/SNR, P6+Design-Bereinigung
-    Baustein B) als 3-Spalten-Reihe -- geteilt zwischen allen 4 Guide-Modulen, damit die
-    Zonen-Logik nur an einer Stelle gepflegt wird. `q` = Rueckgabe von
-    core.audio.recording_quality_features()."""
+    """Rendert den Aufnahmequalitäts-Check (Clipping/Stille/SNR, P6+Design-Bereinigung
+    Baustein B) als eigenen, klar abgesetzten Block mit Überschrift + zusammenfassender
+    Empfehlung -- geteilt zwischen allen 4 Guide-Modulen. Nutzer-Feedback 2026-08-15: der
+    Qualitäts-Check "erschließt sich nicht", war nur 3 gleichrangige Kacheln ohne Einordnung,
+    was sie in Summe bedeuten. `q` = Rueckgabe von core.audio.recording_quality_features()."""
     from core.reference_ranges import clipping_zones, snr_zones, zone_for_value
 
     def _fmt(value, decimals=1):
         return f"{value:.{decimals}f}" if value is not None else "–"
 
-    qc1, qc2, qc3 = st.columns(3)
-    with qc1:
+    with st.container(border=True):
+        st.markdown(
+            '<div style="font-size:13px;font-weight:600;text-transform:uppercase;'
+            'letter-spacing:0.02em;color:var(--dw-text-secondary);margin-bottom:2px;">'
+            "Aufnahmequalität prüfen</div>",
+            unsafe_allow_html=True,
+        )
+
         if q["clipping_pct"] is not None:
             lo, hi, zones = clipping_zones()
-            zone = zone_for_value(q["clipping_pct"], lo, hi, zones)
-            label = {"success": "unauffällig", "warning": "vereinzelt", "danger": "deutlich"}[zone]
+            clip_zone = zone_for_value(q["clipping_pct"], lo, hi, zones)
+            clip_label = {"success": "unauffällig", "warning": "vereinzelt", "danger": "deutlich"}[clip_zone]
         else:
-            zone, label = "neutral", "–"
-        kpi_tile("Clipping", f"{_fmt(q['clipping_pct'], 1)} %", label, zone,
-                 "Anteil der Samples nahe Vollaussteuerung — Faustregel, keine feste Norm.")
-    with qc2:
-        kpi_tile("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %", "taskabhängig, kein fester Korridor", "neutral",
-                 "Anteil leiser Fenster — bei Spontansprache mit Pausen normal auch 15-30%.")
-    with qc3:
+            clip_zone, clip_label = "neutral", "–"
+
         if q["snr_estimate_db"] is not None:
             lo, hi, zones = snr_zones()
-            zone = zone_for_value(q["snr_estimate_db"], lo, hi, zones)
-            label = {"success": "gut", "warning": "Hintergrundgeräusch hörbar", "danger": "Kennwerte ggf. verzerrt"}[zone]
+            snr_zone = zone_for_value(q["snr_estimate_db"], lo, hi, zones)
+            snr_label = {"success": "gut", "warning": "Hintergrundgeräusch hörbar", "danger": "Kennwerte ggf. verzerrt"}[snr_zone]
         else:
-            zone, label = "neutral", "–"
-        kpi_tile("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB", label, zone,
-                 "90.–10. Perzentil der Fenster-Lautstärke — Heuristik aus der Signalverarbeitung, keine stimmklinische Referenz.")
-    st.caption(
-        "Aufnahmequalität — rein informativ, kein automatisches Aussortieren. "
-        "Grenzwerte sind pragmatische Faustregeln, keine klinische Norm."
-    )
+            snr_zone, snr_label = "neutral", "–"
+
+        worst_zone = max((clip_zone, snr_zone), key=lambda z: _QUALITY_ZONE_RANK[z])
+        if worst_zone == "danger":
+            st.warning(
+                "Aufnahmequalität eingeschränkt — die akustischen Kennwerte könnten dadurch "
+                "verzerrt sein. Empfehlung: Aufnahme wiederholen (weniger Hintergrundgeräusch, "
+                "normale Lautstärke ohne Übersteuerung).",
+                icon=":material/replay:",
+            )
+        elif worst_zone == "warning":
+            st.info(
+                "Aufnahmequalität grenzwertig — Ergebnisse mit etwas Vorsicht interpretieren, "
+                "bei Unsicherheit erneut aufnehmen.",
+                icon=":material/info:",
+            )
+        else:
+            st.caption("Unauffällig — keine technischen Einschränkungen erkannt.")
+
+        qc1, qc2, qc3 = st.columns(3)
+        with qc1:
+            kpi_tile("Clipping", f"{_fmt(q['clipping_pct'], 1)} %", clip_label, clip_zone,
+                     "Anteil der Samples nahe Vollaussteuerung — Faustregel, keine feste Norm.")
+        with qc2:
+            kpi_tile("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %", "taskabhängig, kein fester Korridor", "neutral",
+                     "Anteil leiser Fenster — bei Spontansprache mit Pausen normal auch 15-30%.")
+        with qc3:
+            kpi_tile("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB", snr_label, snr_zone,
+                     "90.–10. Perzentil der Fenster-Lautstärke — Heuristik aus der Signalverarbeitung, keine stimmklinische Referenz.")
+        st.caption(
+            "Rein informativ, kein automatisches Aussortieren. Grenzwerte sind pragmatische "
+            "Faustregeln, keine klinische Norm."
+        )
 
 
 _TILE_ZONE_COLORS = {

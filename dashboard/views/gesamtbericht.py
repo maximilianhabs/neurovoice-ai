@@ -8,11 +8,11 @@ Kontext-Kommentar sagt, mit welchen Erkrankungen ein Muster ASSOZIIERT wird, nie
 Wert eine Erkrankung BEDEUTET. Inhaltliche Basis: docs/literatur_review.md.
 """
 
-import pandas as pd
 import streamlit as st
 
 from core.interpretation import age_caveats_for, build_rows, flatten_take
 from core.session_store import get_session_id
+from core.shared import render_interpretation_table
 
 st.markdown(
     """
@@ -61,8 +61,7 @@ else:
                 f"**{subtask}** — Versuch {selected.get('take_number', '?')} von {len(takes)}, "
                 f"aufgenommen {selected.get('recorded_at', '–')}"
             )
-            df = pd.DataFrame(rows)
-            st.dataframe(df, width="stretch", hide_index=True)
+            render_interpretation_table(rows)
 
             for caveat in age_caveats_for(flat):
                 st.caption(caveat, help="Alters-/Geschlechts-Hinweis")

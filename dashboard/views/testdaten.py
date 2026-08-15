@@ -33,7 +33,13 @@ from core.audio import (
 from core.interpretation import build_tiles
 from core.plots import intensity_figure, radar_figure, spectrogram_figure, waveform_figure
 from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones
-from core.shared import kpi_tile, transcribe_with_progress
+from core.shared import (
+    SPECTROGRAM_LEGEND_CAPTION,
+    instruction_text_scale_control,
+    kpi_tile,
+    render_interpretation_table,
+    transcribe_with_progress,
+)
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 # Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
@@ -78,14 +84,7 @@ st.markdown(
 # Bedienhilfe (Nutzer-Feedback 2026-08-15): Instruktionstext skalierbar fuer Leute, die
 # schlecht lesen -- betrifft bewusst nur die Aufnahme-Instruktion (dw-card-subtle), nicht die
 # gesamte App-Oberflaeche.
-TEXT_SCALE = {"Normal": 1.0, "Groß": 1.3, "Sehr groß": 1.6}
-text_size = st.sidebar.select_slider("Textgröße (Instruktionen)", options=list(TEXT_SCALE.keys()), value="Normal")
-if TEXT_SCALE[text_size] != 1.0:
-    st.markdown(
-        f"<style>.dw-card-subtle, .dw-card-subtle * {{ font-size: {TEXT_SCALE[text_size]}em !important; "
-        f"line-height: 1.5 !important; }}</style>",
-        unsafe_allow_html=True,
-    )
+instruction_text_scale_control()
 
 # --- Aufnahme-Instruktionen je Task-Typ (UI-Ueberarbeitung 2026-08-15, siehe docs/backlog.md
 # "P0 -- UI-Ueberarbeitung Aufnahme-Bereich"): kurze, konkrete Anleitung je Aufgabe, orientiert
@@ -213,6 +212,7 @@ st.pyplot(waveform_figure(sound), width='stretch')
 
 st.subheader("Spektrogramm mit Tonhöhenverlauf (F0) + Formant-Tracks")
 st.pyplot(spectrogram_figure(sound), width='stretch')
+st.caption(SPECTROGRAM_LEGEND_CAPTION)
 
 st.subheader("Lautstärkeverlauf")
 st.pyplot(intensity_figure(sound), width='stretch')
@@ -412,7 +412,7 @@ table_rows = [
 table_df = pd.DataFrame(table_rows, columns=["Parameter", "Wert", "Was es misst", "Referenz / Normwert", "fit"])
 table_df["Auswertbar bei"] = table_df["fit"].map(FIT_LABELS)
 table_df = table_df.drop(columns=["fit"])
-st.dataframe(table_df, width='stretch', hide_index=True)
+st.table(table_df)
 
 st.caption(
     "Referenzwerte für Jitter/Shimmer/HNR/Sprechrate aus allgemeiner stimmklinischer "
