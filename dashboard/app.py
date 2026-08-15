@@ -62,6 +62,18 @@ def _fmt(value, decimals=2):
 st.set_page_config(page_title="NeuroVoice AI — Analyse-Dashboard", layout="wide", page_icon="🎙️")
 apply_global_style()
 
+# Bedienhilfe (Nutzer-Feedback 2026-08-15): Instruktionstext skalierbar fuer Leute, die
+# schlecht lesen -- betrifft bewusst nur die Aufnahme-Instruktion (dw-card-subtle), nicht die
+# gesamte App-Oberflaeche.
+TEXT_SCALE = {"Normal": 1.0, "Groß": 1.3, "Sehr groß": 1.6}
+text_size = st.sidebar.select_slider("Textgröße (Instruktionen)", options=list(TEXT_SCALE.keys()), value="Normal")
+if TEXT_SCALE[text_size] != 1.0:
+    st.markdown(
+        f"<style>.dw-card-subtle, .dw-card-subtle * {{ font-size: {TEXT_SCALE[text_size]}em !important; "
+        f"line-height: 1.5 !important; }}</style>",
+        unsafe_allow_html=True,
+    )
+
 # Design-Transfer vom EDF-Analyzer (2026-08-14, siehe [[project_edf_ui_redesign]]):
 # Eyebrow+Hero-Title+Subtitle-Muster statt st.title() -- auf App-Seitentitel herunterskaliert.
 st.markdown(

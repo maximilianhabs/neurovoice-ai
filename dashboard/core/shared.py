@@ -110,6 +110,15 @@ def apply_global_style() -> None:
         transform: scale(1.35);
         margin: 6px 10px;
     }}
+    /* Dezenter Hinweis waehrend die Aufnahme laeuft (Nutzer-Feedback 2026-08-15) -- nutzt
+    :has() auf den Stop-Button, den st.audio_input waehrend der Aufnahme zeigt. Bewusst SEHR
+    dezent (kein grelles Rot), wie gewuenscht. Selektor auf `aria-label` gestuetzt, da mir kein
+    Browser mit Mikrofonzugriff zum Gegenpruefen zur Verfuegung steht -- bitte visuell
+    bestaetigen, ob es greift. */
+    div[data-testid="stAudioInput"]:has(button[aria-label*="Stop" i]) {{
+        background: color-mix(in srgb, var(--dw-danger) 6%, var(--dw-surface));
+        border-color: color-mix(in srgb, var(--dw-danger) 40%, var(--dw-border));
+    }}
 
     /* ── Eyebrow+Hero-Title+Subtitle-Muster (aus dem EDF-Analyzer-Referenz-Prompt,
     auf App-Seitentitel statt Marketing-Hero herunterskaliert) ─────────────────────────── */
