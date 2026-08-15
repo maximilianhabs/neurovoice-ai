@@ -916,6 +916,103 @@ Beim ersten Live-Testen von P10-P12 gemeldet, hier gesammelt:
   - Keine Umsetzungs-Priorität/Zeitplan festgelegt — reine Wissens-/Machbarkeits-Notiz für
     später, auf expliziten Wunsch des Nutzers.
 
+## Sammel-Feedback zweiter Live-Testlauf (2026-08-15) — noch NICHT umgesetzt
+
+Nutzer hat nach P11/P12 weiter getestet. Hier dedupliziert/systematisiert, in Buckets. **Status:
+reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück für Stück.
+
+### Bucket G — Lokale HTTPS-Lösung für Endnutzer (WICHTIG, generischer als bisher gedacht)
+
+- [ ] **G1 — Mikrofonzugriff muss auch OHNE Tailscale lokal funktionieren.** Klarstellung vom
+      Nutzer: es geht NICHT nur um Komfort (kürzere URL) — Menschen, die die Applikation
+      tatsächlich NUTZEN (nicht nur wir selbst), sollen sie lokal auf ihrem eigenen MacBook
+      oder einem eigenen Server betreiben können, ohne von unserer privaten Tailscale-
+      Infrastruktur abhängig zu sein. Browser verweigern `getUserMedia` (Mikrofonzugriff)
+      grundsätzlich auf unverschlüsseltem HTTP — das betrifft JEDEN, der die App lokal
+      startet, nicht nur unseren aktuellen Beelink-Server.
+  - **Zu prüfende Lösungsansätze** (noch keine Entscheidung getroffen):
+    1. **`mkcert`** — erzeugt eine lokal vertrauenswürdige CA + Zertifikat für `localhost`/
+       die eigene LAN-IP, komplett offline, kein Domain-/DNS-Aufwand. Müsste als Teil der
+       Setup-Doku (README/Deployment-Guide) dokumentiert werden — jede:r Betreiber:in
+       generiert sich eigene lokale Zertifikate.
+    2. **Caddy mit automatischem HTTPS** für `localhost` (Caddy kann seit einiger Zeit lokal
+       vertrauenswürdige Zertifikate für `localhost` selbst ausstellen, ähnlich mkcert intern)
+       — evtl. der geringste Konfigurationsaufwand, wenn Caddy ohnehin schon als Reverse-Proxy
+       im Deployment-Stack verwendet wird.
+    3. **Dokumentations-Lösung statt Code-Änderung**: ggf. reicht eine klare Anleitung im
+       README ("Für Mikrofonzugriff lokal: `mkcert -install` + `mkcert localhost` ausführen,
+       dann `streamlit run --server.sslCertfile=... --server.sslKeyFile=...`") — evtl. keine
+       App-Code-Änderung nötig, nur Betriebsanleitung.
+  - Betrifft potenziell den gesamten Public-Release-Fahrplan (falls die App irgendwann von
+    Fremden selbst gehostet werden soll) — deutlich höhere Priorität als ursprünglich
+    eingeordnet, da kein reines Komfort-Thema.
+
+### Bucket H — Fehlende Kacheln in Vokalisation + DDK (derselbe Rest wie Bucket C, übersehen)
+
+- [ ] **H1 — Vokalisation: F0 (Mittel), Voice Breaks, Formanten F1/F2/F3 noch als rohe
+      `st.metric()`-Zeile statt Kachel.** Exakt derselbe Rückstand wie Bucket C (Vorlesen/
+      Spontansprache), der bei `views/vokalisation.py` übersehen wurde (Zeilen um `c1`/`c2`/
+      `c3`). Braucht ZUERST neue `PARAMETER_INFO`-Einträge (aktuell NICHT vorhanden):
+      `f0_mean_hz` (reiner F0-Mittelwert, nicht zu verwechseln mit `f0_sd_hz`/Monopitch),
+      `voice_breaks_count`, `voice_breaks_degree_pct`, `f3_mean_hz` (F1/F2 existieren schon).
+      Dann Umbau auf `build_tiles()`/`kpi_tile()` analog zu Bucket C.
+- [ ] **H2 — DDK: Zyklen-Regelmäßigkeit (CV) und Ø Zyklus-Intervall noch keine Kacheln.**
+      `cycle_interval_cv` hat schon einen `PARAMETER_INFO`-Eintrag (aus P12, aber ohne Zone —
+      siehe dort), ist aber NICHT in `views/ddk.py`s `tile_keys`-Liste enthalten. Ø Zyklus-
+      Intervall (`mean_cycle_interval_s`) hat NOCH KEINEN `PARAMETER_INFO`-Eintrag — braucht
+      eigene Beschreibung (ist im Kern der Kehrwert der DDK-Rate, evtl. reicht ein Verweis
+      ohne eigene Zone, da inhaltlich redundant zu `ddk_rate_hz`).
+
+### Bucket I — Kacheln zeigen Normbereich/Einheit nicht direkt sichtbar genug
+
+- [ ] **I1 — Nutzer-Kernkritik**: "in den Kacheln... wenig Erklärungen, wenig Standardbereiche,
+      keine Einheiten oder normale Range, um physiologisch/pathophysiologisch/pathologisch
+      abzugrenzen" — konkretes Beispiel DDK-Rate: Kachel zeigt "auffällig", aber NICHT direkt
+      sichtbar, WELCHER Bereich als normal gilt oder wie der Wert berechnet wird. Das ist ein
+      echter Design-Rückstand: `kpi_tile()` zeigt aktuell Wert+Status-Label
+      ("im Normbereich"/"grenzwertig"/"auffällig"), aber NICHT die konkrete Zahlen-Range
+      (z.B. "5-8Hz") — die steht bisher nur in der separaten "Alle Werte im Detail"-Tabelle
+      (Spalte "Normbereich") bzw. im Glossar-Kontext-Text, beides hinter einem Klick versteckt.
+      **Gerade jetzt nach der P12-Recherche besonders ärgerlich** — die Ranges EXISTIEREN
+      jetzt (DDK-Rate, MPT, RAP/PPQ5/APQ11, CPPS), sind aber auf der Kachel selbst nicht
+      sichtbar.
+  - **Lösungsvorschlag (noch nicht entschieden)**: `kpi_tile()`/`core/interpretation.py::
+    build_tiles()` um die Range direkt im `sub_text` ergänzen, z.B. statt nur "auffällig" →
+    "auffällig (Norm: 5-8Hz)". Muss kompakt bleiben, damit die Kachel nicht überladen wirkt —
+    ggf. Range nur bei Parametern MIT `zones_func` anzeigen (bei "kein Normwert"-Parametern
+    ergibt eine Range ohnehin keinen Sinn).
+  - Betrifft ALLE Kacheln app-weit, nicht nur DDK — systematische Änderung an `build_tiles()`/
+    `kpi_tile()`, wirkt sich automatisch auf alle 4 Module aus.
+
+### Bucket J — Weitere Einzelpunkte
+
+- [ ] **J1 — Idee: Lesetext vorlesen lassen (Text-to-Speech)** für sehschwache Nutzer:innen,
+      die den Text dann eher nachsprechen als lesen. Neue Funktionalität, braucht eigene
+      Recherche (welche TTS-Engine lokal, ohne Cloud-Abhängigkeit — passt zum
+      Datenschutz-Prinzip des Projekts, ähnlich wie die WhisperX-Entscheidung für lokale
+      Transkription statt Cloud-API).
+- [ ] **J2 — Radar-Diagramm bei Vorlesen (Sprechrate/Flüssigkeit/Lexik/Rhythmus) "nicht
+      wirklich gelungen"** — Nutzer-Feedback nach dem ersten echten Anschauen: aktuelle
+      Umsetzung (`core/plots.py::radar_figure()`, siehe Bucket E oben) überzeugt nicht, braucht
+      eine andere Darstellung. Noch keine konkrete Alternative festgelegt — die schon in
+      Bucket E notierte Design-Sorge ("darf nicht wieder wie ein Dashboard wirken") hat sich
+      damit bestätigt. Mögliche Alternativen zu prüfen: horizontale Balken-Vergleichsreihe
+      statt Polygon, Sparkline-Zeile, oder ganz auf das Radar verzichten und nur bei den
+      Kacheln bleiben.
+- [ ] **J3 — Transkriptions-Modell (WhisperX + Versionsnummer) nicht sichtbar genug.** Aktuell
+      nur im Testdaten-Modus als "KI-Transkription (WhisperX, Modell large-v3)" gekennzeichnet
+      (`views/testdaten.py`) — in den 4 Guide-Modulen (`views/vorlesen.py`/
+      `views/spontansprache.py`) fehlt dieser Hinweis beim eigentlichen Transkript-Ergebnis
+      komplett (WhisperX wird nur in Fehlermeldungen/Captions erwähnt, nicht prominent beim
+      Ergebnis selbst). `core/transcription.py::DEFAULT_MODEL = "large-v3"` ist schon zentral
+      definiert — nur die Anzeige fehlt an den 2 Guide-Modul-Stellen.
+
+**Bereits (teilweise) vorhanden, zur Klarstellung**: die allgemeine Forderung "mehr Kontext/
+Literatur bei den Werten" ist strukturell bereits durch P11 (Kompakte Übersicht + Glossar) und
+P12 (Referenzwerte) angegangen — der verbleibende Rückstand ist NICHT fehlende Recherche,
+sondern fehlende SICHTBARKEIT der bereits recherchierten Werte direkt auf der Kachel (siehe
+Bucket I) sowie die in Bucket H aufgelisteten, noch nicht auf Kacheln umgestellten Parameter.
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser
