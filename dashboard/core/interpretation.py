@@ -187,6 +187,82 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": "Kein etablierter Normbereich, sinkt allein durch Textlänge — nur im Eigenvergleich über Sitzungen sinnvoll.",
         "age_caveat": None,
     },
+    # --- P7/Audit 2026-08-15 (docs/backlog.md "Audit-Parameter einbauen") ---
+    "jitter_rap_pct": {
+        "label": "Jitter (RAP)",
+        "unit": "%",
+        "description": "3-Punkt-Periodenperturbation — wie Jitter (local), aber über 3 benachbarte Zyklen geglättet, dadurch robuster gegen einzelne Ausreißer-Zyklen.",
+        "zones_func": None,
+        "context": (
+            "Wie Jitter (local) ein unspezifischer Dysphonie-Marker, nur bei gehaltenem Vokal "
+            "zuverlässig interpretierbar. Kein projektintern verifizierter Cutoff hinterlegt "
+            "(siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
+        ),
+        "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+    },
+    "jitter_ppq5_pct": {
+        "label": "Jitter (PPQ5)",
+        "unit": "%",
+        "description": "5-Punkt-Periodenperturbation — wie RAP, aber über 5 benachbarte Zyklen geglättet.",
+        "zones_func": None,
+        "context": (
+            "Wie Jitter (local)/RAP ein unspezifischer Dysphonie-Marker, nur bei gehaltenem "
+            "Vokal zuverlässig interpretierbar. Kein projektintern verifizierter Cutoff "
+            "hinterlegt (siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
+        ),
+        "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+    },
+    "shimmer_apq11_pct": {
+        "label": "Shimmer (APQ11)",
+        "unit": "%",
+        "description": "11-Punkt-Amplitudenperturbation — wie Shimmer (local), aber über 11 benachbarte Zyklen geglättet, dadurch robuster gegen einzelne Ausreißer-Zyklen.",
+        "zones_func": None,
+        "context": (
+            "Wie Shimmer (local) ein unspezifischer Dysphonie-Marker, nur bei gehaltenem Vokal "
+            "zuverlässig interpretierbar. Kein projektintern verifizierter Cutoff hinterlegt "
+            "(siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
+        ),
+        "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+    },
+    "mpt_s": {
+        "label": "Maximum Phonation Time (MPT)",
+        "unit": "s",
+        "description": "Längste zusammenhängende stimmhafte Passage in der Aufnahme — klassisches Stimm-/Atemreserve-Maß.",
+        "zones_func": None,
+        "context": (
+            "Reduzierte MPT gilt als Hinweis auf eingeschränkte Atem-/Stimmbandfunktion, z.B. "
+            "bei ALS/bulbären Erkrankungen. Nur aussagekräftig, wenn gezielt „so lange wie "
+            "möglich halten“ instruiert wurde — bei kurzen Standard-Vokalaufnahmen ist der Wert "
+            "nur die aufgenommene Dauer, nicht die tatsächliche maximale Phonationsdauer."
+        ),
+        "age_caveat": None,
+    },
+    "tremor_freq_hz": {
+        "label": "F0-Tremor-Frequenz",
+        "unit": "Hz",
+        "description": "Dominante Oszillationsfrequenz der Tonhöhen-Kontur im 3–15Hz-Band (Spektralanalyse der F0-Zeitreihe, nicht des Rohsignals).",
+        "zones_func": None,
+        "context": (
+            "Physiologischer/pathologischer Stimmtremor liegt typischerweise bei 4-12Hz — in "
+            "der Literatur als Ansatzpunkt zur Differenzierung Parkinson- vs. essenzieller "
+            "Tremor diskutiert. Rein explorativ, nicht klinisch validiert, keine automatische "
+            "Tremor-Diagnose. Bei kurzen Vokalaufnahmen (~2-3s) ist die Frequenzauflösung grob."
+        ),
+        "age_caveat": None,
+    },
+    "vsa_hz2": {
+        "label": "Vokalraum-Fläche (VSA)",
+        "unit": "Hz²",
+        "description": "Fläche des Dreiecks aus den Formant-Mittelwerten (F1/F2) der drei Eckvokale /a/, /i/, /u/ — klassisches Maß für den genutzten Artikulationsraum.",
+        "zones_func": None,
+        "context": (
+            "Kleinere Fläche = stärker zentralisierter Vokalraum, gilt in der Literatur als "
+            "möglicher Hinweis auf Artikulationsundeutlichkeit/Dysarthrie. Kein projektintern "
+            "verifizierter Cutoff hinterlegt (siehe docs/backlog.md P12) — braucht alle 3 "
+            "Vokal-Teilaufgaben mit mindestens einem Versuch."
+        ),
+        "age_caveat": None,
+    },
 }
 
 

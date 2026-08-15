@@ -6,10 +6,11 @@ Reihenfolge einfach->schwer (literaturbasiert, siehe Konzept-Diskussion): Vokali
 da motorisch/kognitiv am wenigsten fordernd (keine Artikulationskoordination noetig).
 
 Pflicht-Aufgabe: gehaltener Vokal /a/ (ASHA-Standard, auch Basis der Saarbruecker Voice
-Database). /i/ und /u/ optional (fuer eine spaetere Vokalraum-Flaeche, noch nicht berechnet --
-siehe docs/backlog.md, echte VSA-Formel ist P7, hier noch nicht umgesetzt). MPT (Maximum
-Phonation Time) ebenfalls optional, noch nicht als eigene Kennzahl berechnet (P1 im externen
-Audit, folgt spaeter).
+Database). /i/ und /u/ optional -- werden fuer eine echte Vokalraum-Flaeche (VSA,
+core.audio.vowel_space_area(), P7/Audit 2026-08-15) genutzt, sobald alle 3 Eckvokale je einen
+ausgewaehlten Versuch haben. MPT (Maximum Phonation Time) und eine explorative F0-Tremor-
+Analyse (core.audio.mpt_features()/f0_tremor_features(), ebenfalls P7) werden je Take
+automatisch mitberechnet.
 
 Take-Management (P1, siehe core/module_state.py): mehrere Aufnahmen pro Teilaufgabe moeglich,
 manuelle Auswahl des besten Versuchs, session-persistent -- Ergebnisse werden IMMER aus
@@ -25,14 +26,17 @@ import streamlit as st
 
 from core.audio import (
     cpp_features,
+    f0_tremor_features,
     formant_features,
+    mpt_features,
     phonation_dynamics_features,
     phonation_features,
     recording_quality_features,
     save_uploaded_wav,
+    vowel_space_area,
 )
 from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
-from core.module_state import add_take, delete_take, get_takes, select_take
+from core.module_state import add_take, delete_take, get_takes, select_take, selected_take
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
@@ -109,6 +113,8 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 dyn = phonation_dynamics_features(recording.path)
                 cpp = cpp_features(recording.path)
                 form = formant_features(recording.path)
+                mpt = mpt_features(recording.path)
+                tremor = f0_tremor_features(recording.path)
                 add_take(MODULE, task_key, {
                     "recording_path": recording.path,
                     "filename": recording.filename,
@@ -117,6 +123,8 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                     "dynamics": dyn,
                     "cpp": cpp,
                     "formants": form,
+                    "mpt": mpt,
+                    "tremor": tremor,
                 })
                 st.success(f"Aufgenommen: {recording.filename}")
                 st.rerun()  # Widget-Key aendert sich (len(takes)+1) -> sauberer neuer leerer Recorder
@@ -193,6 +201,28 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                     if dcol3.button("Löschen", key=f"del_{task_key}_{i}", icon=":material/delete:"):
                         delete_take(MODULE, task_key, i)
                         st.rerun()
+
+# --- Vokalraum-Fläche (VSA, P7/Audit): braucht alle 3 Eckvokale mit mind. einem Versuch,
+# rechnet ueber die jeweils AUSGEWAEHLTEN besten Takes -- deshalb erst hier am Modul-Ende,
+# nicht innerhalb der einzelnen Tabs. ---
+take_a = selected_take(MODULE, "vokal")
+take_i = selected_take(MODULE, "vokali")
+take_u = selected_take(MODULE, "vokalu")
+if take_a and take_i and take_u:
+    vsa = vowel_space_area(
+        take_a["formants"]["f1_mean_hz"], take_a["formants"]["f2_mean_hz"],
+        take_i["formants"]["f1_mean_hz"], take_i["formants"]["f2_mean_hz"],
+        take_u["formants"]["f1_mean_hz"], take_u["formants"]["f2_mean_hz"],
+    )
+    if vsa is not None:
+        st.divider()
+        st.markdown("**Vokalraum-Fläche** — alle 3 Eckvokale vorhanden")
+        vsa_col, _, _ = st.columns(3)
+        with vsa_col:
+            kpi_tile(
+                "Vokalraum-Fläche (VSA)", f"{vsa:,.0f} Hz²".replace(",", "."), "kein Normwert", "neutral",
+                "Fläche des Dreiecks aus F1/F2 der Eckvokale /a/,/i/,/u/ — kleinere Fläche kann auf Zentralisierung hindeuten.",
+            )
 
 done = {k: v for k, v in st.session_state.get("module_results", {}).get(MODULE, {}).items() if v}
 st.divider()

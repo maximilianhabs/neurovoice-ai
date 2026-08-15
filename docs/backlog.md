@@ -240,9 +240,37 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         mit korrekt berechneter `duration_s` (z.B. "Einst" 0.381s), identisch für Vorlesen
         UND Spontansprache getestet. Regressionstest über alle 6 Seiten ohne Exception,
         HTTP 200 nach Deploy.
-- [ ] **P7 — Audit-Parameter einbauen**: RAP/PPQ5/APQ11, MPT, echte VSA-Formel, F0-Tremor
-      (bereits im externen Audit oben priorisiert) — technisch unabhängig, können parallel zu
-      P2/P3 einlaufen, sobald das jeweilige Modul (Vokalisation) steht.
+- [x] **P7 — Audit-Parameter einbauen** ✅ UMGESETZT (2026-08-15) — RAP/PPQ5/APQ11, MPT, echte
+      VSA-Formel, F0-Tremor, alle in `views/vokalisation.py` verdrahtet (dem bislang einzigen
+      Modul mit gehaltenem Vokal — die anderen Module brauchen diese Parameter nicht).
+  - **RAP/PPQ5/APQ11**: `core/audio.py::phonation_features()` erweitert — nutzt denselben
+    `point_process` wie Jitter/Shimmer local, nur zusätzliche `praat.call(...)`-Aufrufe
+    ("Get jitter (rap)"/"(ppq5)", "Get shimmer (apq11)"), keine neue Infrastruktur. Bewusst
+    OHNE Ampel-Zonen (`zones_func: None` in `PARAMETER_INFO`) — kein projektintern
+    verifizierter Cutoff, siehe neuer Punkt P12 unten.
+  - **MPT (Maximum Phonation Time)**: neue `core/audio.py::mpt_features()` — längste
+    zusammenhängende stimmhafte Passage aus der Pitch-Kontur (eigene Berechnung, nicht über
+    Praats Voice-Report-Bruchzählung). Logik VOR dem Deploy an einer synthetischen
+    Voiced/Unvoiced-Maske verifiziert (2,5s längste Serie korrekt erkannt).
+  - **F0-Tremor**: neue `core/audio.py::f0_tremor_features()` — FFT/Periodogramm der
+    (detrendeten, auf Gleichabstand interpolierten) F0-Zeitreihe im 3-15Hz-Band. Rein
+    explorativ, ausdrücklich keine Tremor-Klassifikation/-Diagnose. Kern-Algorithmus VOR dem
+    Deploy an einer synthetischen 6Hz-Sinus-Tremor-Zeitreihe verifiziert (Peak exakt bei
+    6,0Hz erkannt, Amplitude-Schätzung durch Hanning-Fenster-Dämpfung ca. halb so groß wie
+    die wahre Amplitude — bewusst nur als Eigenvergleichs-Näherung dokumentiert, kein
+    kalibriertes Absolutmaß).
+  - **Echte VSA-Formel**: neue `core/audio.py::vowel_space_area()` — Dreiecksformel
+    (Shoelace) aus den Formant-Mittelwerten der 3 Eckvokale /a/,/i/,/u/. Arbeitet (anders als
+    die übrigen Audio-Funktionen) NICHT auf einer einzelnen Datei, sondern kombiniert die
+    jeweils AUSGEWÄHLTEN besten Takes aller 3 Vokal-Teilaufgaben — Aufruf deshalb aus
+    `views/vokalisation.py` am Modul-Ende (nach der Tab-Schleife), zeigt sich erst, wenn alle
+    3 Eckvokale mindestens einen Versuch haben. Formel isoliert mit realistischen
+    Formant-Werten gegengeprüft (272.500 Hz² bei typischen /a/,/i/,/u/-Werten — plausible
+    Größenordnung).
+  - **Verifiziert**: End-to-End auf dem Server mit echten Aufnahmen (alle 3 Vokal-Slots
+    befüllt) — Jitter RAP 0,30%/PPQ5 0,40%/Shimmer APQ11 3,71%/MPT 2,35s/F0-Tremor 3,83Hz
+    alle korrekt in der Detail-Tabelle, VSA-Kachel erscheint nach Befüllen aller 3 Slots.
+    Regressionstest über alle 6 Seiten ohne Exception, HTTP 200 nach Deploy.
 - [ ] **P8 — Live-Aufnahmedauer-Farbfeedback** (Nutzer-Idee 2026-08-15, bewusst zurückgestellt,
       nur UX-Politur): während der Mikrofonaufnahme farblich anzeigen, wie lange schon
       aufgenommen wird — grün bis zur Zielsekunde (z.B. 3s für Vokale), ab ~4-5s orange, ab

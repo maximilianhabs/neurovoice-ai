@@ -267,6 +267,23 @@ def phonation_features(path: str) -> dict:
         jitter_local = None
         shimmer_local = None
 
+    # RAP/PPQ5/APQ11 (P7/Audit, docs/backlog.md "Prio 1"): feinere Jitter-/Shimmer-Untermasse,
+    # nutzen denselben point_process wie jitter/shimmer local -- technisch trivial, da die
+    # Infrastruktur schon da ist. RAP = 3-Punkt-, PPQ5 = 5-Punkt-Periodenperturbation, APQ11 =
+    # 11-Punkt-Amplitudenperturbation (glaetten jeweils ueber mehr Nachbarzyklen als "local",
+    # dadurch robuster gegen einzelne Ausreisser-Zyklen). Wie lokal nur bei gehaltenem Vokal
+    # zuverlaessig interpretierbar.
+    try:
+        jitter_rap = parselmouth.praat.call(point_process, "Get jitter (rap)", 0, 0, 0.0001, 0.02, 1.3)
+        jitter_ppq5 = parselmouth.praat.call(point_process, "Get jitter (ppq5)", 0, 0, 0.0001, 0.02, 1.3)
+        shimmer_apq11 = parselmouth.praat.call(
+            [sound, point_process], "Get shimmer (apq11)", 0, 0, 0.0001, 0.02, 1.3, 1.6
+        )
+    except Exception:
+        jitter_rap = None
+        jitter_ppq5 = None
+        shimmer_apq11 = None
+
     harmonicity = sound.to_harmonicity()
     hnr_values = harmonicity.values[harmonicity.values != -200]
     hnr_mean = float(np.mean(hnr_values)) if len(hnr_values) else None
@@ -276,6 +293,9 @@ def phonation_features(path: str) -> dict:
         "f0_sd_hz": f0_sd,
         "jitter_local_pct": jitter_local * 100 if jitter_local is not None else None,
         "shimmer_local_pct": shimmer_local * 100 if shimmer_local is not None else None,
+        "jitter_rap_pct": jitter_rap * 100 if jitter_rap is not None else None,
+        "jitter_ppq5_pct": jitter_ppq5 * 100 if jitter_ppq5 is not None else None,
+        "shimmer_apq11_pct": shimmer_apq11 * 100 if shimmer_apq11 is not None else None,
         "hnr_mean_db": hnr_mean,
     }
 
@@ -585,6 +605,130 @@ def phonation_dynamics_features(path: str) -> dict:
         "voice_breaks_count": int(breaks_match.group(1)) if breaks_match else None,
         "voice_breaks_degree_pct": float(degree_match.group(1)) if degree_match else None,
     }
+
+
+def mpt_features(path: str) -> dict:
+    """Maximum Phonation Time (MPT, P7/Audit 2026-08-15, docs/backlog.md "Prio 1") -- laengste
+    zusammenhaengende stimmhafte Passage in einer Aufnahme. Klassisches Stimm-/Atemreserve-Mass
+    (z.B. bei ALS/neurologischen Erkrankungen mit Atemschwaeche reduziert). Nutzt dieselbe
+    Pitch-Kontur wie phonation_dynamics_features(), aber eigene Berechnung (laengste
+    zusammenhaengende Voiced-Serie statt Anzahl Unterbrechungen).
+
+    WICHTIG: nur aussagekraeftig, wenn die Aufnahme-Instruktion "so lange wie moeglich halten"
+    war -- bei normalen kurzen Vokalaufnahmen (2-3s) ist der Wert nur die aufgenommene Dauer,
+    nicht die tatsaechliche maximale Phonationsdauer der Person (siehe docs/backlog.md, MPT
+    braucht eigentlich einen eigenen Aufnahme-Task).
+    """
+    sound = parselmouth.Sound(path)
+    pitch = sound.to_pitch()
+    times = pitch.xs()
+    f0_values = pitch.selected_array["frequency"]
+
+    if len(times) < 2:
+        return {"mpt_s": None, "n_voiced_segments": 0}
+
+    dt = float(times[1] - times[0])
+    voiced_mask = f0_values > 0
+
+    max_run = 0
+    current_run = 0
+    n_segments = 0
+    prev_voiced = False
+    for is_voiced in voiced_mask:
+        if is_voiced:
+            current_run += 1
+            if not prev_voiced:
+                n_segments += 1
+        else:
+            max_run = max(max_run, current_run)
+            current_run = 0
+        prev_voiced = is_voiced
+    max_run = max(max_run, current_run)
+
+    return {
+        "mpt_s": max_run * dt if max_run > 0 else None,
+        "n_voiced_segments": n_segments,
+    }
+
+
+TREMOR_BAND_HZ = (3.0, 15.0)  # physiologischer/pathologischer Stimmtremor liegt typ. bei 4-12 Hz
+
+
+def f0_tremor_features(path: str) -> dict:
+    """F0-Tremor-Analyse (P7/Audit 2026-08-15, docs/backlog.md "Prio 2") -- Spektralanalyse der
+    Grundfrequenz-ZEITREIHE selbst (nicht des Rohsignals), um rhythmische Tonhoehen-
+    Oszillationen zu erkennen. Interessant fuer die Differenzierung Parkinson- vs. essenzieller
+    Tremor laut externem Audit -- hier bewusst nur als deskriptiver Peak/Staerke-Wert, KEINE
+    automatische Tremor-Diagnose oder -Klassifikation.
+
+    Ablauf: stimmhafte F0-Werte auf ein gleichabstaendiges Zeitraster interpolieren (Pitch-
+    Frames sind ueber stimmlose Luecken hinweg nicht zwingend zusammenhaengend), linearen Trend
+    entfernen (sonst dominiert der bereits an anderer Stelle erfasste Pitch Slope das Spektrum),
+    dann FFT/Periodogramm im 3-15Hz-Band. EHRLICHKEIT UEBER DIE GRENZEN: braucht genug
+    stimmhafte Dauer fuer eine sinnvolle Frequenzaufloesung -- bei kurzen ~2-3s-Vokalaufnahmen
+    ist die Aufloesung grob, Tremor unterhalb weniger Hz laesst sich kaum von normalem Pitch-
+    Rauschen trennen. Nicht klinisch validiert, rein explorativ.
+    """
+    sound = parselmouth.Sound(path)
+    pitch = sound.to_pitch()
+    times = pitch.xs()
+    f0_values = pitch.selected_array["frequency"]
+    voiced_mask = f0_values > 0
+
+    empty = {"tremor_freq_hz": None, "tremor_amplitude_hz": None, "tremor_power_ratio": None}
+    if voiced_mask.sum() < 20 or len(times) < 2:
+        return empty
+
+    t_voiced = times[voiced_mask]
+    f0_voiced = f0_values[voiced_mask]
+    dt = float(times[1] - times[0])
+
+    t_grid = np.arange(t_voiced[0], t_voiced[-1], dt)
+    if len(t_grid) < 20:
+        return empty
+    f0_grid = np.interp(t_grid, t_voiced, f0_voiced)
+
+    detrended = f0_grid - np.polyval(np.polyfit(t_grid, f0_grid, 1), t_grid)
+    windowed = detrended * np.hanning(len(detrended))
+
+    freqs = np.fft.rfftfreq(len(windowed), d=dt)
+    power = np.abs(np.fft.rfft(windowed)) ** 2
+
+    lo, hi = TREMOR_BAND_HZ
+    band_mask = (freqs >= lo) & (freqs <= hi)
+    if not band_mask.any() or power.sum() == 0:
+        return empty
+
+    band_freqs = freqs[band_mask]
+    band_power = power[band_mask]
+    peak_idx = int(np.argmax(band_power))
+
+    return {
+        "tremor_freq_hz": float(band_freqs[peak_idx]),
+        # grobe Amplitude-Naeherung aus der Spektralleistung (Hanning-Fenster-Skalierung) --
+        # kein kalibriertes Absolutmass, nur fuer den Eigenvergleich zwischen Aufnahmen gedacht.
+        "tremor_amplitude_hz": float(np.sqrt(band_power[peak_idx]) / len(windowed) * 2),
+        "tremor_power_ratio": float(band_power[peak_idx] / power.sum()),
+    }
+
+
+def vowel_space_area(f1_a, f2_a, f1_i, f2_i, f1_u, f2_u) -> float | None:
+    """Klassische Vokalraum-Flaeche (VSA, P7/Audit 2026-08-15, docs/backlog.md "Prio 1") nach
+    der Dreiecksformel (Shoelace) fuer die Eckvokale /a/, /i/, /u/ im F1-F2-Formantraum.
+    Braucht Formant-Mittelwerte aus 3 GETRENNTEN Aufnahmen (Vokalisation-Modul: /a/ Pflicht,
+    /i/+/u/ optional) -- anders als die uebrigen Funktionen hier arbeitet diese NICHT auf einer
+    einzelnen Sound-Datei, sondern auf bereits berechneten formant_features()-Werten dreier
+    Takes, wird also aus der UI-Ebene (views/vokalisation.py) heraus aufgerufen, nicht aus einem
+    einzelnen `path`.
+
+    Formel: VSA = 0.5 * |F1i*(F2a-F2u) + F1a*(F2u-F2i) + F1u*(F2i-F2a)| (Flaeche eines Dreiecks
+    aus 3 Punkten in der Ebene). Kleinere Flaeche = staerker zentralisierter Vokalraum, gilt in
+    der Literatur als moeglicher Hinweis auf Artikulationsundeutlichkeit/Dysarthrie.
+    """
+    values = (f1_a, f2_a, f1_i, f2_i, f1_u, f2_u)
+    if any(v is None for v in values):
+        return None
+    return 0.5 * abs(f1_i * (f2_a - f2_u) + f1_a * (f2_u - f2_i) + f1_u * (f2_i - f2_a))
 
 
 MFCC_N_COEFFS = 12
