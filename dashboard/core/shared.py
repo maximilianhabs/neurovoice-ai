@@ -97,6 +97,20 @@ def apply_global_style() -> None:
         border: 1px solid var(--dw-border);
     }}
 
+    /* Mikrofon-/Datei-Aufnahme deutlich größer (Nutzer-Feedback 2026-08-15: Steuerelemente
+    waren winzig und schwer zu treffen). data-testid noch nicht final gegengeprüft im Browser
+    (kein Mikrofon-Zugriff im Sandbox-Browser) -- bei Bedarf nach echtem Test nachschärfen. */
+    div[data-testid="stAudioInput"], div[data-testid="stFileUploader"] {{
+        border: 1.5px solid var(--dw-border);
+        border-radius: var(--dw-radius-lg);
+        padding: 16px;
+        background: var(--dw-surface);
+    }}
+    div[data-testid="stAudioInput"] button, div[data-testid="stFileUploader"] button {{
+        transform: scale(1.35);
+        margin: 6px 10px;
+    }}
+
     /* ── Eyebrow+Hero-Title+Subtitle-Muster (aus dem EDF-Analyzer-Referenz-Prompt,
     auf App-Seitentitel statt Marketing-Hero herunterskaliert) ─────────────────────────── */
     .dw-eyebrow {{

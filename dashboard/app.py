@@ -73,11 +73,47 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Sidebar: Datei auswählen, hochladen ODER direkt aufnehmen (Phase A, siehe docs/backlog.md
-# "Self-Service-Upload" + "Mikrofonaufnahme im Browser", P0 im Modul-Umsetzungsplan). Bei Upload
-# UND Mikrofonaufnahme: Task-Typ-Abfrage, damit die Ampel-/Fit-Logik (core/reference_ranges.py)
-# genauso greift wie bei den eigenen Testaufnahmen. Konvertierung anderer Formate als WAV bleibt
-# ein spaeterer Schritt.
+# --- Aufnahme-Instruktionen je Task-Typ (UI-Ueberarbeitung 2026-08-15, siehe docs/backlog.md
+# "P0 -- UI-Ueberarbeitung Aufnahme-Bereich"): kurze, konkrete Anleitung je Aufgabe, orientiert
+# an den literaturbasierten Vorgaben aus dem Modul-Konzept (ASHA-Standard fuer Vokale,
+# Ziel-Dauern fuer DDK/Spontansprache). Rein informativ, erzwingt nichts.
+UPLOAD_TASK_INSTRUCTIONS = {
+    "lesetext": (
+        "**Lies den folgenden Satz laut und in normalem Tempo vor:**\n\n"
+        "> Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere "
+        "wäre, als ein Wanderer, der in einen warmen Mantel gehüllt war, des Weges daherkam."
+    ),
+    "vokal": (
+        "**Halte den Vokal „AAAAA“** in gleichbleibender Tonhöhe und Lautstärke für "
+        "**mindestens 2-3 Sekunden**. Wenn möglich 3 Wiederholungen."
+    ),
+    "vokali": (
+        "**Halte den Vokal „IIIII“** in gleichbleibender Tonhöhe und Lautstärke für "
+        "**mindestens 2-3 Sekunden**. Wenn möglich 3 Wiederholungen."
+    ),
+    "vokalu": (
+        "**Halte den Vokal „UUUUU“** in gleichbleibender Tonhöhe und Lautstärke für "
+        "**mindestens 2-3 Sekunden**. Wenn möglich 3 Wiederholungen."
+    ),
+    "ddkgemischt": (
+        "**Sprich so schnell und gleichmäßig wie möglich** „pa-ta-ka-pa-ta-ka...“ — "
+        "für ca. **10 Sekunden**."
+    ),
+    "ddkeinzeln": (
+        "**Sprich nacheinander**, jeweils ca. 5 Sekunden: erst „pa-pa-pa...“, dann "
+        "„ta-ta-ta...“, dann „ka-ka-ka...“ — jeweils so schnell und gleichmäßig wie möglich."
+    ),
+    "spontan": (
+        "**Erzähle frei von deinem letzten Urlaub oder einem Hobby**, ca. **30 Sekunden**.\n\n"
+        "Falls dir nichts einfällt: Welches Hobby hast du? Seit wann? Was gefällt dir daran?"
+    ),
+    "unbekannt": "Nimm die gewünschte Aufgabe auf.",
+}
+
+# --- Sidebar: nur die Auswahl-Steuerung (Quelle + Task-Typ) -- kompakt, passt in die Sidebar.
+# Die eigentliche Aufnahme-/Upload-Flaeche steht bewusst im breiten Hauptbereich (siehe unten),
+# nicht in der schmalen Sidebar -- Nutzer-Feedback 2026-08-15: dort war der Mikrofon-Aufnahme-
+# Button winzig und ohne Instruktion kaum bedienbar.
 source_mode = st.sidebar.radio(
     "Quelle", ["Vorhandene Aufnahmen", "Datei hochladen (WAV)", "Mikrofon aufnehmen"]
 )
@@ -88,28 +124,37 @@ if source_mode in ("Datei hochladen (WAV)", "Mikrofon aufnehmen"):
         list(UPLOAD_TASK_LABELS.keys()),
         format_func=lambda k: UPLOAD_TASK_LABELS[k],
     )
+
+    # --- Hauptbereich: grosse Instruktion + grosse Aufnahme-/Upload-Flaeche ---
+    st.subheader("🎙️ Aufnahme")
+    st.markdown(
+        f'<div class="dw-card-subtle">{UPLOAD_TASK_INSTRUCTIONS.get(upload_task, "")}</div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+
     if source_mode == "Datei hochladen (WAV)":
-        uploaded_file = st.sidebar.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
+        uploaded_file = st.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
         source_filename = uploaded_file.name if uploaded_file is not None else None
         missing_hint = "eine WAV-Datei hochladen"
         verb = "Hochgeladen"
     else:
         # sample_rate=48000 explizit setzen -- Default ist 16kHz (fuer Spracherkennung
         # optimiert), passt sonst nicht zur restlichen 48kHz-Pipeline (iPhone-Aufnahmen).
-        uploaded_file = st.sidebar.audio_input("Aufnahme starten", sample_rate=48000)
+        uploaded_file = st.audio_input("Aufnahme starten", sample_rate=48000)
         source_filename = "mikrofonaufnahme.wav"
         missing_hint = "eine Aufnahme starten"
         verb = "Aufgenommen"
 
     if uploaded_file is None:
-        st.info(f"Bitte in der Seitenleiste {missing_hint}.")
+        st.info(f"Bitte oben {missing_hint}.")
         st.stop()
     try:
         recording = save_uploaded_wav(DERIVED_DIR, source_filename, uploaded_file.getvalue(), task=upload_task)
     except ValueError as exc:
-        st.sidebar.error(str(exc))
+        st.error(str(exc))
         st.stop()
-    st.sidebar.success(f"{verb}: {recording.filename}")
+    st.success(f"{verb}: {recording.filename}")
 else:
     patients = list_patients(DATA_DIR)
     if not patients:

@@ -65,8 +65,17 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       nötig). Neue Adresse: **`https://homeserver.tailaecdbb.ts.net`**. Setup brauchte
       einmalig `tailscale set --operator=maximilian` (NOPASSWD-Pattern) + einmalige
       Freischaltung von "Serve" im Tailscale-Admin-Konto (Nutzer-Bestätigung über
-      login.tailscale.com). HTTP 200 über die neue HTTPS-Adresse bestätigt, echter
-      Mikrofon-Aufnahme-Test durch den Nutzer selbst noch ausstehend.
+      login.tailscale.com). HTTP 200 über die neue HTTPS-Adresse bestätigt. **Echter
+      Mikrofon-Test durch den Nutzer erfolgreich** (2026-08-15) — Aufnahme, Anzeige,
+      Auswertung funktionieren, Qualität "hervorragend" (MacBook-Mikrofon). Zwei
+      Nachbesserungspunkte dabei gefunden:
+  - [ ] **Kosmetische Fehlermeldung nach Aufnahmeende** ("An error has occurred") — nicht
+        blockierend, App bleibt funktional, siehe docs/bugtracker.md RANDNOTIZ-12. Zurückgestellt,
+        im Blick behalten bei der UI-Überarbeitung direkt darunter.
+  - [x] **UI-Überarbeitung Aufnahme-Bereich** ✅ UMGESETZT (siehe unten) — Recorder war in der
+        schmalen Sidebar kaum bedienbar (winzige Buttons, keine Instruktion). Aus der Sidebar
+        in den breiten Hauptbereich verschoben + task-spezifischer Instruktionstext direkt
+        über dem Aufnahme-/Upload-Feld.
 - [ ] **P1 — Take-Management**: Nummerierung je Proband:in+Modul(+Unteraufgabe), Vergleichsansicht,
       manuelle Auswahl des Versuchs für den Gesamtbericht.
 - [ ] **P2 — Modul-Grundgerüst**: Umbau von Single-Page auf Multi-Page (`st.navigation`/`st.Page`,

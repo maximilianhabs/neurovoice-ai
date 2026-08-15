@@ -139,6 +139,27 @@ oder localhost) — bei jeder neuen Browser-API-Funktion vorher prüfen, ob die 
 
 ---
 
+## RANDNOTIZ-12 — `st.audio_input`: kosmetische Fehlermeldung nach erfolgreicher Aufnahme ⚠️ OFFEN (nicht blockierend)
+
+**Symptom:** Nach Testen der echten Mikrofonaufnahme über die neue HTTPS-Adresse (siehe
+BUG-15) meldet der Nutzer: Aufnahme, Anzeige und Auswertung funktionieren einwandfrei
+(Qualität "hervorragend"), aber am ENDE der Aufnahme erscheint zusätzlich zweimal "An error
+has occurred, please try again". App bleibt voll funktional — eine neue Aufnahme lässt sich
+direkt danach starten, keine Daten gehen verloren.
+
+**Vermutete Ursache (nicht verifiziert, nur Recherche-Indiz)**: Mehrere ähnliche
+GitHub-Issues zu `st.audio_input` beschreiben Fehler nach Aufnahmeende speziell bei
+Deployments HINTER EINEM REVERSE-PROXY (genau das haben wir seit BUG-15 mit
+`tailscale serve`) bzw. bei Aufnahmen über einer gewissen Länge. Nicht selbst reproduziert/
+debuggt — kein Zugriff auf Browser-Konsole der echten Nutzer-Session.
+
+**Status**: Bewusst zurückgestellt, da nicht blockierend. Wird im Zuge der UI-Überarbeitung
+(Recorder aus der Sidebar in den Hauptbereich, siehe docs/backlog.md) im Auge behalten — falls
+der Fehler dabei verschwindet oder sich auf bestimmte Aufnahmelängen/Browser eingrenzen lässt,
+hier nachtragen.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,
