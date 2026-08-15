@@ -124,6 +124,17 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       PNG-Export bestätigt, HTTP 200 nach Deploy.
       Platzhalter für die restlichen 2 Module (`views/spontansprache.py`, `views/ddk.py`)
       weiterhin klar als "🚧 im Aufbau" markiert, folgen nach demselben Muster.
+- [x] **P3 — Modul 3 „Spontansprache" komplett gebaut** ✅ UMGESETZT (2026-08-15) —
+      `views/spontansprache.py`, identisches Muster zu Vorlesen (Take-Management, Ampel-
+      Gauges, geschätzte Fortschrittsleiste bei Transkription), aber gestufter Prompt
+      ("Urlaub/Hobby" + Eskalations-Nachfragen) statt Textvorlage, Ziel ~30s. Lexikalische
+      Diversität (TTR/MTLD) hier besonders hervorgehoben, da bei ~30s aussagekräftiger als
+      beim kurzen Lesetext-Satz — mit explizitem Hinweis, dass MTLD trotzdem noch nicht die
+      Textlänge erreicht, für die es entwickelt wurde. Verifiziert: alle 6 Seiten +
+      Navigation ohne Exception, akustische Kennwerte gegen echte Testdatei geprüft, Cache-
+      Transkript-Pfad (Text-Anzeige, Sprechrate, TTR/MTLD) mit synthetischem Transkript
+      durchgetestet (kein 1-2-minütiger Warte-Zyklus nötig für den UI-Test), HTTP 200 nach
+      Deploy. Nur noch DDK (Modul 4) als Platzhalter offen.
 - [ ] **P4 — Persistentes Speicherschema + Gesamtbericht**: strukturiertes Format je Sitzung
       (Anknüpfung an Punkt 23 aus dem externen Audit oben, "Strukturiertes Analyse-Schema").
 - [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
