@@ -73,28 +73,43 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Sidebar: Datei auswählen ODER hochladen (Phase A, siehe docs/backlog.md
-# "Self-Service-Upload"). Schritt 1: Upload-UI. Schritt 2 (hier): Task-Typ-Abfrage, damit
-# die Ampel-/Fit-Logik (core/reference_ranges.py) bei Uploads genauso greift wie bei den
-# eigenen Testaufnahmen. Konvertierung anderer Formate als WAV bleibt ein spaeterer Schritt.
-source_mode = st.sidebar.radio("Quelle", ["Vorhandene Aufnahmen", "Datei hochladen (WAV)"])
+# --- Sidebar: Datei auswählen, hochladen ODER direkt aufnehmen (Phase A, siehe docs/backlog.md
+# "Self-Service-Upload" + "Mikrofonaufnahme im Browser", P0 im Modul-Umsetzungsplan). Bei Upload
+# UND Mikrofonaufnahme: Task-Typ-Abfrage, damit die Ampel-/Fit-Logik (core/reference_ranges.py)
+# genauso greift wie bei den eigenen Testaufnahmen. Konvertierung anderer Formate als WAV bleibt
+# ein spaeterer Schritt.
+source_mode = st.sidebar.radio(
+    "Quelle", ["Vorhandene Aufnahmen", "Datei hochladen (WAV)", "Mikrofon aufnehmen"]
+)
 
-if source_mode == "Datei hochladen (WAV)":
-    uploaded_file = st.sidebar.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
+if source_mode in ("Datei hochladen (WAV)", "Mikrofon aufnehmen"):
     upload_task = st.sidebar.selectbox(
         "Was wurde aufgenommen?",
         list(UPLOAD_TASK_LABELS.keys()),
         format_func=lambda k: UPLOAD_TASK_LABELS[k],
     )
+    if source_mode == "Datei hochladen (WAV)":
+        uploaded_file = st.sidebar.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
+        source_filename = uploaded_file.name if uploaded_file is not None else None
+        missing_hint = "eine WAV-Datei hochladen"
+        verb = "Hochgeladen"
+    else:
+        # sample_rate=48000 explizit setzen -- Default ist 16kHz (fuer Spracherkennung
+        # optimiert), passt sonst nicht zur restlichen 48kHz-Pipeline (iPhone-Aufnahmen).
+        uploaded_file = st.sidebar.audio_input("Aufnahme starten", sample_rate=48000)
+        source_filename = "mikrofonaufnahme.wav"
+        missing_hint = "eine Aufnahme starten"
+        verb = "Aufgenommen"
+
     if uploaded_file is None:
-        st.info("Bitte eine WAV-Datei in der Seitenleiste hochladen.")
+        st.info(f"Bitte in der Seitenleiste {missing_hint}.")
         st.stop()
     try:
-        recording = save_uploaded_wav(DERIVED_DIR, uploaded_file.name, uploaded_file.getvalue(), task=upload_task)
+        recording = save_uploaded_wav(DERIVED_DIR, source_filename, uploaded_file.getvalue(), task=upload_task)
     except ValueError as exc:
         st.sidebar.error(str(exc))
         st.stop()
-    st.sidebar.success(f"Hochgeladen: {recording.filename}")
+    st.sidebar.success(f"{verb}: {recording.filename}")
 else:
     patients = list_patients(DATA_DIR)
     if not patients:

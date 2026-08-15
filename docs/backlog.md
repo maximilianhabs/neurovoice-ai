@@ -48,13 +48,18 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
 
 ### Priorisierte Umsetzungs-Roadmap
 
-- [ ] **P0 — Mikrofonaufnahme im Browser** ⚡ HÖCHSTE PRIORITÄT, sofort umsetzen: `st.audio_input()`
-      ist ein natives Streamlit-Widget (kein neues Paket nötig, `streamlit>=1.35.0` in
-      requirements.txt bezieht ohnehin immer die neueste Version), liefert WAV direkt zurück,
-      gleiche Schnittstelle wie `st.file_uploader()` (`.getvalue()`). **Wichtig**:
-      `sample_rate=48000` explizit setzen (Default ist 16kHz, für Spracherkennung optimiert,
-      NICHT für unsere Analysequalität). Als dritte Eingabeoption neben "Vorhandene Aufnahmen"/
-      "Datei hochladen" im bestehenden Sidebar-Flow (Phase A).
+- [x] **P0 — Mikrofonaufnahme im Browser** ✅ UMGESETZT (2026-08-15) — `st.sidebar.audio_input()`
+      als dritte Eingabeoption neben "Vorhandene Aufnahmen"/"Datei hochladen" im bestehenden
+      Sidebar-Flow (Phase A), teilt sich Task-Auswahl + `save_uploaded_wav()` mit dem
+      Datei-Upload-Pfad (identischer Code, keine Dopplung). `sample_rate=48000` explizit
+      gesetzt (Default 16kHz ist für Spracherkennung optimiert, nicht für unsere
+      Analysequalität) — Signatur vor dem Schreiben direkt am laufenden Container geprüft
+      (Streamlit 1.61.1, `sample_rate: int | None = 16000` bestätigt). Kein neues Paket nötig.
+      Verifiziert: Regressionstest über alle 8 bestehenden Aufnahmen ohne Exception,
+      Mikrofon-Modus zeigt Task-Dropdown + korrekten Hinweistext ohne Aufnahme, HTTP 200 nach
+      Deploy. **Echter Mikrofon-Test im Browser selbst noch offen** — Tailscale-only
+      erreichbar, der sandboxed Browser hier kann weder die Adresse laden noch auf ein
+      Mikrofon zugreifen; bitte selbst im eigenen Browser gegentesten.
 - [ ] **P1 — Take-Management**: Nummerierung je Proband:in+Modul(+Unteraufgabe), Vergleichsansicht,
       manuelle Auswahl des Versuchs für den Gesamtbericht.
 - [ ] **P2 — Modul-Grundgerüst**: Umbau von Single-Page auf Multi-Page (`st.navigation`/`st.Page`,
