@@ -168,3 +168,49 @@ def apply_global_style() -> None:
     }}
     </style>
     """, unsafe_allow_html=True)
+
+
+# Grobe empirische Schaetzung, NICHT praezise (WhisperX liefert keinen echten Fortschritts-
+# Callback) -- nur genug fuer eine grobe visuelle Orientierung statt eines unbestimmten
+# Spinners. Frueher gemessene Werte streuen erheblich (83-96s fuer ~10-12s Audio ~7-9x an
+# einem Tag, aber 38s fuer 11,5s Audio ~3,3x bei einem frischen Test 2026-08-15 -- vermutlich
+# Modell-Warmlauf-/Auslastungseffekte). 5x als Kompromiss, Deckelung bei 90% faengt grobe
+# Abweichungen nach oben ab; bei zu optimistischer Schaetzung springt die Anzeige stattdessen
+# kurz von <90% auf 100%, kein Beinbruch.
+TRANSCRIPTION_REALTIME_FACTOR = 5.0
+
+
+def transcribe_with_progress(audio_path: str, duration_s: float) -> dict:
+    """Transkribiert in einem Hintergrund-Thread und zeigt eine GESCHAETZTE Fortschrittsleiste
+    (Nutzer-Feedback 2026-08-15: unbestimmter Spinner allein wirkte wie ein Absturz bei
+    1-2 Minuten Wartezeit). Deckelt bei 90%, bis der Thread tatsaechlich fertig ist -- verhindert
+    einen falschen "100%, aber laeuft noch weiter"-Eindruck, da die Schaetzung oft daneben liegt.
+
+    Blockiert die Streamlit-Sitzung weiterhin fuer die volle Dauer (kein echter Hintergrund-Job,
+    siehe docs/bugtracker.md RANDNOTIZ-13/P9 fuer die groessere Lösung) -- zeigt nur einen
+    ehrlicheren Fortschritt waehrend der Wartezeit.
+    """
+    import threading
+    import time
+
+    from core.transcription import transcribe
+
+    estimated_total_s = max(duration_s * TRANSCRIPTION_REALTIME_FACTOR, 10.0)
+    result: dict = {}
+
+    def _run():
+        result["transcript"] = transcribe(audio_path)
+
+    thread = threading.Thread(target=_run)
+    thread.start()
+
+    progress = st.progress(0, text="Transkribiere lokal … geschätzter Fortschritt")
+    start = time.time()
+    while thread.is_alive():
+        frac = min((time.time() - start) / estimated_total_s, 0.9)
+        progress.progress(frac, text=f"Transkribiere lokal … geschätzt {frac * 100:.0f}% (Schätzung kann abweichen)")
+        time.sleep(0.5)
+    thread.join()
+    progress.progress(1.0, text="Transkription abgeschlossen")
+
+    return result["transcript"]

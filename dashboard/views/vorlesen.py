@@ -29,6 +29,7 @@ from core.audio import (
 from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import gauge_figure
 from core.reference_ranges import speech_rate_zones, verdict_for_value
+from core.shared import transcribe_with_progress
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "vorlesen"
@@ -175,10 +176,10 @@ else:
         if transcript is not None:
             st.caption("✅ Transkript aus dem Cache geladen.")
         elif st.button("🎧 Transkription starten (dauert je nach Hardware 1-2 Minuten — App reagiert währenddessen nicht, das ist normal)"):
-            from core.transcription import transcribe
+            import soundfile as sf
 
-            with st.spinner("Transkribiere lokal … bitte nicht wegnavigieren, sonst geht der Fortschritt verloren"):
-                transcript = transcribe(take["recording_path"])
+            duration_s = sf.info(take["recording_path"]).duration
+            transcript = transcribe_with_progress(take["recording_path"], duration_s)
             _save_transcript_cache(take["recording_path"], transcript)
             take["transcript"] = transcript
             st.rerun()

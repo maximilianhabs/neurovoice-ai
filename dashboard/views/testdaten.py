@@ -32,6 +32,7 @@ from core.audio import (
 )
 from core.plots import gauge_figure, intensity_figure, radar_figure, spectrogram_figure, waveform_figure
 from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones, verdict_for_value
+from core.shared import transcribe_with_progress
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 # Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
@@ -501,18 +502,12 @@ else:
         transcript = cached_transcript
         st.caption("✅ Transkript aus dem Cache geladen (bereits einmal berechnet, kein erneutes Warten nötig).")
         if st.button("🔁 Neu transkribieren (überschreibt den Cache)"):
-            from core.transcription import transcribe
-
-            with st.spinner("Transkribiere lokal … kann je nach Hardware 1-2 Minuten dauern"):
-                transcript = transcribe(recording.path)
+            transcript = transcribe_with_progress(recording.path, stats["duration_s"])
             _save_transcript_cache(recording, transcript)
     else:
         transcript = None
         if st.button("🎧 Transkription starten (dauert bei large-v3 spürbar lange, das ist normal — läuft danach nur noch einmal pro Datei)"):
-            from core.transcription import transcribe
-
-            with st.spinner("Transkribiere lokal … kann je nach Hardware 1-2 Minuten dauern"):
-                transcript = transcribe(recording.path)
+            transcript = transcribe_with_progress(recording.path, stats["duration_s"])
             _save_transcript_cache(recording, transcript)
 
     if transcript:

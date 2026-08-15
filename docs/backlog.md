@@ -150,6 +150,22 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       **bewusst kein kleiner Schritt**, größerer Architektur-Umbau. Sofort-Maßnahme (bereits
       umgesetzt): Button-/Spinner-Text setzt jetzt klare Erwartung ("reagiert währenddessen
       nicht, das ist normal").
+  - [x] **Geschätzte Fortschrittsleiste** ✅ UMGESETZT (2026-08-15, Nutzer-Wunsch) —
+        `core/shared.py::transcribe_with_progress()`: Transkription läuft in einem
+        Hintergrund-Thread, Hauptthread pollt alle 0,5s und aktualisiert eine `st.progress()`-
+        Leiste basierend auf Audiodauer × empirischem Faktor, gedeckelt bei 90% bis der
+        Thread tatsächlich fertig ist (verhindert falsches "100%, läuft aber noch"). **Kein
+        echter Fortschritts-Callback aus WhisperX verfügbar** — bewusst nur eine Schätzung,
+        UI sagt das auch so ("Schätzung kann abweichen"). Löst NICHT das eigentliche
+        Blockier-Problem (App reagiert trotzdem nicht, das bleibt P9/RANDNOTIZ-13) — nur
+        ehrlicheres Warten statt unbestimmtem Spinner. In `views/vorlesen.py` UND
+        `views/testdaten.py` einheitlich eingebaut. Empirischer Faktor bei der Umsetzung
+        direkt kalibriert: 38s für 11,5s Audio (~3,3x Echtzeit) bei einem frischen Testlauf,
+        deutlich schneller als frühere Messungen (83-96s für ~10-12s Audio, ~7-9x) — auf 5x
+        als Kompromiss gesetzt, Deckelung fängt Abweichungen ab. Verifiziert: Thread-/Timing-
+        Logik gegen echte Datei erfolgreich getestet (Transkription lief korrekt im
+        Hintergrund, kein Blockieren des Pollings), Regressionstest über alle 6 Seiten ohne
+        Exception, HTTP 200 nach Deploy.
 
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
