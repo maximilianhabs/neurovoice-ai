@@ -172,8 +172,24 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       tatsächlich neu gelesen wird statt der alte Wert einfach durchgereicht wird), F0-Wert
       exakt identisch zum Original. Regressionstest über alle 6 Seiten ohne Exception,
       HTTP 200 nach Deploy.
-- [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
-      `docs/literatur_review.md` um Krankheits-Assoziationen je Parameter.
+- [x] **P5 — Laborwert-Stil-Interpretation** ✅ UMGESETZT (2026-08-15) —
+      `docs/literatur_review.md` um Abschnitt "Krankheits-Assoziationen je Parameter" erweitert
+      (deskriptiv, angelehnt an die klassische Dysarthrie-Typologie nach Darley/Aronson/Brown
+      1969), neues `core/interpretation.py` mit `PARAMETER_INFO` (Label/Einheit/Normbereich-
+      Funktion falls vorhanden/Kontext-Kommentar/Alters-Hinweis) für 11 Kern-Parameter über
+      alle Module (Monopitch, Jitter, Shimmer, HNR, CPPS, Sprechrate, Artikulationsschärfe,
+      Monoloudness, DDK-Rate, DDK-Regelmäßigkeit, Pausenzahl). `views/gesamtbericht.py`
+      rendert jetzt pro Modul+Teilaufgabe eine echte Laborwert-Tabelle (Wert | Normbereich |
+      Status | Kontext) statt Roh-JSON, plus expliziter Hinweis-Banner ("rein beschreibend,
+      keine Diagnose") und Alters-/Geschlechts-Caveat wo einschlägig. **Bewusst rein
+      deskriptiv** (Nutzer-Vorgabe) — Kontext-Kommentare sagen, womit ein Muster ASSOZIIERT
+      wird, nie was es BEDEUTET. Nur Parameter mit etablierten Zonen (Jitter/Shimmer/HNR/
+      Sprechrate) bekommen einen Ampel-Status, alle anderen zeigen "kein Normwert" mit
+      Kontext. Verifiziert: `interpret()` isoliert getestet (inkl. unbekannter Parameter,
+      `None`-Werte), End-to-End über echten Schreib-Lese-Zyklus (Vokalisation + DDK) — alle
+      Werte/Status/Normbereiche korrekt, identisch zu früher in dieser Session gemessenen
+      Referenzwerten, Alters-Caveat erscheint korrekt. Regressionstest über alle 6 Seiten
+      ohne Exception, HTTP 200 nach Deploy.
 - [ ] **P6 — Recording-Quality-Check** (bereits Prio 1 im externen Audit oben) — passt hier
       besonders gut als vorgeschalteter Schritt in jedem Modul, gerade wegen variabler
       Laptop-Mikrofonqualität.

@@ -77,6 +77,46 @@ Stand: 2026-07-21
   Standardversion vorhanden, phonetisch repräsentativ — gewählt als Lesetext für den
   "Lesetext"-Task-Typ (siehe docs/lesetext_nordwind_sonne.md).
 
+## Krankheits-Assoziationen je Parameter (deskriptiv, P5, 2026-08-15)
+
+**Grundprinzip (siehe auch docs/backlog.md, Nutzer-Vorgabe 2026-08-15)**: Diese Liste ist
+**beschreibend, nicht diagnostisch** — sie sagt, mit welchen Auffälligkeitsmustern eine
+Erkrankung in der Literatur ASSOZIIERT wird, nicht dass ein auffälliger Wert diese Erkrankung
+BEDEUTET. Format angelehnt an einen Laborbefund: Wert → Normbereich → Status → Kontext.
+Einordnung der Dysarthrie-Typen folgt der klassischen Klassifikation nach Darley/Aronson/
+Brown (1969), die bis heute Referenzrahmen der klinischen Sprechapraxie-/Dysarthrie-Literatur ist.
+
+- **F0-SD / Monopitch** (reduzierte Tonhöhenvariabilität) — klassisches Merkmal
+  **hypokinetischer Dysarthrie** (Parkinson), zusammen mit reduzierter Lautstärke und kurzen
+  "Sprechschüben". Bei ataktischer Dysarthrie eher unauffällig oder sogar erhöht.
+- **Jitter/Shimmer erhöht** — unspezifischer Dysphonie-Marker (organisch: Stimmlippenpathologie;
+  funktionell: Stimmermüdung/-belastung), in einigen PD-Studien ebenfalls erhöht, aber wenig
+  spezifisch für eine einzelne Erkrankung — nur bei gehaltenem Vokal zuverlässig interpretierbar.
+- **HNR erniedrigt** — raue/behauchte Stimmqualität allgemein; bei bulbärer/pseudobulbärer
+  Dysarthrie (z.B. ALS) und hypokinetischer Dysarthrie (Parkinson) häufig beschrieben.
+- **CPP(S) erniedrigt** — robusteres Äquivalent zu Jitter/Shimmer/HNR bei Fließsprache, in der
+  ALS- und Parkinson-Literatur als digitaler Sprach-Biomarker diskutiert (siehe Quellen unten).
+- **Sprechrate/Artikulationsrate verlangsamt** — sehr unspezifisch, kommt bei praktisch allen
+  Dysarthrie-Typen vor (hypokinetisch, spastisch, ataktisch, schlaff/bulbär), zusätzlich auch bei
+  rein kognitiver Verlangsamung ohne motorische Sprechstörung — Verlangsamung allein erlaubt
+  keine Typ-Zuordnung.
+- **Artikulationsschärfe reduziert / Verschlussdauer verlängert** — bei bulbärer/pseudobulbärer
+  Dysarthrie (eingeschränkte Zungen-/Lippenbeweglichkeit) und generell bei ausgeprägterer
+  Dysarthrie jeden Typs zu erwarten.
+- **DDK-Rate verlangsamt + Regelmäßigkeit (CV) erhöht** — unregelmäßige, "stolpernde" Silbenfolgen
+  gelten in der Literatur als möglicher Hinweis auf **ataktische Dysarthrie** (zerebelläre
+  Störung); reine Verlangsamung ohne Unregelmäßigkeit eher bei hypokinetischer/spastischer
+  Dysarthrie.
+- **Pausenrate/-dauer erhöht** — kann auf Wortfindungsstörungen/kognitive Verlangsamung
+  hindeuten, ABER genauso auf verkürzte Atemreserve (z.B. bei ALS/Ateminsuffizienz) — ohne
+  weiteren Kontext nicht unterscheidbar, deshalb bewusst zurückhaltende Formulierung.
+
+**Alters-/Geschlechtsabhängigkeit** (siehe "Wichtige Einschränkungen" oben, Punkt 4): F0/Jitter/
+Shimmer/HNR verändern sich nachweislich mit Alter und Geschlecht (z.B. Shimmer steigt bei
+Männern im Alter, bei Frauen kaum; F0 sinkt bei älteren Frauen) — aktuelle Normbereiche sind
+allgemeine Erwachsenen-Ranges OHNE Alters-/Geschlechts-Bänderung (siehe P5 in docs/backlog.md
+für die zweistufige Herangehensweise).
+
 ## Quellen (Auswahl)
 
 - [Analysis of Voice, Speech, and Language Biomarkers of Parkinson's Disease Collected in a Mixed Reality Setting](https://www.mdpi.com/1424-8220/25/8/2405)
