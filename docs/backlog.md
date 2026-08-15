@@ -8,6 +8,86 @@ Alle Feature-Familien werden mittelfristig angegangen, aber **skaliert von einfa
 nicht alles auf einmal. Reihenfolge orientiert sich daran, wie gut ein Feature etabliert/validiert
 ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar ist.
 
+## Konzept: Modul-basierte, geführte Analyse — Umsetzungsplan (2026-08-15)
+
+Grundlegender Konzeptwechsel (Nutzer-Feedback beim eigenen Testen): weg von einer einzelnen Seite,
+die für jede Aufnahme ALLE Kennwerte zeigt (viele "–"/nicht auswertbar, je nach Task-Typ), hin zu
+**einem eigenen, geführten Modul pro Aufgabentyp** — jedes Modul zeigt nur, was aus dieser Aufgabe
+tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits bestehenden
+"Task-Batterie"/"Patienten-Testprotokoll"-Konzepte weiter unten, keine Kehrtwende.
+
+### Finale Konzept-Entscheidungen
+
+- **4 Module, Reihenfolge einfach→schwer** (kein Zwang, freie Navigation, Module überspringbar,
+  jedes Modul optional):
+  1. **Vokalisation** — /a/ gehalten (Pflicht, ASHA-Standard: mind. 2s, 3 Wiederholungen),
+     optional /i/+/u/ (für spätere VSA), optional MPT ("so lange wie möglich", offene Dauer,
+     beste von 3 Versuchen)
+  2. **Vorlesen** — Standardtext "Nordwind und Sonne"
+  3. **Spontansprache** — Ziel ~30s, gestufter Prompt ("Letzter Urlaub/Hobby" →
+     Eskalations-Nachfragen "Welches Hobby? Seit wann? Warum?", als Hilfetext im Modul)
+  4. **Diadochokinese** — pa/ta/ka einzeln + kombiniert
+- **Take-Management**: jeder Versuch numerisch nummeriert (Versuch 1/2/3...), je Proband:in +
+  Modul (+ Unteraufgabe, z.B. separat je Vokal). Vergleichsansicht über alle Versuche eines
+  Moduls. **Keine Mittelung** — Nutzer:in wählt manuell den besten Versuch aus, der in den
+  Gesamtbericht einfließt.
+- **Mikrofonaufnahme direkt im Browser** (höchste Priorität, siehe Roadmap unten) —
+  zusätzlich zu Datei-Upload, für den "Laptop zum Patienten mitnehmen"-Anwendungsfall.
+- **Gesamtbericht im Laborwert-Stil**: pro Parameter Wert | Normbereich | Status (im
+  Normbereich/leicht auffällig/auffällig) | Kontext-Kommentar (mit welchen Erkrankungen diese
+  Auffälligkeit typischerweise assoziiert wird — rein beschreibend, ausdrücklich KEINE
+  Diagnose/kein Score, siehe bereits bestehender "Klinische Indizes"-Vorbehalt oben). Alters-/
+  Geschlechtsabhängigkeit ist laut Literatur real (Jitter/Shimmer/HNR/F0), aber zu umfangreich
+  für einen Schritt — zweistufig: erstmal Hinweistext bei bekannten Alterseffekten, echte
+  altersgebänderte Normwerte später (bräuchte SVD-Auswertung oder Referenztabellen).
+- **Aphasie-/Paraphasie-Modell** (phonematisch/semantisch, kognitive Dysphasie) — explizit
+  eigenständiges, deutlich späteres Vorhaben, braucht Sprachinhalts-/Fehleranalyse statt
+  Akustik. Nicht Teil dieser Umsetzung.
+- **Bestehende Testdatenbank/freie Auswahl bleibt erhalten** (Entwickler-/Testmodus), wird
+  nach und nach durch echte Modul-Aufnahmen ersetzt, nicht sofort entfernt.
+
+### Priorisierte Umsetzungs-Roadmap
+
+- [ ] **P0 — Mikrofonaufnahme im Browser** ⚡ HÖCHSTE PRIORITÄT, sofort umsetzen: `st.audio_input()`
+      ist ein natives Streamlit-Widget (kein neues Paket nötig, `streamlit>=1.35.0` in
+      requirements.txt bezieht ohnehin immer die neueste Version), liefert WAV direkt zurück,
+      gleiche Schnittstelle wie `st.file_uploader()` (`.getvalue()`). **Wichtig**:
+      `sample_rate=48000` explizit setzen (Default ist 16kHz, für Spracherkennung optimiert,
+      NICHT für unsere Analysequalität). Als dritte Eingabeoption neben "Vorhandene Aufnahmen"/
+      "Datei hochladen" im bestehenden Sidebar-Flow (Phase A).
+- [ ] **P1 — Take-Management**: Nummerierung je Proband:in+Modul(+Unteraufgabe), Vergleichsansicht,
+      manuelle Auswahl des Versuchs für den Gesamtbericht.
+- [ ] **P2 — Modul-Grundgerüst**: Umbau von Single-Page auf Multi-Page (`st.navigation`/`st.Page`,
+      wie beim EDF-Analyzer bereits genutzt), EIN Modul (Vokalisation, da einfachste Aufgabe)
+      komplett als Vorlage durchbauen, inkl. Instruktionstext im Modul selbst.
+- [ ] **P3** — restliche 3 Module nach demselben Muster.
+- [ ] **P4 — Persistentes Speicherschema + Gesamtbericht**: strukturiertes Format je Sitzung
+      (Anknüpfung an Punkt 23 aus dem externen Audit oben, "Strukturiertes Analyse-Schema").
+- [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
+      `docs/literatur_review.md` um Krankheits-Assoziationen je Parameter.
+- [ ] **P6 — Recording-Quality-Check** (bereits Prio 1 im externen Audit oben) — passt hier
+      besonders gut als vorgeschalteter Schritt in jedem Modul, gerade wegen variabler
+      Laptop-Mikrofonqualität.
+- [ ] **P7 — Audit-Parameter einbauen**: RAP/PPQ5/APQ11, MPT, echte VSA-Formel, F0-Tremor
+      (bereits im externen Audit oben priorisiert) — technisch unabhängig, können parallel zu
+      P2/P3 einlaufen, sobald das jeweilige Modul (Vokalisation) steht.
+
+### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
+
+Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser
+Projekt):
+
+- **Saarbrücker Voice Database (SVD)** — Deutsch, bereits als primäre Referenz geplant (869
+  gesund, 1356 pathologisch, /a/,/i/,/u/ in 4 Tonlagen)
+- **Oxford/UCI Parkinson Voice Dataset** — Englisch, klassisch, 23 Parkinson + 8 gesund,
+  gehaltene Vokale + Sätze
+- **MDVR-KCL** — Englisch, Mobilgerät-Aufnahmen, früh+fortgeschritten Parkinson + gesund
+- **VOC-ALS** — Sprache unklar/zu prüfen, 51 gesund + 102 ALS unterschiedlicher
+  Dysarthrie-Schwere, Vokale + Silbenwiederholung/DDK
+- Nachrangig (nicht Deutsch/Englisch, trotzdem als Vergleichsquelle vermerkt): **NeuroVoz**
+  (Spanisch, Parkinson, Vokale+DDK+Spontansprache inkl. GRBAS), **VD Dataset**,
+  **Parkinson Speech Dataset** (Türkisch)
+
 ## Phase 1 — Aufnahme-Pipeline (aktuell)
 
 - [x] Syncthing auf Beelink-Server installiert (Docker, Tailscale-only, Discovery/Relay deaktiviert) — siehe homeserver-Repo LOG.md 2026-07-21
