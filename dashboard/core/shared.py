@@ -252,13 +252,19 @@ SPECTROGRAM_LEGEND_CAPTION = (
 INSTRUCTION_TEXT_SCALE = {"Normal": 1.0, "Groß": 1.3, "Sehr groß": 1.6}
 
 
-def instruction_text_scale_control() -> None:
-    """Sidebar-Steuerung fuer die Schriftgroesse der Aufnahme-Instruktion (.dw-card-subtle,
-    z.B. "Lies den folgenden Satz vor..."/"Halte den Vokal..."). Bisher nur im Testdaten-Modus
-    vorhanden, Nutzer-Feedback 2026-08-15: fehlte in den 4 Guide-Modulen -- wichtig fuer
-    Patient:innen, die schlecht lesen koennen. Geteilt statt 5x dupliziert."""
-    text_size = st.sidebar.select_slider(
-        "Textgröße (Instruktionen)", options=list(INSTRUCTION_TEXT_SCALE.keys()), value="Normal",
+def instruction_text_scale_control(key: str = "default") -> None:
+    """Steuerung fuer die Schriftgroesse der Aufnahme-Instruktion (.dw-card-subtle, z.B.
+    "Lies den folgenden Satz vor..."/"Halte den Vokal..."). Nutzer-Feedback 2026-08-15
+    (Nachbesserung): urspruenglich in der SIDEBAR, das ist falsch platziert -- gehoert direkt
+    neben/an die Instruktion selbst (1) inhaltlich naeher an dem, was sie steuert, (2) die
+    Sidebar soll bei einer kuenftigen Mobile-Optimierung einklappbar sein, ein dort
+    "verschwindendes" Steuerelement waere fuer genau die Zielgruppe (schlecht lesende
+    Patient:innen) unbrauchbar. Rendert jetzt IM Hauptbereich, kompakt, direkt vor der
+    Instruktions-Card aufzurufen. `key` erlaubt mehrere Instanzen auf einer Seite (z.B.
+    DDK/Vokalisation mit mehreren Tabs, je eigenes Widget noetig)."""
+    text_size = st.select_slider(
+        "Textgröße", options=list(INSTRUCTION_TEXT_SCALE.keys()), value="Normal",
+        key=f"text_scale_{key}", label_visibility="visible",
     )
     if INSTRUCTION_TEXT_SCALE[text_size] != 1.0:
         st.markdown(

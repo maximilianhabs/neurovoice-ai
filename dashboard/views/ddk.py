@@ -75,13 +75,16 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-instruction_text_scale_control()
 
 tabs = st.tabs([meta["label"] for meta in SUB_TASKS.values()])
 
 for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
     with tab:
-        st.markdown(f'<div class="dw-card-subtle">{meta["instruction"]}</div>', unsafe_allow_html=True)
+        instr_col, scale_col = st.columns([4, 1])
+        with instr_col:
+            st.markdown(f'<div class="dw-card-subtle">{meta["instruction"]}</div>', unsafe_allow_html=True)
+        with scale_col:
+            instruction_text_scale_control(key=task_key)
         st.write("")
 
         takes = get_takes(MODULE, task_key)

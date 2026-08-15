@@ -143,6 +143,94 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
     },
+    "n_words": {
+        "label": "Wörter (erkannt)",
+        "unit": "",
+        "description": "Anzahl der von der Transkription erkannten Wörter.",
+        "zones_func": None,
+        "context": "Kein Normwert — abhängig von der freien Sprechdauer/Aufgabenstellung, nur Grundlage für die anderen Sprechrate-Kennwerte.",
+        "age_caveat": None,
+    },
+    "articulation_rate_wpm": {
+        "label": "Sprechrate (Artikulation)",
+        "unit": "WPM",
+        "description": "Wörter pro Minute, bezogen NUR auf die Spanne von erstem bis letztem Wort (Anlauf-/Schlusspausen rausgerechnet) — filtert reine Pausenzeit raus.",
+        "zones_func": None,
+        "context": "Wie die Netto-Sprechrate unspezifisch für einzelne Dysarthrie-Typen — der Vergleich Netto- vs. Artikulationsrate zeigt, wie viel der Verlangsamung reine Pausenzeit ist.",
+        "age_caveat": None,
+    },
+    "fluency_score": {
+        "label": "Flüssigkeits-Score",
+        "unit": "",
+        "description": "Anteil der Sprechspanne, der tatsächlich mit Sprechen (statt Pausen) gefüllt ist — 1,0 = keine nennenswerten Pausen.",
+        "zones_func": None,
+        "context": "Eigene, transparente Heuristik, kein etablierter klinischer Score — niedrige Werte können auf Wortfindungsstörungen, Atemreserve-Probleme oder einfach viel Bedenkzeit hindeuten, ohne dass diese Ursachen automatisiert unterscheidbar wären.",
+        "age_caveat": None,
+    },
+    "rhythm_npvi": {
+        "label": "Rhythmus (nPVI)",
+        "unit": "",
+        "description": "Normalisierter Pairwise Variability Index — wie unterschiedlich lang aufeinanderfolgende Wörter sind. Hoch = abwechslungsreicher Rhythmus.",
+        "zones_func": None,
+        "context": "Kein klinischer Normwert (eher sprachtypologisches Maß) — stark reduzierter Wert (monotoner Rhythmus) passt zum Bild hypokinetischer Dysarthrie.",
+        "age_caveat": None,
+    },
+    "mean_pause_duration_s": {
+        "label": "Ø Pausendauer",
+        "unit": "s",
+        "description": "Mittlere Dauer der erkannten Sprechpausen (≥250ms).",
+        "zones_func": None,
+        "context": "Kein Normwert — verlängerte Pausen können auf Wortfindungsstörungen ODER verkürzte Atemreserve hindeuten, ohne weiteren Kontext nicht unterscheidbar.",
+        "age_caveat": None,
+    },
+    "max_pause_duration_s": {
+        "label": "Max. Pausendauer",
+        "unit": "s",
+        "description": "Längste einzelne erkannte Sprechpause in der Aufnahme.",
+        "zones_func": None,
+        "context": "Kein Normwert — eine einzelne sehr lange Pause kann ein Ausreißer (z.B. Räuspern, Nachdenkpause) oder Hinweis auf Wortfindungsstörung sein.",
+        "age_caveat": None,
+    },
+    "micro_pause_count": {
+        "label": "Mikropausen (250–500ms)",
+        "unit": "",
+        "description": "Anzahl kürzerer Pausen — meist normale Atem-/Wortgrenzen.",
+        "zones_func": None,
+        "context": "Kein Normwert — dient vor allem als Kontrast zu den Makropausen, um zu sehen, ob Pausen überwiegend unauffällig kurz oder auffällig lang sind.",
+        "age_caveat": None,
+    },
+    "macro_pause_count": {
+        "label": "Makropausen (≥500ms)",
+        "unit": "",
+        "description": "Anzahl längerer Pausen — eher auffällige Zögerungen/Wortsuche als normale Atemgrenzen.",
+        "zones_func": None,
+        "context": "Kein Normwert — erhöhte Anzahl kann auf Wortfindungsstörungen/kognitive Verlangsamung hindeuten, aber auch auf verkürzte Atemreserve, ohne weiteren Kontext nicht unterscheidbar.",
+        "age_caveat": None,
+    },
+    "mean_micro_pause_duration_s": {
+        "label": "Ø Mikropausendauer",
+        "unit": "s",
+        "description": "Mittlere Dauer der kürzeren Pausen (250–500ms).",
+        "zones_func": None,
+        "context": "Kein Normwert — nur ergänzend zur Mikropausen-Anzahl.",
+        "age_caveat": None,
+    },
+    "mean_macro_pause_duration_s": {
+        "label": "Ø Makropausendauer",
+        "unit": "s",
+        "description": "Mittlere Dauer der längeren Pausen (≥500ms).",
+        "zones_func": None,
+        "context": "Kein Normwert — nur ergänzend zur Makropausen-Anzahl.",
+        "age_caveat": None,
+    },
+    "mean_word_duration_s": {
+        "label": "Ø Wortdauer",
+        "unit": "s",
+        "description": "Mittlere Dauer eines erkannten Wortes (aus den Wort-Zeitstempeln der Transkription).",
+        "zones_func": None,
+        "context": "Kein etablierter Normbereich — verlängerte Wortdauern können auf verlangsamte Artikulation hindeuten, aber auch durch lange/zusammengesetzte Wörter allein entstehen.",
+        "age_caveat": None,
+    },
     "pause_count": {
         "label": "Pausen (Anzahl)",
         "unit": "",
@@ -171,6 +259,31 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": "Kein Normwert ohne bekannte Vokal-Identität — Formanten sind hier nur als Rohwerte informativ.",
         "age_caveat": None,
     },
+    "f1_iqr_hz": {
+        "label": "Formant-Streuung F1",
+        "unit": "Hz",
+        "description": "Wie stark F1 über die Aufnahme hinweg streut (Interquartilsabstand) — Proxy für den genutzten Artikulationsraum, kein Ersatz für eine echte Vokalraum-Fläche.",
+        "zones_func": None,
+        "context": (
+            "Schmale Streuung KANN auf Zentralisierung/eingeschränkte Zungenbeweglichkeit "
+            "hindeuten, ist aber kein direkter Ersatz für die klassische Vokalraum-Fläche "
+            "(VSA, siehe Vokalisation-Modul) — nur ein zeitaufgelöster Näherungswert, der "
+            "ohne bekannte Vokal-Identität auskommt."
+        ),
+        "age_caveat": None,
+    },
+    "f2_iqr_hz": {
+        "label": "Formant-Streuung F2",
+        "unit": "Hz",
+        "description": "Wie stark F2 über die Aufnahme hinweg streut (Interquartilsabstand) — Proxy für den genutzten Artikulationsraum, kein Ersatz für eine echte Vokalraum-Fläche.",
+        "zones_func": None,
+        "context": (
+            "Wie bei F1: schmale Streuung KANN auf Zentralisierung hindeuten, ist aber kein "
+            "direkter Ersatz für die klassische Vokalraum-Fläche (VSA) — F2 reagiert vor "
+            "allem auf die Zungenposition vorne/hinten."
+        ),
+        "age_caveat": None,
+    },
     "n_phrases": {
         "label": "Intonationskontur (Phrasen)",
         "unit": "",
@@ -185,6 +298,14 @@ PARAMETER_INFO: dict[str, dict] = {
         "description": "Type-Token-Ratio — Anteil unterschiedlicher Wörter an allen Wörtern im Transkript.",
         "zones_func": None,
         "context": "Kein etablierter Normbereich, sinkt allein durch Textlänge — nur im Eigenvergleich über Sitzungen sinnvoll.",
+        "age_caveat": None,
+    },
+    "mtld": {
+        "label": "Lexikalische Diversität (MTLD)",
+        "unit": "",
+        "description": "Measure of Textual Lexical Diversity — misst lexikalische Vielfalt textlängen-robuster als die reine TTR.",
+        "zones_func": None,
+        "context": "Kein etablierter Normbereich — wurde ursprünglich für deutlich längere Texte entwickelt als unsere kurzen Aufnahmen, hier nur eingeschränkt aussagekräftig.",
         "age_caveat": None,
     },
     # --- P7/Audit 2026-08-15 (docs/backlog.md "Audit-Parameter einbauen") ---

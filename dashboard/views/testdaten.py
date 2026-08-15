@@ -96,11 +96,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Bedienhilfe (Nutzer-Feedback 2026-08-15): Instruktionstext skalierbar fuer Leute, die
-# schlecht lesen -- betrifft bewusst nur die Aufnahme-Instruktion (dw-card-subtle), nicht die
-# gesamte App-Oberflaeche.
-instruction_text_scale_control()
-
 # --- Aufnahme-Instruktionen je Task-Typ (UI-Ueberarbeitung 2026-08-15, siehe docs/backlog.md
 # "P0 -- UI-Ueberarbeitung Aufnahme-Bereich"): kurze, konkrete Anleitung je Aufgabe, orientiert
 # an den literaturbasierten Vorgaben aus dem Modul-Konzept (ASHA-Standard fuer Vokale,
@@ -168,10 +163,17 @@ if source_mode in ("Datei hochladen (WAV)", "Mikrofon aufnehmen"):
 
     # --- Hauptbereich: grosse Instruktion + grosse Aufnahme-/Upload-Flaeche ---
     st.subheader("Aufnahme", anchor=False)
-    st.markdown(
-        f'<div class="dw-card-subtle">{UPLOAD_TASK_INSTRUCTIONS.get(upload_task, "")}</div>',
-        unsafe_allow_html=True,
-    )
+    # Bedienhilfe (Nutzer-Feedback 2026-08-15, Nachbesserung): Textgroessen-Regler direkt
+    # neben der Instruktion, nicht in der Sidebar -- betrifft bewusst nur die
+    # Aufnahme-Instruktion (dw-card-subtle), nicht die gesamte App-Oberflaeche.
+    instr_col, scale_col = st.columns([4, 1])
+    with instr_col:
+        st.markdown(
+            f'<div class="dw-card-subtle">{UPLOAD_TASK_INSTRUCTIONS.get(upload_task, "")}</div>',
+            unsafe_allow_html=True,
+        )
+    with scale_col:
+        instruction_text_scale_control(key=upload_task)
     st.write("")
 
     if source_mode == "Datei hochladen (WAV)":

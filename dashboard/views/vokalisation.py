@@ -76,19 +76,28 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-instruction_text_scale_control()
+st.info(
+    "**Alle 3 Vokale empfohlen**: /i/ und /u/ sind optional, liefern aber robustere "
+    "Mittelwerte UND ermöglichen erst die echte Vokalraum-Fläche (VSA) — am besten alle 3 "
+    "nacheinander aufnehmen, nicht nur die Pflichtaufgabe /a/.",
+    icon=":material/info:",
+)
 
 tabs = st.tabs([meta["label"] for meta in SUB_TASKS.values()])
 
 for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
     with tab:
-        st.markdown(
-            f'<div class="dw-card-subtle">'
-            f'<b>Halte den Vokal „{meta["vowel"]}“</b> in gleichbleibender Tonhöhe und Lautstärke '
-            f'für <b>mindestens 2-3 Sekunden</b>. Wenn möglich 3 Wiederholungen.'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        instr_col, scale_col = st.columns([4, 1])
+        with instr_col:
+            st.markdown(
+                f'<div class="dw-card-subtle">'
+                f'<b>Halte den Vokal „{meta["vowel"]}“</b> in gleichbleibender Tonhöhe und Lautstärke '
+                f'für <b>mindestens 2-3 Sekunden</b>. Wenn möglich 3 Wiederholungen.'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with scale_col:
+            instruction_text_scale_control(key=task_key)
         st.write("")
 
         takes = get_takes(MODULE, task_key)

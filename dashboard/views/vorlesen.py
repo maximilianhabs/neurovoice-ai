@@ -15,6 +15,7 @@ docs/bugtracker.md zur bekannten Blockier-Problematik waehrend der Transkription
 
 import json
 import os
+import random
 
 import pandas as pd
 import parselmouth
@@ -31,7 +32,8 @@ from core.audio import (
 )
 from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
-from core.plots import intensity_figure, spectrogram_figure, waveform_figure
+from core.plots import intensity_figure, radar_figure, spectrogram_figure, waveform_figure
+from core.reference_ranges import speech_rate_zones
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
     instruction_text_scale_control,
@@ -48,10 +50,36 @@ require_subject_or_stop()
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "vorlesen"
 SUBTASK = "lesetext"
-LESETEXT = (
-    "Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere "
-    "wäre, als ein Wanderer, der in einen warmen Mantel gehüllt war, des Weges daherkam."
-)
+
+# Mehrere Lesetext-Varianten (Nutzer-Feedback 2026-08-15, Bucket B): vermeidet, dass bei
+# wiederholten Sitzungen (Verlaufskontrolle, seit P10 moeglich) immer derselbe Satz vorgelesen
+# wird. WICHTIG: nur "Nordwind und Sonne" ist ein etablierter IPA-Referenztext (docs/
+# lesetext_nordwind_sonne.md) -- die beiden anderen sind bewusst NUR praktische, vergleichbar
+# lange/neutrale Alternativtexte (je 27 Woerter, Hauptsatz+Nebensatz-Struktur wie das Original),
+# KEINE gleichwertig validierten phonetischen Referenztexte. Bei Bedarf spaeter gegen echte
+# etablierte deutsche Alternativtexte austauschen, siehe docs/backlog.md P... (offene Recherche).
+LESETEXTE = {
+    "nordwind": (
+        "Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere "
+        "wäre, als ein Wanderer, der in einen warmen Mantel gehüllt war, des Weges daherkam."
+    ),
+    "bauer": (
+        "Ein Bauer ging jeden Morgen früh hinaus aufs Feld, um nach seinen Tieren zu sehen, "
+        "bevor die Sonne über den Hügeln aufging und der Tag richtig begann."
+    ),
+    "wald": (
+        "Am Ende des Sommers zog eine Familie mit ihrem alten Hund durch den Wald, um Pilze "
+        "zu sammeln, während der Wind leise durch die hohen Bäume strich."
+    ),
+}
+LESETEXT_LABELS = {
+    "nordwind": "Nordwind und Sonne (Standard-IPA-Referenztext)",
+    "bauer": "Der Bauer und die Tiere",
+    "wald": "Der Waldspaziergang",
+}
+
+if "lesetext_choice" not in st.session_state:
+    st.session_state["lesetext_choice"] = random.choice(list(LESETEXTE.keys()))
 CONFIDENCE_WARN_THRESHOLD = 0.75
 
 
@@ -87,13 +115,32 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-instruction_text_scale_control()
 
-st.markdown(
-    f'<div class="dw-card-subtle"><b>Lies den folgenden Satz laut und in normalem Tempo vor:</b>'
-    f'<br><br>„{LESETEXT}"</div>',
-    unsafe_allow_html=True,
-)
+chosen_key = st.session_state["lesetext_choice"]
+instr_col, scale_col = st.columns([4, 1])
+with instr_col:
+    st.markdown(
+        f'<div class="dw-card-subtle"><b>Lies den folgenden Satz laut und in normalem Tempo vor:</b>'
+        f'<br><br>„{LESETEXTE[chosen_key]}"</div>',
+        unsafe_allow_html=True,
+    )
+with scale_col:
+    instruction_text_scale_control(key="lesetext")
+
+with st.expander("Anderen Text wählen"):
+    new_key = st.selectbox(
+        "Lesetext", list(LESETEXTE.keys()), format_func=lambda k: LESETEXT_LABELS[k],
+        index=list(LESETEXTE.keys()).index(chosen_key),
+    )
+    if new_key != chosen_key:
+        st.session_state["lesetext_choice"] = new_key
+        st.rerun()
+    st.caption(
+        "„Nordwind und Sonne“ ist ein etablierter IPA-Referenztext. Die anderen beiden sind "
+        "praktische, vergleichbar lange Alternativtexte (kein gleichwertig validierter "
+        "phonetischer Standard) — für Verlaufskontrollen gedacht, damit nicht immer derselbe "
+        "Satz vorgelesen wird."
+    )
 st.write("")
 
 takes = get_takes(MODULE, SUBTASK)
@@ -119,6 +166,7 @@ if uploaded is not None:
             "recording_path": recording.path,
             "filename": recording.filename,
             "audio_bytes": uploaded.getvalue(),
+            "lesetext_key": chosen_key,  # Reproduzierbarkeit: welcher Text wurde vorgelesen?
             "articulation": articulation_features(recording.path),
             "formant_dynamics": formant_dynamics_features(recording.path),
             "prosody": prosody_features(recording.path),
@@ -146,6 +194,7 @@ else:
 
     take = takes[chosen_idx]
     st.audio(take["audio_bytes"], format="audio/wav")
+    st.caption(f"Vorgelesener Text: **{LESETEXT_LABELS.get(take.get('lesetext_key', 'nordwind'), '–')}**")
 
     q = recording_quality_features(take["recording_path"])
     quality_tiles(q)
@@ -157,28 +206,19 @@ else:
         st.pyplot(spectrogram_figure(sound), width="stretch")
         st.caption(SPECTROGRAM_LEGEND_CAPTION)
 
-    articulation = take["articulation"]
-    formant_dyn = take["formant_dynamics"]
-    prosody = take["prosody"]
-    cpp = take["cpp"]
-    intonation = take["intonation"]
-
     st.subheader("Ergebnisse")
     flat = flatten_take(take)
-    tile_keys = ["mean_burst_sharpness_db_s", "cpps_db"]
+    tile_keys = [
+        "mean_burst_sharpness_db_s", "cpps_db", "monoloudness_intensity_sd_db",
+        "f1_iqr_hz", "f2_iqr_hz", "n_phrases",
+    ]
     tiles = build_tiles({k: flat[k] for k in tile_keys if k in flat})
-    tile_cols = st.columns(len(tiles)) if tiles else []
-    for col, tile in zip(tile_cols, tiles):
-        with col:
-            kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
-
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Monoloudness", f"{_fmt(prosody['monoloudness_intensity_sd_db'])} dB")
-    c2.metric(
-        "Formant-Streuung (F1/F2-IQR)",
-        f"{_fmt(formant_dyn['f1_iqr_hz'], 0)}/{_fmt(formant_dyn['f2_iqr_hz'], 0)} Hz",
-    )
-    c3.metric("Intonationskontur", f"{intonation['n_phrases']} Phrasen" if intonation["n_phrases"] else "–")
+    tile_rows = [tiles[i:i + 3] for i in range(0, len(tiles), 3)]
+    for row in tile_rows:
+        cols = st.columns(3)
+        for col, tile in zip(cols, row):
+            with col:
+                kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
 
     # --- Transkript-basierte Kennwerte + der transkribierte Text selbst ---
     st.divider()
@@ -252,38 +292,55 @@ else:
             kc1.metric("Ø Erkennungs-Konfidenz", f"{mean_confidence:.0%}" if mean_confidence is not None else "–")
             kc2.metric("Unsichere Wörter (<75%)", low_confidence_count)
 
-            if speech_metrics["net_speech_rate_wpm"] is not None:
-                rate_tiles = build_tiles({"net_speech_rate_wpm": speech_metrics["net_speech_rate_wpm"]})
-                rt_col, _, _ = st.columns(3)
-                with rt_col:
-                    t = rate_tiles[0]
-                    kpi_tile(t["label"], t["value_text"], t["sub_text"], t["zone"], t["description"])
+            def _tile_group(title: str, keys: list[str], source: dict) -> None:
+                group_tiles = build_tiles({k: source[k] for k in keys if k in source})
+                if not group_tiles:
+                    return
+                st.markdown(f"**{title}**")
+                rows = [group_tiles[i:i + 3] for i in range(0, len(group_tiles), 3)]
+                for row in rows:
+                    cols = st.columns(3)
+                    for col, t in zip(cols, row):
+                        with col:
+                            kpi_tile(t["label"], t["value_text"], t["sub_text"], t["zone"], t["description"])
 
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Wörter", speech_metrics["n_words"])
-            m2.metric("Sprechrate (Netto)", f"{_fmt(speech_metrics['net_speech_rate_wpm'], 0)} Wörter/min")
-            m3.metric("Sprechrate (Artikulation)", f"{_fmt(speech_metrics['articulation_rate_wpm'], 0)} Wörter/min")
-            m4.metric("Flüssigkeits-Score", f"{_fmt(speech_metrics['fluency_score'], 2)}")
+            _tile_group(
+                "Sprechrate", ["n_words", "net_speech_rate_wpm", "articulation_rate_wpm",
+                               "fluency_score", "mean_word_duration_s"],
+                speech_metrics,
+            )
+            _tile_group(
+                "Pausen", ["pause_count", "mean_pause_duration_s", "max_pause_duration_s",
+                           "rhythm_npvi", "micro_pause_count", "mean_micro_pause_duration_s",
+                           "macro_pause_count", "mean_macro_pause_duration_s"],
+                speech_metrics,
+            )
+            _tile_group("Lexik", ["ttr", "mtld"], lexical)
 
-            p1, p2, p3, p4 = st.columns(4)
-            p1.metric("Pausen (≥250ms)", speech_metrics["pause_count"])
-            p2.metric("Ø Pausendauer", f"{_fmt(speech_metrics['mean_pause_duration_s'], 2)} s")
-            p3.metric("Max. Pausendauer", f"{_fmt(speech_metrics['max_pause_duration_s'], 2)} s")
-            p4.metric("Rhythmus (nPVI)", f"{_fmt(speech_metrics['rhythm_npvi'], 1)}")
-
-            q1, q2, q3 = st.columns(3)
-            q1.metric(
-                "Mikropausen (250-500ms)",
-                f"{speech_metrics['micro_pause_count']} · Ø {_fmt(speech_metrics['mean_micro_pause_duration_s'], 2)}s",
-            )
-            q2.metric(
-                "Makropausen (≥500ms)",
-                f"{speech_metrics['macro_pause_count']} · Ø {_fmt(speech_metrics['mean_macro_pause_duration_s'], 2)}s",
-            )
-            q3.metric(
-                "Lexikalische Diversität (TTR / MTLD)",
-                f"{_fmt(lexical['ttr'], 2)} / {_fmt(lexical['mtld'], 1)}",
-            )
+            with st.expander("Profil auf einen Blick (Radar)"):
+                lo, hi, _ = speech_rate_zones()
+                radar_axes, radar_values = [], []
+                if speech_metrics["net_speech_rate_wpm"] is not None:
+                    radar_axes.append("Sprechrate")
+                    radar_values.append(max(0.0, min(1.0, (speech_metrics["net_speech_rate_wpm"] - lo) / (hi - lo))))
+                if speech_metrics["fluency_score"] is not None:
+                    radar_axes.append("Flüssigkeit")
+                    radar_values.append(max(0.0, min(1.0, speech_metrics["fluency_score"])))
+                if speech_metrics["rhythm_npvi"] is not None:
+                    radar_axes.append("Rhythmus")
+                    radar_values.append(max(0.0, min(1.0, speech_metrics["rhythm_npvi"] / 100)))
+                if lexical["ttr"] is not None:
+                    radar_axes.append("Lexik. Diversität")
+                    radar_values.append(max(0.0, min(1.0, lexical["ttr"])))
+                if len(radar_axes) >= 3:
+                    st.pyplot(radar_figure(radar_axes, radar_values), width="content")
+                    st.caption(
+                        "Zusätzliche, rein visuelle Verdichtung der Werte oben (normalisiert 0–1) "
+                        "— ersetzt nicht die genauen Zahlen/Status in den Kacheln, nur eine "
+                        "zusätzliche Muster-Wahrnehmung auf einen Blick. Keine Diagnose."
+                    )
+                else:
+                    st.caption("Noch zu wenige Werte für ein aussagekräftiges Profil.")
 
             with st.expander("Wort-Zeitstempel (Detailtabelle)"):
                 words_df = pd.DataFrame(transcript["words"])

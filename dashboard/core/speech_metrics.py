@@ -82,6 +82,7 @@ def compute_speech_metrics(
             "mean_micro_pause_duration_s": None,
             "mean_macro_pause_duration_s": None,
             "prosodic_entropy_bits": None,
+            "mean_word_duration_s": None,
         }
 
     speech_start = valid_words[0]["start"]
@@ -139,6 +140,12 @@ def compute_speech_metrics(
     # um eine Gesamtverteilungs-Sicht auf die Wortdauern -- siehe _shannon_entropy_bits().
     prosodic_entropy_bits = _shannon_entropy_bits(word_durations)
 
+    # Mittlere Wortdauer (Nutzer-Feedback 2026-08-15, Bucket C2 Nachbesserung) -- war bisher
+    # nur implizit in der Wort-Zeitstempel-Detailtabelle sichtbar (duration_s-Spalte seit
+    # BUG-19), nie als eigener aggregierter Wert ausgewiesen. word_durations ist fuer nPVI
+    # oben ohnehin schon berechnet, kein neuer Datenpfad.
+    mean_word_duration_s = sum(word_durations) / len(word_durations) if word_durations else None
+
     return {
         "n_words": n_words,
         "net_speech_rate_wpm": net_speech_rate_wpm,
@@ -155,4 +162,5 @@ def compute_speech_metrics(
         "mean_micro_pause_duration_s": mean_micro_pause_duration_s,
         "mean_macro_pause_duration_s": mean_macro_pause_duration_s,
         "prosodic_entropy_bits": prosodic_entropy_bits,
+        "mean_word_duration_s": mean_word_duration_s,
     }

@@ -714,114 +714,87 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
 
 Nutzer hat nach der P10-Umsetzung erstmals wieder alle Module durchgeklickt (erste echte
 3-Vokal-Aufnahme a/i/u, Vorlesen, Spontansprache) und ein dichtes Bündel an Beobachtungen
-gemeldet. Hier dedupliziert/systematisiert, in Buckets nach Aufwand/Zusammenhang. **Status:
-reines Konzept, NICHT umgesetzt** — Umsetzung erst nach Freigabe, dann einzeln verifiziert.
+gemeldet. Hier dedupliziert/systematisiert, in Buckets nach Aufwand/Zusammenhang.
+**Status: ✅ UMGESETZT (2026-08-15, nach Freigabe "Ja, macht das genauso") — Buckets A-E.
+Bucket B mit Einschränkung siehe dort. Bucket F brauchte keine Aktion (siehe unten).**
 
-### Bucket A — Kleine, risikoarme UI-Fixes (Kandidaten für den nächsten Schritt)
+### Bucket A — Kleine, risikoarme UI-Fixes ✅ UMGESETZT
 
-- [ ] **A1 — Hinweis: alle 3 Vokale empfohlen.** Im Vokalisation-Modul (`views/vokalisation.py`)
-      einen dezenten Hinweis ergänzen, dass /i/ und /u/ zwar optional sind, aber empfohlen —
-      robustere Mittelwerte über alle Vokale hinweg UND die echte Vokalraum-Fläche (VSA, P7)
-      werden erst mit allen 3 Eckvokalen berechenbar. Reine Text-/Caption-Ergänzung, kein
-      Logik-Umbau.
-- [ ] **A2 — Textgrößen-Regler falsch platziert.** `instruction_text_scale_control()`
-      (core/shared.py, aktuell in allen 4 Modulen + testdaten.py in der SIDEBAR) muss laut
-      Nutzer direkt NEBEN/AN den Instruktionstext selbst (die `.dw-card-subtle`-Box), nicht in
-      die linke Seitenleiste — zwei Gründe: (1) inhaltlich gehört die Steuerung visuell zu dem,
-      was sie steuert, (2) die Sidebar soll bei einer künftigen Mobile-Optimierung (iOS etc.)
-      einklappbar/versteckt sein können — ein Steuerelement, das dort "verschwindet", wäre für
-      genau die Zielgruppe (schlecht lesende Patient:innen) unbrauchbar. Umsetzung: Funktion
-      von `st.sidebar.select_slider()` auf normales `st.select_slider()` im Hauptbereich
-      umstellen, Aufrufstelle in jedem Modul direkt vor/neben die Instruktions-Card verschieben
-      statt direkt nach der Hero-Überschrift.
+- [x] **A1 — Hinweis: alle 3 Vokale empfohlen.** `views/vokalisation.py` zeigt jetzt einen
+      `st.info()`-Hinweis direkt unter der Hero-Überschrift: /i/+/u/ sind optional, aber
+      empfohlen (robustere Mittelwerte + echte VSA erst mit allen 3 Eckvokalen möglich).
+- [x] **A2 — Textgrößen-Regler verschoben.** `instruction_text_scale_control()` (core/
+      shared.py) nutzt jetzt `st.select_slider()` im Hauptbereich statt `st.sidebar.
+      select_slider()`, per `key`-Parameter mehrfach instanzierbar (z.B. je Vokal-/DDK-Tab).
+      Aufrufstelle in allen 4 Modulen + `testdaten.py` in eine `st.columns([4,1])`-Zeile direkt
+      neben die jeweilige Instruktions-Card verschoben (schmale rechte Spalte).
+      Verifiziert: Sidebar-Regler-Liste leer, Hauptbereichs-Regler korrekt vorhanden (3× bei
+      Vokalisation/DDK wegen Tabs, 1× bei Vorlesen/Spontansprache/Testdaten).
 
-### Bucket B — Mehrere Lesetext-Varianten (NEU, noch nicht im Backlog)
+### Bucket B — Mehrere Lesetext-Varianten ⚠️ UMGESETZT MIT EINSCHRÄNKUNG
 
-- [ ] **B1 — Mind. 3 alternative Lesetexte.** Aktuell gibt es nur den einen Standardtext
-      ("Nordwind und Sonne", `docs/lesetext_nordwind_sonne.md`). Nutzer-Wunsch: mindestens 3
-      Textvarianten mit vergleichbarer Länge/Wortwahl/Lesedauer, damit bei wiederholten
-      Sitzungen (Verlaufskontrolle, das ist ja jetzt mit P10 möglich) nicht immer derselbe Text
-      vorgelesen wird — monoton für die Person, evtl. auch Lerneffekt (Auswendiglernen statt
-      echtem Vorlesen). Auswahl zufällig ODER manuell (noch offen).
-  - **Aufwand/Fallstricke**: braucht echte linguistische Sorgfalt bei der Textauswahl (nicht
-    einfach irgendein Satz) — vergleichbare Silbenzahl, ähnliche Phonem-Verteilung, ähnlicher
-    Schwierigkeitsgrad, idealerweise ebenfalls etablierte IPA-Referenztexte statt selbst
-    ausgedachter Sätze (der "Nordwind und Sonne"-Text ist genau deshalb Standard). Braucht
-    eigene Recherche/Quellenlage, bevor Text 2+3 festgelegt werden — nicht einfach schnell
-    selbst texten.
-  - Technisch simpel sobald die Texte feststehen: `LESETEXT`-Konstante in
-    `views/vorlesen.py` wird zu einer Liste/einem Dict, Auswahl-Logik (`random.choice()` oder
-    `st.selectbox()`) ergänzen, gewählter Text muss im Take mitgespeichert werden (für den
-    Bericht/Reproduzierbarkeit — sonst weiß man später nicht mehr, welcher Text vorgelesen
-    wurde).
+- [x] **B1 — 3 Lesetexte, ABER nur einer davon ist echter IPA-Referenztext.**
+      `views/vorlesen.py::LESETEXTE` jetzt ein Dict mit 3 Einträgen (`nordwind`/`bauer`/`wald`),
+      je ~27 Wörter, Hauptsatz+Nebensatz-Struktur analog zum Original. Zufallsauswahl einmal
+      pro Sitzung (`st.session_state["lesetext_choice"]`, bleibt über alle Versuche derselben
+      Sitzung konsistent für Take-Vergleichbarkeit), zusätzlich manuelles Umschalten über einen
+      Expander "Anderen Text wählen". Gewählter Text wird als `lesetext_key` im Take gespeichert
+      (Reproduzierbarkeit) und beim ausgewählten Versuch als Caption angezeigt.
+      **WICHTIG/Einschränkung**: nur "Nordwind und Sonne" ist der etablierte IPA-Referenztext
+      (`docs/lesetext_nordwind_sonne.md`). "Der Bauer und die Tiere"/"Der Waldspaziergang" sind
+      selbst verfasste, NUR praktische Alternativtexte (vergleichbare Länge/neutrale, einfache
+      Satzstruktur) — bewusst NICHT als gleichwertig validierte phonetische Referenztexte
+      ausgegeben, das wird in Code-Kommentar UND UI-Caption explizit offengelegt. Die im
+      Konzept vorgesehene "eigene Recherche/Quellenlage" nach echten etablierten deutschen
+      Alternativtexten wurde NICHT gemacht (kein Zugriff auf Fachliteratur-Datenbanken) — falls
+      echte validierte Alternativtexte gefunden werden, sollten sie diese ersetzen.
 
-### Bucket C — Fehlende Kacheln/Kontext für bereits vorhandene Werte
+### Bucket C — Fehlende Kacheln/Kontext für bereits vorhandene Werte ✅ UMGESETZT
 
-- [ ] **C1 — Monoloudness/Formant-Streuung/Intonationskontur als Kacheln statt `st.metric()`.**
-      `views/vorlesen.py` UND `views/spontansprache.py` zeigen diese 3 Werte aktuell noch als
-      rohe `st.metric()`-Zeile (Zeilen um `c1`/`c2`/`c3`) statt als `kpi_tile()` mit Erklärung
-      — ein Rest aus der Zeit vor der Design-Bereinigung, der beim Kachel-Rollout übersehen
-      wurde. Monoloudness (`monoloudness_intensity_sd_db`) und Intonationskontur (`n_phrases`)
-      haben schon `PARAMETER_INFO`-Einträge, können direkt über `build_tiles()` laufen.
-      **Formant-Streuung (`f1_iqr_hz`/`f2_iqr_hz`) hat noch KEINEN `PARAMETER_INFO`-Eintrag** —
-      muss zuerst ergänzt werden (Beschreibung: "Wie stark F1/F2 über die Aufnahme streuen —
-      Proxy für den genutzten Vokalraum, kein Ersatz für echte VSA", siehe bereits vorhandene
-      Erklärung im Docstring von `formant_dynamics_features()`).
-- [ ] **C2 — Mittlere Wortdauer/-Konfidenz aus der Wort-Zeitstempel-Tabelle ableiten.** Die
-      Detailtabelle (`transcript["words"]`, mit `duration_s`-Spalte seit BUG-19) enthält schon
-      alles Nötige für eine **mittlere Wortdauer** (`words_df["duration_s"].mean()`) — bisher
-      nirgends als eigener Wert ausgewiesen, nur implizit in der Tabelle sichtbar. Mittlerer
-      Konfidenz-Score existiert dagegen bereits ("Ø Erkennungs-Konfidenz"). Neue Kennzahl
-      "Ø Wortdauer" als zusätzliche Kachel/Metrik in `views/vorlesen.py` + `views/
-      spontansprache.py` (identischer Code, evtl. in `core/speech_metrics.py` oder direkt in
-      den Views berechnen — kein neuer Tech-Stack).
+- [x] **C1 — Monoloudness/Formant-Streuung/Intonationskontur als Kacheln.** Neue
+      `PARAMETER_INFO`-Einträge für `f1_iqr_hz`/`f2_iqr_hz` (core/interpretation.py) ergänzt.
+      `views/vorlesen.py` + `views/spontansprache.py`: die alte `c1/c2/c3`-`st.metric()`-Zeile
+      entfernt, alle 6 akustischen Werte (Artikulationsschärfe/CPPS/Monoloudness/Formant-
+      Streuung F1+F2/Intonationskontur) laufen jetzt einheitlich über `build_tiles()` in einer
+      gemeinsamen Kachel-Reihe unter "Ergebnisse".
+- [x] **C2 — Ø Wortdauer.** Neues `mean_word_duration_s` in `core/speech_metrics.py::
+      compute_speech_metrics()` (nutzt die für nPVI ohnehin schon berechneten
+      `word_durations`, kein neuer Datenpfad) + `PARAMETER_INFO`-Eintrag, erscheint als eigene
+      Kachel in der neuen "Sprechrate"-Gruppe (siehe D1).
 
-### Bucket D — Transkript-Metrik-Wand nach der Transkription unübersichtlich
+### Bucket D — Transkript-Metrik-Wand ✅ UMGESETZT
 
-- [ ] **D1 — Die 11 `st.metric()`-Werte nach der Transkription (Wörter, Sprechrate netto/
-      Artikulation, Flüssigkeits-Score, Pausenzahl/-dauer, Rhythmus, Mikro-/Makropausen,
-      Lexikalische Diversität) in `views/vorlesen.py`/`views/spontansprache.py` wirken als
-      reine 4-Spalten-Metrik-Wand unübersichtlich.** Umbau auf `kpi_tile()`-Kacheln (analog zu
-      den bereits umgestellten akustischen Kennwerten) ist der naheliegende erste Schritt —
-      macht die Werte konsistent zum Rest der Seite UND bringt automatisch Erklärungstext mit
-      (die meisten dieser Parameter haben schon `PARAMETER_INFO`-Einträge). Gruppierung
-      innerhalb der Kachel-Reihen sinnvoll (z.B. "Sprechrate-Gruppe" / "Pausen-Gruppe" /
-      "Lexik-Gruppe" als visuell abgesetzte Teilblöcke), damit die schiere Anzahl an Werten
-      nicht einfach nur in einer anderen Optik genauso unübersichtlich bleibt.
+- [x] **D1 — Kachel-Umbau mit Gruppierung.** Die ehemalige `m1-m4`/`p1-p4`/`q1-q3`-
+      `st.metric()`-Wand in `views/vorlesen.py` + `views/spontansprache.py` ist durch 3
+      gruppierte Kachel-Reihen ersetzt ("Sprechrate": Wörter/Netto-/Artikulationsrate/
+      Flüssigkeits-Score/Ø Wortdauer: "Pausen": Anzahl/Ø-/Max-Dauer/Rhythmus/Mikro-/
+      Makropausen inkl. deren Ø-Dauern; "Lexik": TTR/MTLD), je mit Überschrift + automatischem
+      Erklärungstext aus `PARAMETER_INFO`. Dafür 12 neue `PARAMETER_INFO`-Einträge ergänzt
+      (u.a. `n_words`, `articulation_rate_wpm`, `fluency_score`, `rhythm_npvi`,
+      `mean_pause_duration_s`, `max_pause_duration_s`, `micro_pause_count`/`macro_pause_count`
+      + deren Ø-Dauern, `mtld`).
 
-### Bucket E — Spinnennetz-/Radardiagramm: wo sinnvoll einsetzbar?
+### Bucket E — Spinnennetz-/Radardiagramm ✅ UMGESETZT (gedämpfte Variante)
 
-- [ ] **E1 — Prüfen, ob/wo ein Radar-Profil kompakt viele Werte zeigen kann**, ohne wieder in
-      die "Dashboard-Optik" zurückzufallen, die der Nutzer beim Tacho-Gauge-Feedback explizit
-      abgelehnt hat (siehe Design-Bereinigungs-Konzept oben). `core/plots.py::radar_figure()`
-      existiert bereits (aktuell nur in `testdaten.py`s "Werte auf einen Blick"-Sektion
-      verwendet, 4 Achsen: Sprechrate/HNR/Monopitch/Artikulation).
-  - **Designfrage, die vor der Umsetzung geklärt werden sollte**: ein knalliges, ausgefülltes
-    Radar-Polygon kann leicht wieder "verspielt"/"generisch" wirken (dieselbe Kritik wie bei
-    den Gauges) — müsste, falls umgesetzt, konsequent gedämpft bleiben (dünne Kontur statt
-    kräftiger Füllung, EIN Akzentton statt Regenbogen-Farben, siehe `core/design_tokens.py`).
-  - **Möglicher Einsatzort**: am ehesten als ZUSÄTZLICHE, optionale Verdichtung NACH den
-    Kacheln (z.B. in einem Expander "Profil auf einen Blick"), nicht als Ersatz für die
-    Kacheln selbst — Kacheln bleiben die primäre "genaue Zahl + Status"-Ansicht, Radar wäre
-    nur die zusätzliche Muster-/Gestalt-Wahrnehmung on top. Sinnvolle Kandidaten-Achsen:
-    genau die Werte aus Bucket D (Transkript-Metrik-Wand), da dort die meiste "gefühlte
-    Unübersichtlichkeit" gemeldet wurde.
-  - Hängt eng mit D1 zusammen — bei der Umsetzung von D1 sollte diese Frage mitentschieden
-    werden (Kacheln allein vs. Kacheln + optionales Radar-Profil).
+- [x] **E1 — Optionales Radar-Profil in eigenem Expander.** `core/plots.py::radar_figure()`
+      (bereits gedämpft: EIN Akzentton, dünne Kontur, `alpha=0.22`-Füllung, aus einem früheren
+      Design-Tokens-Umbau — keine Anpassung nötig) jetzt zusätzlich in `views/vorlesen.py` +
+      `views/spontansprache.py`, in einem eigenen Expander "Profil auf einen Blick (Radar)"
+      NACH den Kacheln (nicht als Ersatz). 4 Achsen: Sprechrate (normalisiert über
+      `speech_rate_zones()`), Flüssigkeit (`fluency_score`, schon 0-1), Rhythmus
+      (`rhythm_npvi/100`, geclippt), Lexikalische Diversität (`ttr`, schon 0-1) — bewusst nur
+      Werte mit sinnvoll herleitbarer 0-1-Normalisierung, nicht alle Transkript-Werte. Mit
+      explizitem Caption-Hinweis ("zusätzliche Verdichtung, keine Diagnose, ersetzt nicht die
+      Kacheln").
 
-### Bucket F — Bereits bekannt, hier nur bestätigt/verstärkt (keine neue Aktion nötig)
+### Bucket F — keine Aktion nötig (siehe Konzept-Text oben)
 
-- **Glossar mit Literatur/Evidenz** — deckt sich mit dem bereits bestehenden **P11** oben
-  ("Kompakte Übersicht + ausführliches Evidenz-Glossar trennen"). Nutzer bestätigt hier
-  erneut den Bedarf, keine neuen Details — P11 bleibt der führende Backlog-Eintrag dafür.
-- **"Alle Werte im Detail"-Tabellen jetzt besser lesbar** — positive Bestätigung der
-  st.table()-Umstellung aus der letzten Nachbesserung, keine Aktion nötig.
-
-**Priorisierungsvorschlag** (Aufwand/Nutzen, nicht bindend): Bucket A zuerst (klein, klar,
-sofort umsetzbar) → Bucket C (baut direkt auf bestehender `build_tiles()`-Infrastruktur auf,
-ähnlich risikoarm) → Bucket D+E zusammen (hängen inhaltlich zusammen, größere
-Layout-Entscheidung) → Bucket B zuletzt (braucht eigene Recherche/Textauswahl, kein reiner
-Code-Task).
+**Verifiziert (2026-08-15)**: End-to-End auf dem Server — A1-Hinweis + verschobene
+Textgrößen-Regler (Sidebar leer, Hauptbereich korrekt befüllt, 3× bei Vokalisation/DDK wegen
+Tabs) bestätigt, "Anderen Text wählen"-Expander vorhanden, mit echter Aufnahme+Cache-
+Transkript alle 25 erwarteten Kacheln (Qualität+Akustik+Sprechrate+Pausen+Lexik) inkl. aller
+C1/D1-Werte und der 3 Gruppentitel bestätigt, Radar-Expander erreicht ohne Exception.
+Regressionstest über alle 7 Seiten ohne Exception, HTTP 200 nach Deploy.
 
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
