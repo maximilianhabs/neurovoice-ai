@@ -710,6 +710,119 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
     für die longitudinale Auswertung nur bedingt nützlich, beide Punkte sollten bei der
     Umsetzung zusammen gedacht werden, auch wenn P10 technisch nicht Voraussetzung ist.
 
+## Konzept: Modul-Detailseiten Nachbesserung — Sammel-Feedback nach P10-Testlauf (2026-08-15)
+
+Nutzer hat nach der P10-Umsetzung erstmals wieder alle Module durchgeklickt (erste echte
+3-Vokal-Aufnahme a/i/u, Vorlesen, Spontansprache) und ein dichtes Bündel an Beobachtungen
+gemeldet. Hier dedupliziert/systematisiert, in Buckets nach Aufwand/Zusammenhang. **Status:
+reines Konzept, NICHT umgesetzt** — Umsetzung erst nach Freigabe, dann einzeln verifiziert.
+
+### Bucket A — Kleine, risikoarme UI-Fixes (Kandidaten für den nächsten Schritt)
+
+- [ ] **A1 — Hinweis: alle 3 Vokale empfohlen.** Im Vokalisation-Modul (`views/vokalisation.py`)
+      einen dezenten Hinweis ergänzen, dass /i/ und /u/ zwar optional sind, aber empfohlen —
+      robustere Mittelwerte über alle Vokale hinweg UND die echte Vokalraum-Fläche (VSA, P7)
+      werden erst mit allen 3 Eckvokalen berechenbar. Reine Text-/Caption-Ergänzung, kein
+      Logik-Umbau.
+- [ ] **A2 — Textgrößen-Regler falsch platziert.** `instruction_text_scale_control()`
+      (core/shared.py, aktuell in allen 4 Modulen + testdaten.py in der SIDEBAR) muss laut
+      Nutzer direkt NEBEN/AN den Instruktionstext selbst (die `.dw-card-subtle`-Box), nicht in
+      die linke Seitenleiste — zwei Gründe: (1) inhaltlich gehört die Steuerung visuell zu dem,
+      was sie steuert, (2) die Sidebar soll bei einer künftigen Mobile-Optimierung (iOS etc.)
+      einklappbar/versteckt sein können — ein Steuerelement, das dort "verschwindet", wäre für
+      genau die Zielgruppe (schlecht lesende Patient:innen) unbrauchbar. Umsetzung: Funktion
+      von `st.sidebar.select_slider()` auf normales `st.select_slider()` im Hauptbereich
+      umstellen, Aufrufstelle in jedem Modul direkt vor/neben die Instruktions-Card verschieben
+      statt direkt nach der Hero-Überschrift.
+
+### Bucket B — Mehrere Lesetext-Varianten (NEU, noch nicht im Backlog)
+
+- [ ] **B1 — Mind. 3 alternative Lesetexte.** Aktuell gibt es nur den einen Standardtext
+      ("Nordwind und Sonne", `docs/lesetext_nordwind_sonne.md`). Nutzer-Wunsch: mindestens 3
+      Textvarianten mit vergleichbarer Länge/Wortwahl/Lesedauer, damit bei wiederholten
+      Sitzungen (Verlaufskontrolle, das ist ja jetzt mit P10 möglich) nicht immer derselbe Text
+      vorgelesen wird — monoton für die Person, evtl. auch Lerneffekt (Auswendiglernen statt
+      echtem Vorlesen). Auswahl zufällig ODER manuell (noch offen).
+  - **Aufwand/Fallstricke**: braucht echte linguistische Sorgfalt bei der Textauswahl (nicht
+    einfach irgendein Satz) — vergleichbare Silbenzahl, ähnliche Phonem-Verteilung, ähnlicher
+    Schwierigkeitsgrad, idealerweise ebenfalls etablierte IPA-Referenztexte statt selbst
+    ausgedachter Sätze (der "Nordwind und Sonne"-Text ist genau deshalb Standard). Braucht
+    eigene Recherche/Quellenlage, bevor Text 2+3 festgelegt werden — nicht einfach schnell
+    selbst texten.
+  - Technisch simpel sobald die Texte feststehen: `LESETEXT`-Konstante in
+    `views/vorlesen.py` wird zu einer Liste/einem Dict, Auswahl-Logik (`random.choice()` oder
+    `st.selectbox()`) ergänzen, gewählter Text muss im Take mitgespeichert werden (für den
+    Bericht/Reproduzierbarkeit — sonst weiß man später nicht mehr, welcher Text vorgelesen
+    wurde).
+
+### Bucket C — Fehlende Kacheln/Kontext für bereits vorhandene Werte
+
+- [ ] **C1 — Monoloudness/Formant-Streuung/Intonationskontur als Kacheln statt `st.metric()`.**
+      `views/vorlesen.py` UND `views/spontansprache.py` zeigen diese 3 Werte aktuell noch als
+      rohe `st.metric()`-Zeile (Zeilen um `c1`/`c2`/`c3`) statt als `kpi_tile()` mit Erklärung
+      — ein Rest aus der Zeit vor der Design-Bereinigung, der beim Kachel-Rollout übersehen
+      wurde. Monoloudness (`monoloudness_intensity_sd_db`) und Intonationskontur (`n_phrases`)
+      haben schon `PARAMETER_INFO`-Einträge, können direkt über `build_tiles()` laufen.
+      **Formant-Streuung (`f1_iqr_hz`/`f2_iqr_hz`) hat noch KEINEN `PARAMETER_INFO`-Eintrag** —
+      muss zuerst ergänzt werden (Beschreibung: "Wie stark F1/F2 über die Aufnahme streuen —
+      Proxy für den genutzten Vokalraum, kein Ersatz für echte VSA", siehe bereits vorhandene
+      Erklärung im Docstring von `formant_dynamics_features()`).
+- [ ] **C2 — Mittlere Wortdauer/-Konfidenz aus der Wort-Zeitstempel-Tabelle ableiten.** Die
+      Detailtabelle (`transcript["words"]`, mit `duration_s`-Spalte seit BUG-19) enthält schon
+      alles Nötige für eine **mittlere Wortdauer** (`words_df["duration_s"].mean()`) — bisher
+      nirgends als eigener Wert ausgewiesen, nur implizit in der Tabelle sichtbar. Mittlerer
+      Konfidenz-Score existiert dagegen bereits ("Ø Erkennungs-Konfidenz"). Neue Kennzahl
+      "Ø Wortdauer" als zusätzliche Kachel/Metrik in `views/vorlesen.py` + `views/
+      spontansprache.py` (identischer Code, evtl. in `core/speech_metrics.py` oder direkt in
+      den Views berechnen — kein neuer Tech-Stack).
+
+### Bucket D — Transkript-Metrik-Wand nach der Transkription unübersichtlich
+
+- [ ] **D1 — Die 11 `st.metric()`-Werte nach der Transkription (Wörter, Sprechrate netto/
+      Artikulation, Flüssigkeits-Score, Pausenzahl/-dauer, Rhythmus, Mikro-/Makropausen,
+      Lexikalische Diversität) in `views/vorlesen.py`/`views/spontansprache.py` wirken als
+      reine 4-Spalten-Metrik-Wand unübersichtlich.** Umbau auf `kpi_tile()`-Kacheln (analog zu
+      den bereits umgestellten akustischen Kennwerten) ist der naheliegende erste Schritt —
+      macht die Werte konsistent zum Rest der Seite UND bringt automatisch Erklärungstext mit
+      (die meisten dieser Parameter haben schon `PARAMETER_INFO`-Einträge). Gruppierung
+      innerhalb der Kachel-Reihen sinnvoll (z.B. "Sprechrate-Gruppe" / "Pausen-Gruppe" /
+      "Lexik-Gruppe" als visuell abgesetzte Teilblöcke), damit die schiere Anzahl an Werten
+      nicht einfach nur in einer anderen Optik genauso unübersichtlich bleibt.
+
+### Bucket E — Spinnennetz-/Radardiagramm: wo sinnvoll einsetzbar?
+
+- [ ] **E1 — Prüfen, ob/wo ein Radar-Profil kompakt viele Werte zeigen kann**, ohne wieder in
+      die "Dashboard-Optik" zurückzufallen, die der Nutzer beim Tacho-Gauge-Feedback explizit
+      abgelehnt hat (siehe Design-Bereinigungs-Konzept oben). `core/plots.py::radar_figure()`
+      existiert bereits (aktuell nur in `testdaten.py`s "Werte auf einen Blick"-Sektion
+      verwendet, 4 Achsen: Sprechrate/HNR/Monopitch/Artikulation).
+  - **Designfrage, die vor der Umsetzung geklärt werden sollte**: ein knalliges, ausgefülltes
+    Radar-Polygon kann leicht wieder "verspielt"/"generisch" wirken (dieselbe Kritik wie bei
+    den Gauges) — müsste, falls umgesetzt, konsequent gedämpft bleiben (dünne Kontur statt
+    kräftiger Füllung, EIN Akzentton statt Regenbogen-Farben, siehe `core/design_tokens.py`).
+  - **Möglicher Einsatzort**: am ehesten als ZUSÄTZLICHE, optionale Verdichtung NACH den
+    Kacheln (z.B. in einem Expander "Profil auf einen Blick"), nicht als Ersatz für die
+    Kacheln selbst — Kacheln bleiben die primäre "genaue Zahl + Status"-Ansicht, Radar wäre
+    nur die zusätzliche Muster-/Gestalt-Wahrnehmung on top. Sinnvolle Kandidaten-Achsen:
+    genau die Werte aus Bucket D (Transkript-Metrik-Wand), da dort die meiste "gefühlte
+    Unübersichtlichkeit" gemeldet wurde.
+  - Hängt eng mit D1 zusammen — bei der Umsetzung von D1 sollte diese Frage mitentschieden
+    werden (Kacheln allein vs. Kacheln + optionales Radar-Profil).
+
+### Bucket F — Bereits bekannt, hier nur bestätigt/verstärkt (keine neue Aktion nötig)
+
+- **Glossar mit Literatur/Evidenz** — deckt sich mit dem bereits bestehenden **P11** oben
+  ("Kompakte Übersicht + ausführliches Evidenz-Glossar trennen"). Nutzer bestätigt hier
+  erneut den Bedarf, keine neuen Details — P11 bleibt der führende Backlog-Eintrag dafür.
+- **"Alle Werte im Detail"-Tabellen jetzt besser lesbar** — positive Bestätigung der
+  st.table()-Umstellung aus der letzten Nachbesserung, keine Aktion nötig.
+
+**Priorisierungsvorschlag** (Aufwand/Nutzen, nicht bindend): Bucket A zuerst (klein, klar,
+sofort umsetzbar) → Bucket C (baut direkt auf bestehender `build_tiles()`-Infrastruktur auf,
+ähnlich risikoarm) → Bucket D+E zusammen (hängen inhaltlich zusammen, größere
+Layout-Entscheidung) → Bucket B zuletzt (braucht eigene Recherche/Textauswahl, kein reiner
+Code-Task).
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser
