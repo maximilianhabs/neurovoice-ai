@@ -298,6 +298,152 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
     - Wie wird die Erfassung mit bereits bestehenden Sitzungen/Aufnahmen (vor Einführung
       dieses Features) nachträglich verknüpft, falls überhaupt nötig?
 
+## Konzept: Design-Bereinigung — weg von Tacho-Gauges/Emojis, hin zu nüchternen Kacheln (2026-08-15)
+
+**Nutzer-Feedback:** Emojis wirken unseriös, die Halbkreis-Tacho-Gauges (`core/plots.py::
+gauge_figure()`) wirken zu "dashboardartig"/verspielt. Referenz-Vorbild ist explizit die
+Kachel-Ansicht des EDF-Analyzers (`kpi_tile()`), die dort als "schicker" empfunden wurde:
+Wert nüchtern in einer Karte, farblich markiert nur der Rand/Status (nicht die ganze Fläche),
+Kontext-Erklärung dabei. Zusätzlich soll die Aufnahmequalität (Clipping/Stille/SNR) genauso
+interpretiert/farblich codiert werden statt als reine Zahl.
+
+**Wichtig: NeuroVoice AI hat das exakt gleiche Redesign schon einmal beim EDF-Analyzer
+durchlaufen** (siehe Memory [[project_edf_ui_redesign]], 6 Phasen, abgeschlossen 2026-08-09).
+Ein Teil der Grundlagen wurde bereits am 2026-08-14 bewusst 1:1 herübergezogen
+(`core/design_tokens.py`, `core/reference_ranges.py` mit denselben Ampelfarben/Hex-Werten wie
+dort) — das Fundament existiert also schon, es fehlen nur die konkreten Komponenten
+(`kpi_tile()`, `status_dot()`, Material-Icons) und deren Einbau in die 4 Guide-Module.
+
+### Ist-Stand (2026-08-15, geprüft)
+
+- **Emojis**: `app.py` (7), `views/testdaten.py` (9), `views/spontansprache.py` (6),
+  `views/vorlesen.py` (6), `views/ddk.py` (4), `views/vokalisation.py` (4),
+  `views/gesamtbericht.py` (2) — 38 Fundstellen app-weit.
+- **Tacho-Gauges** (`gauge_figure()`, matplotlib-Halbkreis mit Nadel): aktuell in allen 4
+  Guide-Modulen + `testdaten.py` für Jitter/Shimmer/HNR/CPPS/Sprechrate/Artikulationsschärfe/
+  DDK-Rate/Monopitch/Vokalraum-Fläche.
+- **Bereits vorhanden und direkt weiterverwendbar**: `core/interpretation.py`
+  (`PARAMETER_INFO`, `interpret()`, `flatten_take()`, `build_rows()`) liefert für praktisch
+  jeden Gauge-Parameter schon Label/Einheit/Beschreibung/Normbereich-Funktion/Status/Kontext-
+  Kommentar — das ist inhaltlich bereits die "Laborwert"-Logik, die die Kacheln nur noch
+  ANDERS darstellen müssen (Kachel statt Tabellenzeile), keine neue Datengrundlage nötig.
+- **Recording-Quality-Check** (`core/audio.py::recording_quality_features()`, P6): liefert
+  `clipping_pct`/`silence_pct`/`snr_estimate_db`, aktuell nur als 3× `st.metric()` ohne jede
+  Bewertung — genau der vom Nutzer benannte Lücken-Punkt.
+
+### Baustein A — Kachel-Komponente statt Tacho-Gauge
+
+Neue `core/shared.py::kpi_tile(label, value_text, sub_text, zone, description=None)` — Design
+1:1 vom EDF-Analyzer übernommen (Border-Top-Akzent-Stil, `min-height` für gleich hohe Reihen),
+Zonen (`success`/`warning`/`danger`/`info`/`neutral`) mappen auf dieselben
+`core/design_tokens.py`-Farben, die `core/reference_ranges.py` schon nutzt — keine neue
+Farbpalette nötig. Pro Modul-Seite ersetzt eine Kachel-Reihe (`st.columns` + `kpi_tile()`) die
+bisherige Gauge-Reihe:
+- `value_text` = Wert + Einheit (z.B. "0,6 %"), `sub_text` = Normbereich oder Status-Label
+  ("im Normbereich" / "grenzwertig" / "auffällig" / "kein Normwert").
+- `description` = der bereits vorhandene `PARAMETER_INFO[...]["description"]`-Text ("Was es
+  misst"), knapp unter dem Wert — löst gleichzeitig die zusätzliche Nutzer-Vorgabe "mit
+  Erklärung" mit, ohne neuen Text schreiben zu müssen.
+- Parameter OHNE Normbereich (viele DDK-/Prosodie-Werte) bekommen Zone `neutral`/`info` statt
+  gar keiner Farbe — Pendant zur bisherigen "informativen Nadel ohne Farbwertung".
+- Die bereits bestehende, ausführlichere Interpretations-TABELLE (`build_rows()`, mit voller
+  Kontext-Spalte) bleibt zusätzlich erhalten, aber wandert konzeptuell zur "Detail-Ansicht"
+  (z.B. in einen Expander "Alle Werte im Detail") — die Kacheln sind der neue "Auf-einen-
+  Blick"-Layer direkt unter der Aufnahme, die Tabelle bleibt für alle, die mehr wissen wollen.
+- `gauge_figure()` selbst wird NICHT sofort gelöscht (erst wenn alle Aufrufstellen migriert
+  sind und klar ist, ob irgendwo doch noch eine Nadel-Darstellung sinnvoll bleibt) — reine
+  Karteileiche vermeiden, aber kein verfrühtes Löschen laufenden Codes.
+
+### Baustein B — Recording-Quality-Check: Interpretation + Farbcodierung
+
+Neue Zonen-Funktion in `core/reference_ranges.py` (analog zu `hnr_zones()`/`jitter_zones()`),
+je Metrik von `recording_quality_features()`:
+- **Clipping-Anteil**: 0% gut, >0-0,5% grenzwertig (vereinzelte Spitzen), >0,5% auffällig
+  (hörbare Verzerrung wahrscheinlich) — pragmatische Schwelle, nicht literaturbasiert (anders
+  als Jitter/HNR/etc.), muss im Kontext-Text klar als technische Faustregel gekennzeichnet
+  werden, nicht als klinischer Normbereich verkauft werden.
+- **Stille-Anteil**: kontextabhängig vom Task (bei Vokal-Haltetönen erwartungsgemäß ~0%, bei
+  Spontansprache mit Pausen normal auch 15-30%) — **kein fester Grenzwert über alle Module**,
+  eher ein modul-spezifischer Korridor oder ein reiner Plausibilitäts-Hinweis ("passt zur
+  erwarteten Aufgabe" / "ungewöhnlich viel Stille — Aufnahme evtl. zu kurz beendet oder zu
+  lang mitgeschnitten"). Braucht bei der Umsetzung eine bewusste Entscheidung, ob pro
+  Task-Typ unterschiedliche Korridore gepflegt werden (Mehraufwand) oder ein grober,
+  konservativer Gesamt-Korridor reicht.
+- **SNR-Schätzung**: >25dB gut, 15-25dB grenzwertig (Hintergrundgeräusch hörbar, Kennwerte
+  ggf. verzerrt), <15dB auffällig (Zuverlässigkeit der akustischen Kennwerte in Frage
+  gestellt) — Faustregel aus allgemeiner Signalverarbeitung, keine stimmklinische Literatur-
+  Referenz vorhanden (im Kontext-Text als solche kennzeichnen, Prinzip wie bei den
+  DDK-Referenzbereichen in `core/reference_ranges.py`, die auch schon so gekennzeichnet
+  sind).
+- Anzeige: dieselbe `kpi_tile()`-Komponente wie Baustein A statt der aktuellen 3×
+  `st.metric()`-Zeile — macht die Recording-Quality-Kacheln optisch ununterscheidbar von den
+  akustischen Kennwert-Kacheln (konsistent, ein einziges visuelles Vokabular für "Wert +
+  Bewertung + Erklärung" app-weit, statt zwei parallelen Stilen).
+- **Bewusst weiterhin kein hartes Cutoff-Gate** (Prinzip aus P6/BUG-18 bleibt: informativ,
+  nichts wird deshalb ausgeblendet oder blockiert) — nur jetzt mit Ampel-Farbe statt nackter
+  Zahl.
+
+### Baustein C — Emoji-Bereinigung (Material-Icons)
+
+Gleiches Muster wie beim EDF-Analyzer, 1:1 übertragbar:
+- Sidebar-/Seiten-Icons: `st.Page(icon=...)` + `st.title()` von Emoji auf
+  `:material/...:`-Shortcodes (z.B. `record_voice_over` für Vokalisation, `menu_book` für
+  Vorlesen, `chat` für Spontansprache, `repeat` für DDK).
+- `st.info/warning/error/success`: `icon=`-Parameter statt Emoji im Text.
+- Take-Management-Symbole (vermutlich ✅/🗑️/▶️ für Auswahl/Löschen/Abspielen, genauer Ist-
+  Stand bei Umsetzung prüfen) auf `icon=`-Parameter der jeweiligen Buttons umstellen.
+
+### Pitfalls aus dem EDF-Analyzer-Redesign (unbedingt beachten, damit dieselben Fehler nicht
+wiederholt werden — siehe [[project_edf_ui_redesign]])
+
+1. **Zwei unterschiedliche Icon-Kontexte, nicht austauschbar**: In eigenem HTML
+   (`unsafe_allow_html=True`) braucht es `<span class="material-symbols-outlined">name</span>`
+   (+ einmalig den Material-Symbols-Font global laden). In Streamlit-eigenen Text-Widgets
+   (`st.title`, `st.button`, `st.expander`, `st.Page(icon=...)`) gilt der native
+   `:material/name:`-Shortcode-Text. Werden die beiden vertauscht, rendert entweder rohes
+   HTML als Klartext oder der Shortcode bleibt als Text sichtbar statt als Icon.
+2. **`st.dataframe()`-Zellen, `format_func` in Dropdowns/Tabs**: rendern KEIN HTML und
+   verstehen KEINEN Shortcode — dort muss Klartext (ggf. mit Emoji als einzig praktikabler
+   Option) bleiben oder auf reinen Text ohne Icon umgestellt werden. Beim EDF-Analyzer führte
+   das Ignorieren dieser Regel zu einer echten Regression (Dropdown zeigte rohen Text
+   "ecg_heart EKG" statt eines Icons) — vor der Umsetzung hier gezielt prüfen, ob
+   Take-Auswahl-Radios/Dropdowns in `core/module_state.py`/den Modul-Seiten betroffen sind.
+3. **Eigene `<style>`-Blöcke**: `@import url(...)` INNERHALB des `<style>`-Tags verwenden,
+   nicht ein separates `<link rel="stylesheet">`-Element — Letzteres wurde beim EDF-Analyzer
+   von `st.markdown(unsafe_allow_html=True)` als Klartext statt als Style gerendert.
+4. **Nicht alles auf einmal migrieren**: EDF-Analyzer lief in 6 klar getrennten Phasen
+   (Fundament → Navigation → Status-Komponenten → Kacheln → Plot-Theme → Seite-für-Seite-
+   Rollout), jede einzeln verifiziert und deployt. Für NeuroVoice AI sinnvolle Aufteilung:
+   zuerst `kpi_tile()`+Zonen-Funktionen bauen und an EINEM Modul (z.B. Vokalisation, kleinste
+   Seite) verifizieren, dann erst auf die übrigen 3 Module + `testdaten.py` ausrollen, Emoji-
+   Bereinigung als eigener, unabhängiger letzter Schritt.
+5. **Reale End-to-End-Verifikation ist hier sogar LEICHTER möglich als beim EDF-Analyzer**
+   (dort war Datei-Upload nicht automatisierbar) — NeuroVoice AI hat bereits den etablierten
+   `AppTest`+Session-Snapshot-Verifikationsweg aus P1-P6/BUG-19, der echte Kachel-Werte gegen
+   Referenzwerte prüfen kann, nicht nur "kein Crash". Sollte konsequent genutzt werden statt
+   sich auf reine Kompilierungs-/Server-Start-Checks zu verlassen.
+6. **Konsolidierung, kein Parallelbetrieb**: beim EDF-Analyzer sind während der Migration
+   mehrfach unabhängig gewachsene Kachel-/Card-Implementierungen gefunden worden
+   (`_kpi_card()`, `_metric_card()`, `_tile()` — alle strukturell dasselbe, aber leicht
+   unterschiedlich). Bei NeuroVoice AI vorsorglich VOR dem Bau prüfen, ob es in den 4 Modul-
+   Dateien bereits eigene Kachel-artige Ad-hoc-`st.markdown(f"<div style=...")`-Blöcke gibt
+   (z.B. für die Take-Management-Anzeige), die im selben Zug auf `kpi_tile()` migriert werden
+   sollten, statt eine zweite Variante daneben entstehen zu lassen.
+
+### Noch offen / bei Umsetzung zu entscheiden
+
+- Reihenfolge Kachel-Reihe vs. Diagramme (Wellenform/Intensität/Spektrogramm) vs.
+  Detail-Tabelle auf der Modul-Seite — noch nicht festgelegt, User-Feedback beim ersten
+  umgesetzten Modul einholen, bevor auf die restlichen 3 ausgerollt wird.
+- Genaue Grenzwerte für Clipping/Stille/SNR (Baustein B) sind bewusst pragmatische
+  Faustregeln, keine Literaturwerte — vor Public-Release-Reife ggf. an echten
+  Testaufnahmen/Praxis-Erfahrung nachjustieren.
+- Schicksal von `radar_figure()` (`core/plots.py`, aktuell ungenutzt/wo eingesetzt?) bei
+  Gelegenheit mit prüfen, ob das dieselbe "Dashboard-Optik" hat, die der Nutzer ablehnt.
+
+**Status: reines Konzept, NICHT umgesetzt.** Umsetzung erst nach Nutzer-Freigabe, dann in
+kleinen, einzeln verifizierten Schritten wie oben skizziert.
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser
