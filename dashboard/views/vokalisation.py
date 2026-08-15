@@ -43,6 +43,7 @@ from core.shared import (
     instruction_text_scale_control,
     kpi_tile,
     quality_tiles,
+    recording_duration_feedback_style,
     render_interpretation_table,
 )
 
@@ -96,6 +97,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             key=f"source_{task_key}", horizontal=True,
         )
         if source_mode == "Mikrofon aufnehmen":
+            recording_duration_feedback_style(green_s=3, orange_s=5, red_s=10, key="vokal")
             uploaded = st.audio_input(add_label, sample_rate=48000, key=f"mic_{task_key}_{len(takes)}")
             filename = f"{task_key}.wav"
         else:

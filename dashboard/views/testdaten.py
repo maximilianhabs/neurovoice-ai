@@ -37,6 +37,7 @@ from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
     instruction_text_scale_control,
     kpi_tile,
+    recording_duration_feedback_style,
     render_interpretation_table,
     transcribe_with_progress,
 )
@@ -123,6 +124,19 @@ UPLOAD_TASK_INSTRUCTIONS = {
     "unbekannt": "Nimm die gewünschte Aufgabe auf.",
 }
 
+# Ziel-Dauern je Task-Typ fuer P8 (Live-Aufnahmedauer-Farbfeedback, docs/backlog.md) --
+# dieselben Werte wie in den 4 Guide-Modulen, hier nur nach Task-Typ statt Modul-Datei sortiert.
+DURATION_FEEDBACK_THRESHOLDS = {
+    "lesetext": {"green_s": 10, "orange_s": 15, "red_s": 25},
+    "vokal": {"green_s": 3, "orange_s": 5, "red_s": 10},
+    "vokali": {"green_s": 3, "orange_s": 5, "red_s": 10},
+    "vokalu": {"green_s": 3, "orange_s": 5, "red_s": 10},
+    "ddkgemischt": {"green_s": 10, "orange_s": 15, "red_s": 20},
+    "ddkeinzeln": {"green_s": 15, "orange_s": 20, "red_s": 30},
+    "spontan": {"green_s": 35, "orange_s": 45, "red_s": 60},
+    "unbekannt": {"green_s": 15, "orange_s": 30, "red_s": 60},
+}
+
 # --- Sidebar: nur die Auswahl-Steuerung (Quelle + Task-Typ) -- kompakt, passt in die Sidebar.
 # Die eigentliche Aufnahme-/Upload-Flaeche steht bewusst im breiten Hauptbereich (siehe unten),
 # nicht in der schmalen Sidebar -- Nutzer-Feedback 2026-08-15: dort war der Mikrofon-Aufnahme-
@@ -152,6 +166,8 @@ if source_mode in ("Datei hochladen (WAV)", "Mikrofon aufnehmen"):
         missing_hint = "eine WAV-Datei hochladen"
         verb = "Hochgeladen"
     else:
+        thresholds = DURATION_FEEDBACK_THRESHOLDS.get(upload_task, DURATION_FEEDBACK_THRESHOLDS["unbekannt"])
+        recording_duration_feedback_style(**thresholds, key=upload_task)
         # sample_rate=48000 explizit setzen -- Default ist 16kHz (fuer Spracherkennung
         # optimiert), passt sonst nicht zur restlichen 48kHz-Pipeline (iPhone-Aufnahmen).
         uploaded_file = st.audio_input("Aufnahme starten", sample_rate=48000)

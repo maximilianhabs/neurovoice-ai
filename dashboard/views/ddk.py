@@ -26,8 +26,16 @@ from core.shared import (
     instruction_text_scale_control,
     kpi_tile,
     quality_tiles,
+    recording_duration_feedback_style,
     render_interpretation_table,
 )
+
+# Ziel-Dauern je Teilaufgabe fuer P8 (Live-Aufnahmedauer-Farbfeedback) -- ddkgemischt zielt auf
+# ca. 10s, ddkeinzeln auf ca. 15s (3x ~5s nacheinander pa/ta/ka).
+DURATION_FEEDBACK_THRESHOLDS = {
+    "ddkgemischt": {"green_s": 10, "orange_s": 15, "red_s": 20},
+    "ddkeinzeln": {"green_s": 15, "orange_s": 20, "red_s": 30},
+}
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "ddk"
@@ -81,6 +89,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             key=f"source_{task_key}", horizontal=True,
         )
         if source_mode == "Mikrofon aufnehmen":
+            recording_duration_feedback_style(**DURATION_FEEDBACK_THRESHOLDS[task_key], key=task_key)
             uploaded = st.audio_input(add_label, sample_rate=48000, key=f"mic_{task_key}_{len(takes)}")
             filename = f"{task_key}.wav"
         else:

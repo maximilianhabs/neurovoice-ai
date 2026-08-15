@@ -271,15 +271,27 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
     befüllt) — Jitter RAP 0,30%/PPQ5 0,40%/Shimmer APQ11 3,71%/MPT 2,35s/F0-Tremor 3,83Hz
     alle korrekt in der Detail-Tabelle, VSA-Kachel erscheint nach Befüllen aller 3 Slots.
     Regressionstest über alle 6 Seiten ohne Exception, HTTP 200 nach Deploy.
-- [ ] **P8 — Live-Aufnahmedauer-Farbfeedback** (Nutzer-Idee 2026-08-15, bewusst zurückgestellt,
-      nur UX-Politur): während der Mikrofonaufnahme farblich anzeigen, wie lange schon
-      aufgenommen wird — grün bis zur Zielsekunde (z.B. 3s für Vokale), ab ~4-5s orange, ab
-      ~10s rot ("weil's unnötig ist" — Signal, dass die Aufnahme beendet werden kann/sollte).
-      **Technisch unklar/zu prüfen**: `st.audio_input` liefert aktuell keinen Live-Callback
-      während der Aufnahme läuft (nur das fertige Ergebnis nach Stop) — eine reine
-      CSS-Lösung (wie der bestehende dezente Aufnahme-Hinweis) kann vermutlich keine
-      Zeit-abhängige Farbe erzeugen, nur einen statischen "läuft"-Zustand. Bräuchte
-      eventuell eigene JS-Komponente statt des nativen Widgets — erst bei Umsetzung klären.
+- [x] **P8 — Live-Aufnahmedauer-Farbfeedback** ✅ UMGESETZT (2026-08-15) — Rahmen der
+      Mikrofonaufnahme faerbt sich waehrend der laufenden Aufnahme zeitabhaengig gruen →
+      orange → rot ein (Signal "kann/sollte beendet werden").
+      **Technische Loesung, die die offene Frage klaert**: `st.audio_input()` liefert weiterhin
+      keinen Live-Callback waehrend der Aufnahme, ABER eine reine CSS-`@keyframes`-Animation
+      braucht das auch nicht — sie startet automatisch, sobald der Stop-Button erscheint
+      (derselbe `:has(button[aria-label*="Stop" i])`-Trick wie beim bestehenden dezenten
+      Aufnahme-Hinweis) und laeuft danach rein clientseitig, ohne Streamlit-Rerun/Python-Timer.
+      Keine eigene JS-Komponente noetig. Neue `core/shared.py::
+      recording_duration_feedback_style(green_s, orange_s, red_s, key)` — je Modul/Task-Typ
+      eigene Ziel-Dauern (Vokal 3/5/10s, Lesetext 10/15/25s, Spontansprache 35/45/60s, DDK
+      kombiniert 10/15/20s, DDK einzeln 15/20/30s), `key`-Parameter verhindert, dass
+      unterschiedliche Instanzen auf derselben Seite (z.B. die 2 DDK-Tabs) sich gegenseitig
+      ueberschreiben (CSS-`@keyframes`-Namen sind sonst global). Eingebaut in alle 4
+      Guide-Module + `testdaten.py` (dort nach Task-Typ aus der Sidebar-Auswahl gemappt).
+      Verifiziert: CSS-Injektion mit korrektem, task-spezifischem Animationsnamen in allen 4
+      Modulen + `testdaten.py` bestaetigt (inkl. beider unterschiedlicher DDK-Tab-Keys
+      gleichzeitig vorhanden), Regressionstest ueber alle 6 Seiten ohne Exception, HTTP 200
+      nach Deploy. **NICHT visuell im echten Browser gegengeprueft** (kein Mikrofonzugriff im
+      Sandbox-Browser, wie schon beim bestehenden Aufnahme-Hinweis) — bitte beim naechsten
+      echten Testen eine Aufnahme laufen lassen und den Farbverlauf pruefen.
 - [ ] **P9 — Transkription als Hintergrund-Job** (Nutzer-Feedback 2026-08-15, siehe
       docs/bugtracker.md RANDNOTIZ-13) — WhisperX blockiert aktuell die komplette Browser-
       Sitzung für 1-2 Minuten, fühlt sich wie ein Absturz an. Echte Lösung bräuchte einen

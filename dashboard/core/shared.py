@@ -268,6 +268,48 @@ def instruction_text_scale_control() -> None:
         )
 
 
+def recording_duration_feedback_style(green_s: float, orange_s: float, red_s: float, key: str = "default") -> None:
+    """P8 (docs/backlog.md, Nutzer-Idee 2026-08-15): faerbt den Aufnahme-Rahmen waehrend einer
+    laufenden Mikrofonaufnahme zeitabhaengig gruen -> orange -> rot ein, als Signal "kann/sollte
+    beendet werden". `st.audio_input()` liefert waehrend der Aufnahme KEINEN Live-Callback (nur
+    das fertige Ergebnis nach Stop) -- eine eigene JS-Komponente waere der "saubere" Weg, aber
+    deutlich groesserer Aufwand. Stattdessen eine reine CSS-`@keyframes`-Animation: startet,
+    sobald der Stop-Button erscheint (:has()-Trick, siehe apply_global_style()), laeuft dann rein
+    clientseitig relativ zu diesem Zeitpunkt -- kein Streamlit-Rerun/Python-Timer noetig.
+
+    `green_s`/`orange_s`/`red_s` sind Sekunden-Schwellen (aufsteigend). `key` erlaubt mehrere
+    unabhaengige Instanzen auf derselben Seite (z.B. DDK-Tabs mit unterschiedlichen Ziel-
+    Dauern) -- ohne eigenen Key wuerde die zuletzt injizierte Animation alle vorherigen auf der
+    Seite ueberschreiben (CSS-`@keyframes`-Namen sind global).
+
+    NICHT visuell im Browser verifizierbar (kein Mikrofonzugriff im Sandbox-Browser, wie schon
+    beim bestehenden dezenten Aufnahme-Hinweis) -- bitte nach dem Deploy einmal eine echte
+    Aufnahme laufen lassen und den Farbverlauf gegenpruefen.
+    """
+    total = red_s + 3  # Puffer, damit die Animation nicht kurz vor Rot wieder auf 100% springt
+    def _pct(s: float) -> float:
+        return max(0.0, min(100.0, s / total * 100))
+
+    anim_name = f"nv-rec-timer-{key}"
+    st.markdown(
+        f"""
+        <style>
+        @keyframes {anim_name} {{
+            0% {{ border-color: {SUCCESS}; box-shadow: 0 0 0 1px color-mix(in srgb, {SUCCESS} 35%, transparent); }}
+            {_pct(green_s):.1f}% {{ border-color: {SUCCESS}; box-shadow: 0 0 0 1px color-mix(in srgb, {SUCCESS} 35%, transparent); }}
+            {_pct(orange_s):.1f}% {{ border-color: {WARNING}; box-shadow: 0 0 0 1px color-mix(in srgb, {WARNING} 45%, transparent); }}
+            {_pct(red_s):.1f}% {{ border-color: {DANGER}; box-shadow: 0 0 0 1px color-mix(in srgb, {DANGER} 55%, transparent); }}
+            100% {{ border-color: {DANGER}; box-shadow: 0 0 0 1px color-mix(in srgb, {DANGER} 55%, transparent); }}
+        }}
+        div[data-testid="stAudioInput"]:has(button[aria-label*="Stop" i]) {{
+            animation: {anim_name} {total}s linear forwards;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_interpretation_table(rows: list[dict]) -> None:
     """Rendert die Laborwert-Interpretationstabelle (core.interpretation.build_rows()) so, dass
     lange Texte ("Was es misst"/"Kontext") vollstaendig lesbar sind. Nutzer-Feedback

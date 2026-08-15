@@ -37,6 +37,7 @@ from core.shared import (
     instruction_text_scale_control,
     kpi_tile,
     quality_tiles,
+    recording_duration_feedback_style,
     render_interpretation_table,
     transcribe_with_progress,
 )
@@ -97,6 +98,7 @@ takes = get_takes(MODULE, SUBTASK)
 add_label = "Weiteren Versuch aufnehmen" if takes else "Aufnahme starten"
 source_mode = st.radio("Quelle", ["Mikrofon aufnehmen", "Datei hochladen (WAV)"], horizontal=True)
 if source_mode == "Mikrofon aufnehmen":
+    recording_duration_feedback_style(green_s=10, orange_s=15, red_s=25, key="lesetext")
     uploaded = st.audio_input(add_label, sample_rate=48000, key=f"mic_lesetext_{len(takes)}")
     filename = "lesetext.wav"
 else:
