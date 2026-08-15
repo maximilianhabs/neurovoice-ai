@@ -36,6 +36,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "„Sprechschüben“. Bei ataktischer Dysarthrie eher unauffällig oder erhöht."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "Monopitch als eines der robustesten PD-Merkmale — (Dys)Prosody in Parkinson's Disease; ASHA Perspectives, siehe docs/literatur_review.md",
     },
     "jitter_local_pct": {
         "label": "Jitter (local)",
@@ -48,6 +50,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "bei gehaltenem Vokal zuverlässig interpretierbar."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "Klassisches Stimmklinik-Maß — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md",
     },
     "shimmer_local_pct": {
         "label": "Shimmer (local)",
@@ -59,6 +63,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "zuverlässig interpretierbar."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "Klassisches Stimmklinik-Maß — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md",
     },
     "hnr_mean_db": {
         "label": "HNR",
@@ -71,6 +77,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "(Parkinson)."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "Klassisches Stimmklinik-Maß — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md",
     },
     "cpps_db": {
         "label": "CPPS",
@@ -83,6 +91,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Wert = auffälligere Stimmqualität."
         ),
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Als robusteres Äquivalent bei Fließsprache in ALS-/PD-Biomarker-Studien diskutiert, siehe docs/literatur_review.md \"Quellen\"",
     },
     "net_speech_rate_wpm": {
         "label": "Sprechrate",
@@ -95,6 +105,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Verlangsamung ohne motorische Sprechstörung. Erlaubt allein keine Typ-Zuordnung."
         ),
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "Sprechrate ist Standard-Sprechfluss-Marker, aber unspezifisch für einzelne Dysarthrie-Typen — siehe docs/literatur_review.md Abschnitt 5",
     },
     "mean_burst_sharpness_db_s": {
         "label": "Artikulationsschärfe",
@@ -107,6 +119,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "generell bei ausgeprägterer Dysarthrie jeden Typs."
         ),
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Projekteigene Burst-Erkennung, kein Standardmaß aus der Literatur — lose an Verschlussdauer-Konzepte angelehnt (siehe „Sprachspezifik Deutsch\" in docs/literatur_review.md)",
     },
     "monoloudness_intensity_sd_db": {
         "label": "Monoloudness",
@@ -118,6 +132,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Bild hypokinetischer Dysarthrie (Parkinson)."
         ),
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "Klassisches PD-Merkmal neben Monopitch — siehe docs/literatur_review.md Abschnitt 4",
     },
     "ddk_rate_hz": {
         "label": "DDK-Rate",
@@ -130,6 +146,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Muster."
         ),
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "DDK-Aufgabe selbst ist Standard-Artikulationstest, unser eigener Erkennungsalgorithmus ist NICHT unabhängig validiert — siehe docs/literatur_review.md Abschnitt 3",
     },
     "cycle_interval_cv": {
         "label": "DDK-Regelmäßigkeit (CV)",
@@ -142,6 +160,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Unregelmäßigkeit spricht eher für hypokinetisch/spastisch."
         ),
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Regelmäßigkeit als möglicher ataktischer Marker diskutiert, weniger standardisiert als reine DDK-Rate — siehe docs/literatur_review.md Abschnitt 3",
     },
     "n_words": {
         "label": "Wörter (erkannt)",
@@ -150,6 +170,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — abhängig von der freien Sprechdauer/Aufgabenstellung, nur Grundlage für die anderen Sprechrate-Kennwerte.",
         "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": None,
     },
     "articulation_rate_wpm": {
         "label": "Sprechrate (Artikulation)",
@@ -158,6 +180,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Wie die Netto-Sprechrate unspezifisch für einzelne Dysarthrie-Typen — der Vergleich Netto- vs. Artikulationsrate zeigt, wie viel der Verlangsamung reine Pausenzeit ist.",
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "Netto- vs. Artikulationsrate ist Standardunterscheidung in der Sprechfluss-Literatur — siehe docs/literatur_review.md Abschnitt 5",
     },
     "fluency_score": {
         "label": "Flüssigkeits-Score",
@@ -166,6 +190,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Eigene, transparente Heuristik, kein etablierter klinischer Score — niedrige Werte können auf Wortfindungsstörungen, Atemreserve-Probleme oder einfach viel Bedenkzeit hindeuten, ohne dass diese Ursachen automatisiert unterscheidbar wären.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Projekteigene, transparente Definition — kein etablierter klinischer Score",
     },
     "rhythm_npvi": {
         "label": "Rhythmus (nPVI)",
@@ -174,6 +200,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein klinischer Normwert (eher sprachtypologisches Maß) — stark reduzierter Wert (monotoner Rhythmus) passt zum Bild hypokinetischer Dysarthrie.",
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "nPVI ist ein etabliertes Rhythmus-Maß, hier aber auf Wortebene statt der ursprünglichen Silbenebene angepasst — siehe docs/literatur_review.md Abschnitt 4",
     },
     "mean_pause_duration_s": {
         "label": "Ø Pausendauer",
@@ -182,6 +210,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — verlängerte Pausen können auf Wortfindungsstörungen ODER verkürzte Atemreserve hindeuten, ohne weiteren Kontext nicht unterscheidbar.",
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "Pausenmuster (Duration of Pause Intervals) ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5",
     },
     "max_pause_duration_s": {
         "label": "Max. Pausendauer",
@@ -190,6 +220,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — eine einzelne sehr lange Pause kann ein Ausreißer (z.B. Räuspern, Nachdenkpause) oder Hinweis auf Wortfindungsstörung sein.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Einzelwert-Ableitung, kein eigenständiges Standardmaß in der Literatur",
     },
     "micro_pause_count": {
         "label": "Mikropausen (250–500ms)",
@@ -198,6 +230,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — dient vor allem als Kontrast zu den Makropausen, um zu sehen, ob Pausen überwiegend unauffällig kurz oder auffällig lang sind.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Projekteigene Schwellenwert-Kategorisierung (500ms-Grenze), keine etablierte Konvention",
     },
     "macro_pause_count": {
         "label": "Makropausen (≥500ms)",
@@ -206,6 +240,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — erhöhte Anzahl kann auf Wortfindungsstörungen/kognitive Verlangsamung hindeuten, aber auch auf verkürzte Atemreserve, ohne weiteren Kontext nicht unterscheidbar.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Projekteigene Schwellenwert-Kategorisierung (500ms-Grenze), keine etablierte Konvention",
     },
     "mean_micro_pause_duration_s": {
         "label": "Ø Mikropausendauer",
@@ -214,6 +250,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — nur ergänzend zur Mikropausen-Anzahl.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Ergänzt die Mikropausen-Anzahl, keine eigenständige Literatur-Referenz",
     },
     "mean_macro_pause_duration_s": {
         "label": "Ø Makropausendauer",
@@ -222,6 +260,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert — nur ergänzend zur Makropausen-Anzahl.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Ergänzt die Makropausen-Anzahl, keine eigenständige Literatur-Referenz",
     },
     "mean_word_duration_s": {
         "label": "Ø Wortdauer",
@@ -230,6 +270,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein etablierter Normbereich — verlängerte Wortdauern können auf verlangsamte Artikulation hindeuten, aber auch durch lange/zusammengesetzte Wörter allein entstehen.",
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Direkt aus den Wort-Zeitstempeln abgeleitet, kein etablierter klinischer Referenzwert",
     },
     "pause_count": {
         "label": "Pausen (Anzahl)",
@@ -242,6 +284,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "weiteren Kontext nicht unterscheidbar."
         ),
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "Pausenzahl ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5",
     },
     "f1_mean_hz": {
         "label": "Formant F1",
@@ -250,6 +294,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert ohne bekannte Vokal-Identität — Formanten sind hier nur als Rohwerte informativ.",
         "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": "Formant-Rohwert — Zuordnung F1↔Zungenhöhe ist etabliert (siehe docs/literatur_review.md Abschnitt 2), aber ohne bekannte Vokal-Identität hier nur informativ",
     },
     "f2_mean_hz": {
         "label": "Formant F2",
@@ -258,6 +304,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert ohne bekannte Vokal-Identität — Formanten sind hier nur als Rohwerte informativ.",
         "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": "Formant-Rohwert — Zuordnung F2↔Zungenposition ist etabliert (siehe docs/literatur_review.md Abschnitt 2), aber ohne bekannte Vokal-Identität hier nur informativ",
     },
     "f1_iqr_hz": {
         "label": "Formant-Streuung F1",
@@ -271,6 +319,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "ohne bekannte Vokal-Identität auskommt."
         ),
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Formant-Streuung als VSA-Proxy — echte Vokalraum-Flächenmaße sind laut Literatur uneinheitlich validiert (siehe docs/literatur_review.md Punkt 2 der Einschränkungen), unsere zeitaufgelöste Variante ist eigene Anpassung",
     },
     "f2_iqr_hz": {
         "label": "Formant-Streuung F2",
@@ -283,6 +333,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "allem auf die Zungenposition vorne/hinten."
         ),
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Formant-Streuung als VSA-Proxy — echte Vokalraum-Flächenmaße sind laut Literatur uneinheitlich validiert (siehe docs/literatur_review.md Punkt 2 der Einschränkungen), unsere zeitaufgelöste Variante ist eigene Anpassung",
     },
     "n_phrases": {
         "label": "Intonationskontur (Phrasen)",
@@ -291,6 +343,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein Normwert, kleine Fallzahl pro Aufnahme — Trend pro Phrase (steigend/fallend) ist informativer als die reine Anzahl.",
         "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": None,
     },
     "ttr": {
         "label": "Lexikalische Diversität (TTR)",
@@ -299,6 +353,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein etablierter Normbereich, sinkt allein durch Textlänge — nur im Eigenvergleich über Sitzungen sinnvoll.",
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "TTR ist ein etabliertes linguistisches Diversitätsmaß, aber ohne krankheitsspezifischen Cutoff — nur im Eigenvergleich sinnvoll",
     },
     "mtld": {
         "label": "Lexikalische Diversität (MTLD)",
@@ -307,6 +363,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": "Kein etablierter Normbereich — wurde ursprünglich für deutlich längere Texte entwickelt als unsere kurzen Aufnahmen, hier nur eingeschränkt aussagekräftig.",
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "MTLD (McCarthy & Jarvis 2010) ist ein etabliertes, textlängen-robusteres Diversitätsmaß, aber für deutlich längere Texte entwickelt als unsere Aufnahmen",
     },
     # --- P7/Audit 2026-08-15 (docs/backlog.md "Audit-Parameter einbauen") ---
     "jitter_rap_pct": {
@@ -320,6 +378,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "(siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "RAP als Jitter-Untermaß ist Teil der klassischen MDVP-Konvention, aber hier ohne projektintern verifizierten Cutoff — siehe docs/backlog.md P12",
     },
     "jitter_ppq5_pct": {
         "label": "Jitter (PPQ5)",
@@ -332,6 +392,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "hinterlegt (siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "PPQ5 als Jitter-Untermaß ist Teil der klassischen MDVP-Konvention, aber hier ohne projektintern verifizierten Cutoff — siehe docs/backlog.md P12",
     },
     "shimmer_apq11_pct": {
         "label": "Shimmer (APQ11)",
@@ -344,6 +406,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "(siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "gut etabliert",
+        "literature": "APQ11 als Shimmer-Untermaß ist Teil der klassischen MDVP-Konvention, aber hier ohne projektintern verifizierten Cutoff — siehe docs/backlog.md P12",
     },
     "mpt_s": {
         "label": "Maximum Phonation Time (MPT)",
@@ -357,6 +421,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "nur die aufgenommene Dauer, nicht die tatsächliche maximale Phonationsdauer."
         ),
         "age_caveat": None,
+        "evidence": "gut etabliert",
+        "literature": "MPT ist ein klassisches klinisches Stimm-/Atemreserve-Maß, hier aber ohne dedizierte MPT-Aufnahme-Instruktion nur eingeschränkt aussagekräftig",
     },
     "tremor_freq_hz": {
         "label": "F0-Tremor-Frequenz",
@@ -370,6 +436,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Tremor-Diagnose. Bei kurzen Vokalaufnahmen (~2-3s) ist die Frequenzauflösung grob."
         ),
         "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Rein explorative Spektralanalyse, nicht klinisch validiert — Grundidee (Tremor-Differenzierung PD vs. essenziell) aus der Literatur, konkrete Umsetzung hier eigenständig",
     },
     "vsa_hz2": {
         "label": "Vokalraum-Fläche (VSA)",
@@ -383,6 +451,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Vokal-Teilaufgaben mit mindestens einem Versuch."
         ),
         "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Klassische VSA-Dreiecksformel, aber laut Literatur uneinheitlich validiert (hohe Sprecher-zu-Sprecher-Varianz) — siehe docs/literatur_review.md Punkt 2 der Einschränkungen",
     },
 }
 
@@ -404,6 +474,8 @@ def interpret(param_key: str, value: float | None) -> dict | None:
         "zone": "neutral",
         "context": info["context"],
         "age_caveat": info["age_caveat"],
+        "evidence": info["evidence"],
+        "literature": info["literature"],
     }
 
     if info["zones_func"] is not None and value is not None:
@@ -429,8 +501,11 @@ def flatten_take(take: dict) -> dict:
 
 
 def build_rows(flat: dict) -> list[dict]:
-    """Baut die Zeilen fuer eine Laborwert-Stil-Tabelle (Parameter/Wert/Normbereich/Status/
-    Was es misst/Kontext) aus einem geflachten Take-Dict."""
+    """Baut die Zeilen fuer die KOMPAKTE Laborwert-Stil-Uebersicht (Parameter/Wert/
+    Normbereich/Status) aus einem geflachten Take-Dict -- bewusst OHNE die langen Erklaerungs-/
+    Kontexttexte (P11, docs/backlog.md "Kompakte Uebersicht + ausfuehrliches Evidenz-Glossar
+    trennen"). Die ausfuehrliche Fassung mit Erklaerung/Kontext/Evidenz/Literatur liefert
+    build_glossary_entries()."""
     rows = []
     for param_key in PARAMETER_INFO:
         if param_key not in flat:
@@ -444,10 +519,31 @@ def build_rows(flat: dict) -> list[dict]:
             "Wert": value_str,
             "Normbereich": info["range"],
             "Status": info["status"],
-            "Was es misst": info["description"],
-            "Kontext (deskriptiv)": info["context"],
         })
     return rows
+
+
+def build_glossary_entries(flat: dict) -> list[dict]:
+    """Baut die ausfuehrlichen Glossar-Eintraege (P11) fuer alle im Take vorhandenen Parameter:
+    Label, "Was es misst", Kontext (deskriptiv), Evidenz-Einordnung, Literaturverweis. Getrennt
+    von build_rows() (kompakte Uebersicht), damit die kompakte Tabelle nicht wieder mit langen
+    Texten ueberladen wird (Nutzer-Feedback 2026-08-15 zur vorherigen Tabellen-Version)."""
+    entries = []
+    for param_key in PARAMETER_INFO:
+        if param_key not in flat:
+            continue
+        info = interpret(param_key, flat[param_key])
+        if info is None:
+            continue
+        entries.append({
+            "label": info["label"],
+            "description": info["description"],
+            "context": info["context"],
+            "evidence": info["evidence"],
+            "literature": info["literature"],
+            "age_caveat": info["age_caveat"],
+        })
+    return entries
 
 
 def build_tiles(flat: dict) -> list[dict]:
@@ -472,14 +568,3 @@ def build_tiles(flat: dict) -> list[dict]:
     return tiles
 
 
-def age_caveats_for(flat: dict) -> set[str]:
-    """Liefert die Menge der Alters-/Geschlechts-Hinweise, die fuer die im Take vorhandenen
-    Parameter relevant sind (dedupliziert, da z.B. Jitter/Shimmer/HNR denselben Hinweistext teilen)."""
-    caveats = set()
-    for param_key in PARAMETER_INFO:
-        if param_key not in flat:
-            continue
-        info = interpret(param_key, flat[param_key])
-        if info and info["age_caveat"]:
-            caveats.add(info["age_caveat"])
-    return caveats

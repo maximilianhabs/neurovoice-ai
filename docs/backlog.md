@@ -657,23 +657,41 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
   Kontext-Texte (z.B. HNR-Kontext, 172 Zeichen) im `st.table()`-DataFrame bestätigt statt nur
   angenommen. Regressionstest über alle 6 Seiten ohne Exception, HTTP 200 nach Deploy.
 
-- [ ] **P11 — Kompakte Übersicht + ausführliches Evidenz-Glossar trennen** (Nutzer-Feedback
-      2026-08-15, NICHT umgesetzt, größerer Content-/Recherche-Aufwand) — aktuell ist die
-      Interpretations-Tabelle (`build_rows()`) eine einzige Tabelle mit allen 6 Spalten
-      (Parameter/Wert/Normbereich/Status/Was es misst/Kontext). Nutzer-Vorschlag: analog zum
-      EDF-Analyzer (dort: knappe KPI-Kacheln/Tabelle + ausführlicher Referenz-/Methodik-
-      Textblock mit Evidenz-Sternebewertung je Parameter, siehe z.B. `views/ecg_hrv.py`s
-      HRV-Parametererklärungen) aufteilen in:
-  1. Eine KURZE, präzise tabellarische Übersicht (Parameter/Wert/Status — ohne die langen
-     Erklärungstexte)
-  2. Darunter ein ausführliches Glossar mit vollständiger Erklärung, Literaturbezug UND einer
-     Einordnung, wie etabliert/evidenzbasiert der jeweilige Parameter ist (analog den
-     Sternebewertungen beim EDF-Analyzer).
-      **Aufwand**: nicht nur Layout — pro Parameter müsste eine Evidenz-Einordnung (z.B.
-      Sterne 1-5 oder Kategorien "gut etabliert"/"vielversprechend, wenig repliziert"/"explorativ,
-      eigene Heuristik") recherchiert und in `core/interpretation.py::PARAMETER_INFO` ergänzt
-      werden — das ist inhaltliche Literaturarbeit, kein reiner Code-Umbau. Hängt eng mit P12
-      zusammen (fehlende Referenzwerte sind Teil derselben Recherche).
+- [x] **P11 — Kompakte Übersicht + ausführliches Evidenz-Glossar trennen** ✅ UMGESETZT
+      (2026-08-15) — die bisherige Interpretations-Tabelle (alle 6 Spalten in einer Tabelle)
+      ist aufgeteilt in:
+  1. **Kompakte Übersicht** (`core/interpretation.py::build_rows()`, jetzt nur noch Parameter/
+     Wert/Normbereich/Status — die 2 langen Textspalten entfernt) über `render_interpretation_table()`
+     im "Alle Werte im Detail"-Expander.
+  2. **Ausführliches Evidenz-Glossar** (neue `build_glossary_entries()` + `core/shared.py::
+     render_glossary()`) in einem eigenen "Glossar & Literatur"-Expander direkt darunter: pro
+     Parameter Label, "Was es misst", Kontext (deskriptiv), eine **Evidenz-Einordnung** (4
+     Kategorien statt Sterne — bewusst gröber/ehrlicher als eine Pseudo-Genauigkeits-Bewertung:
+     "gut etabliert" / "in der Forschung diskutiert" / "eigene Heuristik / explorativ" /
+     "deskriptiv, kein Krankheits-Marker") und ein kurzer Literaturverweis.
+  - **Literaturarbeit**: alle 35 `PARAMETER_INFO`-Einträge in `core/interpretation.py` um
+    `evidence`+`literature` erweitert, gegründet auf `docs/literatur_review.md` (Feature-
+    Kategorien-Abschnitte 1-6 + Quellenliste) — z.B. Jitter/Shimmer/HNR/Monopitch/Monoloudness/
+    Pausenmuster/Sprechrate als "gut etabliert" eingestuft (Standard-Stimmklinik-/Sprechfluss-
+    Literatur), CPPS/Formant-Streuung/DDK-Regelmäßigkeit/VSA als "in der Forschung diskutiert"
+    (vielversprechend, aber laut Literatur uneinheitlich validiert bzw. eigene Anpassung einer
+    etablierten Grundidee), Artikulationsschärfe/Flüssigkeits-Score/Pausen-Substatistiken/
+    F0-Tremor als "eigene Heuristik" (projekteigene Berechnung ohne etablierten Cutoff),
+    Formant-Rohwerte/Wortzahl/Phrasenzahl als rein "deskriptiv". RAP/PPQ5/APQ11/MPT als "gut
+    etabliert" (Teil der klassischen MDVP-Konvention bzw. klassisches Stimm-/Atemreserve-Maß),
+    aber mit dem Hinweis, dass hier kein projektintern verifizierter Cutoff hinterlegt ist
+    (Verweis auf P12).
+  - **Gesamtbericht** (`views/gesamtbericht.py`): Glossar wird NICHT pro Teilaufgabe wiederholt
+    (starke Redundanz, da z.B. Jitter/Shimmer/HNR in mehreren Modulen auftauchen), sondern über
+    alle Module/Teilaufgaben hinweg gesammelt, nach Label dedupliziert und alphabetisch sortiert
+    in EINEM gemeinsamen Glossar-Expander am Ende des Berichts gezeigt.
+  - Alte `age_caveats_for()`-Funktion entfernt (tote Code — der Alters-/Geschlechts-Hinweis
+    erscheint jetzt direkt im jeweiligen Glossar-Eintrag statt als separate Caption-Liste).
+  - **Verifiziert**: End-to-End mit echter Aufnahme — kompakte Tabelle zeigt korrekt nur 4
+    Spalten (12 Zeilen), "Glossar & Literatur"-Expander getrennt vorhanden, alle 12
+    Glossar-Blöcke mit korrektem Label/Evidenz-Badge/Quellenangabe bestätigt (z.B. "Monopitch"
+    → "gut etabliert" → (Dys)Prosody-in-PD-Quelle). Regressionstest über alle 7 Seiten ohne
+    Exception, HTTP 200 nach Deploy.
 - [ ] **P12 — Fehlende Referenzwerte/Normbereiche recherchieren** (Nutzer-Feedback 2026-08-15,
       NICHT umgesetzt) — viele Parameter haben aktuell `zones_func: None` in
       `core/interpretation.py::PARAMETER_INFO`, zeigen also nur "kein Normwert" ohne jede

@@ -224,6 +224,43 @@ def apply_global_style() -> None:
         padding-top: 4px;
     }}
 
+    /* ── Evidenz-Glossar (P11, core/shared.py::render_glossary()) ───────────────────────── */
+    .dw-glossary-entry {{
+        border-bottom: 1px solid var(--dw-border);
+        padding: 12px 2px;
+    }}
+    .dw-glossary-entry:first-child {{ padding-top: 0; }}
+    .dw-glossary-entry:last-child {{ border-bottom: none; }}
+    .dw-glossary-label {{
+        font-size: 14.5px;
+        font-weight: 700;
+        color: var(--dw-text-primary);
+        margin-bottom: 4px;
+    }}
+    .dw-glossary-evidence {{
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        border: 1px solid;
+        border-radius: 999px;
+        padding: 1px 8px;
+        margin-left: 6px;
+        white-space: nowrap;
+    }}
+    .dw-glossary-desc {{
+        font-size: 13px;
+        color: var(--dw-text-secondary);
+        line-height: 1.5;
+        margin: 3px 0;
+    }}
+    .dw-glossary-lit {{
+        font-size: 11.5px;
+        color: var(--dw-text-secondary);
+        font-style: italic;
+        margin-top: 4px;
+    }}
+
     /* Mobile-Grundbasis */
     @media (max-width: 640px) {{
         h1 {{ font-size: 1.4rem !important; }}
@@ -346,6 +383,38 @@ def render_interpretation_table(rows: list[dict]) -> None:
     zwischen allen Modul-Seiten + Gesamtbericht, damit nicht 6x dieselbe Umstellung noetig ist,
     falls die Darstellung nochmal wechselt."""
     st.table(pd.DataFrame(rows))
+
+
+_EVIDENCE_COLORS = {
+    "gut etabliert": SUCCESS,
+    "in der Forschung diskutiert": INFO,
+    "eigene Heuristik / explorativ": TEXT_SECONDARY,
+    "deskriptiv, kein Krankheits-Marker": TEXT_SECONDARY,
+}
+
+
+def render_glossary(entries: list[dict]) -> None:
+    """Rendert das ausfuehrliche Evidenz-Glossar (P11, docs/backlog.md "Kompakte Uebersicht +
+    ausfuehrliches Evidenz-Glossar trennen") -- ein Block je Parameter mit Erklaerung, Kontext,
+    Evidenz-Einordnung (gut etabliert / in der Forschung diskutiert / eigene Heuristik /
+    deskriptiv) und Literaturverweis. Ergaenzt core.interpretation.build_glossary_entries().
+    Bewusst als eigene, geraeumigere Darstellung statt einer weiteren Tabellenspalte -- analog
+    zu den ausfuehrlichen Parameter-Erklaerungen beim EDF-Analyzer (z.B. views/ecg_hrv.py)."""
+    for entry in entries:
+        color = _EVIDENCE_COLORS.get(entry["evidence"], TEXT_SECONDARY)
+        lit_html = f'<div class="dw-glossary-lit">Quelle: {entry["literature"]}</div>' if entry["literature"] else ""
+        age_html = f'<div class="dw-glossary-lit">{entry["age_caveat"]}</div>' if entry.get("age_caveat") else ""
+        st.markdown(
+            f'<div class="dw-glossary-entry">'
+            f'<div class="dw-glossary-label">{entry["label"]} '
+            f'<span class="dw-glossary-evidence" style="color:{color};border-color:{color};">{entry["evidence"]}</span>'
+            f'</div>'
+            f'<div class="dw-glossary-desc"><b>Was es misst:</b> {entry["description"]}</div>'
+            f'<div class="dw-glossary-desc"><b>Kontext (deskriptiv):</b> {entry["context"]}</div>'
+            f'{lit_html}{age_html}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 _QUALITY_ZONE_RANK = {"danger": 2, "warning": 1, "success": 0, "neutral": -1}

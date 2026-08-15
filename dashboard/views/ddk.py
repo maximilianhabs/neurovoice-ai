@@ -18,7 +18,7 @@ import parselmouth
 import streamlit as st
 
 from core.audio import articulation_features, ddk_rate_features, recording_quality_features, save_uploaded_wav
-from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
+from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
 from core.shared import (
@@ -27,6 +27,7 @@ from core.shared import (
     kpi_tile,
     quality_tiles,
     recording_duration_feedback_style,
+    render_glossary,
     render_interpretation_table,
 )
 from core.subject_store import require_subject_or_stop
@@ -179,8 +180,11 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 rows = build_rows(flat)
                 if rows:
                     render_interpretation_table(rows)
-                    for caveat in age_caveats_for(flat):
-                        st.caption(caveat, help="Alters-/Geschlechts-Hinweis")
+
+            with st.expander("Glossar & Literatur"):
+                glossary_entries = build_glossary_entries(flat)
+                if glossary_entries:
+                    render_glossary(glossary_entries)
 
             with st.expander(f"Alle {len(takes)} Versuche verwalten"):
                 for i, t in enumerate(takes):
