@@ -100,10 +100,20 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         wie der Testdaten-Modus (`core/plots.py::gauge_figure()` +
         `core/reference_ranges.py`), statt reiner `st.metric()`-Zahlen. Verifiziert per
         PNG-Export gegen echte Testdatei (Jitter 0,6% korrekt im grünen Normbereich).
-- [x] **P3 (teilweise)** ✅ Platzhalter für die restlichen 3 Module (`views/vorlesen.py`,
-      `views/spontansprache.py`, `views/ddk.py`) angelegt, klar als "🚧 im Aufbau" markiert
-      mit Verweis auf den Testdaten-Modus — Navigationsstruktur ist vollständig, echte
-      Umsetzung der 3 Module folgt nach demselben Muster wie Vokalisation.
+- [x] **P3 — Modul 2 „Vorlesen" komplett gebaut** ✅ UMGESETZT (2026-08-15) —
+      `views/vorlesen.py`, nach dem Vokalisation-Muster: Standardtext als Instruktion,
+      Mikrofon-/Upload-Aufnahme, sofortige akustische Kennwerte (Artikulationsschärfe-Gauge,
+      CPPS-Gauge, Formant-Streuung, Monoloudness, Intonationskontur) OHNE Transkript nötig.
+      **Zusätzlich**: eigener Transkriptions-Schritt (WhisperX-Button mit Cache, wie im
+      Testdaten-Modus) schaltet danach Sprechrate-Gauge + Pausen + Lexikalische Diversität
+      frei — bewusst getrennt, da Transkription spürbar dauert und nicht bei jeder Aufnahme
+      automatisch laufen soll. Verifiziert: alle 6 Seiten + Navigation zwischen ihnen ohne
+      Exception, alle Kennwerte gegen echte Testdatei geprüft (Werte konsistent mit früher
+      im Testdaten-Modus gemessenen Referenzwerten für dieselbe Datei — CPPS 7,1dB,
+      Monoloudness 11,9dB, 2 Intonations-Phrasen, Sprechrate 140 WPM), Gauge-Rendering per
+      PNG-Export bestätigt, HTTP 200 nach Deploy.
+      Platzhalter für die restlichen 2 Module (`views/spontansprache.py`, `views/ddk.py`)
+      weiterhin klar als "🚧 im Aufbau" markiert, folgen nach demselben Muster.
 - [ ] **P4 — Persistentes Speicherschema + Gesamtbericht**: strukturiertes Format je Sitzung
       (Anknüpfung an Punkt 23 aus dem externen Audit oben, "Strukturiertes Analyse-Schema").
 - [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
