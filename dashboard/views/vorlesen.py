@@ -1,5 +1,6 @@
 """Modul 2 von 4: Vorlesen — Standardtext, siehe docs/backlog.md "Konzept: Modul-basierte,
-gefuehrte Analyse", P3. Baut auf dem Vokalisation-Muster (views/vokalisation.py) auf.
+gefuehrte Analyse", P3. Baut auf dem Vokalisation-Muster (views/vokalisation.py) auf, inkl.
+Take-Management (core/module_state.py).
 
 Reihenfolge einfach->schwer: nach Vokalisation, da Vorlesen zwar Artikulationskoordination
 braucht, aber (anders als Spontansprache) keine eigene Sprachformulierung -- nur Reproduktion
@@ -7,10 +8,9 @@ eines vorgegebenen Textes.
 
 Zwei Kennwert-Ebenen: (1) rein akustisch, sofort nach der Aufnahme verfuegbar (Artikulation,
 Formant-Dynamik, Prosodie, CPP, MFCC); (2) transkript-basiert (Sprechrate, Pausen,
-Lexikalische Diversitaet), braucht einen expliziten Transkriptions-Schritt (WhisperX,
-dauert spuerbar, deshalb ein eigener Button statt automatisch bei jeder Aufnahme).
-
-Take-Management (P1) bewusst noch nicht enthalten, wie bei Vokalisation.
+Lexikalische Diversitaet + der transkribierte Text selbst), braucht einen expliziten
+Transkriptions-Schritt (WhisperX, dauert spuerbar auf diesem Server -- siehe
+docs/bugtracker.md zur bekannten Blockier-Problematik waehrend der Transkription).
 """
 
 import json
@@ -26,33 +26,41 @@ from core.audio import (
     prosody_features,
     save_uploaded_wav,
 )
+from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import gauge_figure
 from core.reference_ranges import speech_rate_zones, verdict_for_value
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
+MODULE = "vorlesen"
+SUBTASK = "lesetext"
 LESETEXT = (
     "Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere "
     "wäre, als ein Wanderer, der in einen warmen Mantel gehüllt war, des Weges daherkam."
 )
+CONFIDENCE_WARN_THRESHOLD = 0.75
 
 
-def _transcript_cache_path(recording) -> str:
-    patient_dir = os.path.join(DERIVED_DIR, recording.patient_id)
-    os.makedirs(patient_dir, exist_ok=True)
-    base = os.path.splitext(recording.filename)[0]
-    return os.path.join(patient_dir, f"{base}.transcript.json")
+def _fmt(value, decimals=1):
+    """Sicheres Formatieren -- siehe views/vokalisation.py fuer den Bugfix-Kontext (ein echter
+    Test deckte auf, dass mehrere zusammengehoerige Werte UNABHAENGIG voneinander None sein
+    koennen)."""
+    return f"{value:.{decimals}f}" if value is not None else "–"
 
 
-def _load_cached_transcript(recording) -> dict | None:
-    cache_path = _transcript_cache_path(recording)
+def _transcript_cache_path(recording_path: str) -> str:
+    return os.path.splitext(recording_path)[0] + ".transcript.json"
+
+
+def _load_cached_transcript(recording_path: str) -> dict | None:
+    cache_path = _transcript_cache_path(recording_path)
     if os.path.exists(cache_path):
         with open(cache_path, encoding="utf-8") as f:
             return json.load(f)
     return None
 
 
-def _save_transcript_cache(recording, transcript: dict) -> None:
-    with open(_transcript_cache_path(recording), "w", encoding="utf-8") as f:
+def _save_transcript_cache(recording_path: str, transcript: dict) -> None:
+    with open(_transcript_cache_path(recording_path), "w", encoding="utf-8") as f:
         json.dump(transcript, f, ensure_ascii=False, indent=2)
 
 
@@ -65,10 +73,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-if "module_results" not in st.session_state:
-    st.session_state["module_results"] = {}
-st.session_state["module_results"].setdefault("vorlesen", {})
-
 st.markdown(
     f'<div class="dw-card-subtle"><b>Lies den folgenden Satz laut und in normalem Tempo vor:</b>'
     f'<br><br>„{LESETEXT}"</div>',
@@ -76,44 +80,61 @@ st.markdown(
 )
 st.write("")
 
+takes = get_takes(MODULE, SUBTASK)
+
+add_label = "Weiteren Versuch aufnehmen" if takes else "Aufnahme starten"
 source_mode = st.radio("Quelle", ["Mikrofon aufnehmen", "Datei hochladen (WAV)"], horizontal=True)
 if source_mode == "Mikrofon aufnehmen":
-    uploaded = st.audio_input("Aufnahme starten", sample_rate=48000)
+    uploaded = st.audio_input(add_label, sample_rate=48000, key=f"mic_lesetext_{len(takes)}")
     filename = "lesetext.wav"
 else:
-    uploaded = st.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
+    uploaded = st.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"], key=f"file_lesetext_{len(takes)}")
     filename = uploaded.name if uploaded is not None else None
 
-recording = None
 if uploaded is not None:
     try:
         recording = save_uploaded_wav(DERIVED_DIR, filename, uploaded.getvalue(), task="lesetext")
     except ValueError as exc:
         st.error(str(exc))
+        recording = None
     if recording is not None:
+        add_take(MODULE, SUBTASK, {
+            "recording_path": recording.path,
+            "filename": recording.filename,
+            "audio_bytes": uploaded.getvalue(),
+            "articulation": articulation_features(recording.path),
+            "formant_dynamics": formant_dynamics_features(recording.path),
+            "prosody": prosody_features(recording.path),
+            "cpp": cpp_features(recording.path),
+            "intonation": intonation_contour_features(recording.path),
+        })
         st.success(f"Aufgenommen: {recording.filename}")
-        st.audio(uploaded.getvalue(), format="audio/wav")
-elif "vorlesen" in st.session_state["module_results"] and st.session_state["module_results"]["vorlesen"]:
-    st.caption("✅ Bereits aufgenommen (siehe unten). Erneut aufnehmen, um zu ersetzen.")
-else:
+        st.rerun()
+
+if not takes:
     st.info("Diese Aufgabe ist die Pflichtaufgabe des Moduls.")
+else:
+    st.divider()
+    st.markdown(f"**{len(takes)} Versuch(e) aufgenommen** — bester Versuch fließt in den Gesamtbericht ein.")
 
-if recording is not None:
-    # --- Akustische Kennwerte: sofort verfuegbar, kein Transkript noetig ---
-    articulation = articulation_features(recording.path)
-    formant_dyn = formant_dynamics_features(recording.path)
-    prosody = prosody_features(recording.path)
-    cpp = cpp_features(recording.path)
-    intonation = intonation_contour_features(recording.path)
+    take_labels = [f"Versuch {t['take_number']}" for t in takes]
+    selected_idx = next((i for i, t in enumerate(takes) if t.get("selected")), 0)
+    chosen_idx = st.radio(
+        "Bester Versuch", range(len(takes)), format_func=lambda i: take_labels[i],
+        index=selected_idx, horizontal=True,
+    )
+    if chosen_idx != selected_idx:
+        select_take(MODULE, SUBTASK, chosen_idx)
+        st.rerun()
 
-    st.session_state["module_results"]["vorlesen"] = {
-        "recording_path": recording.path,
-        "articulation": articulation,
-        "formant_dynamics": formant_dyn,
-        "prosody": prosody,
-        "cpp": cpp,
-        "intonation": intonation,
-    }
+    take = takes[chosen_idx]
+    st.audio(take["audio_bytes"], format="audio/wav")
+
+    articulation = take["articulation"]
+    formant_dyn = take["formant_dynamics"]
+    prosody = take["prosody"]
+    cpp = take["cpp"]
+    intonation = take["intonation"]
 
     st.subheader("Ergebnisse")
     g1, g2 = st.columns(2)
@@ -128,20 +149,16 @@ if recording is not None:
         st.caption("informativ, parameterabhängig")
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Monoloudness", f"{prosody['monoloudness_intensity_sd_db']:.1f} dB" if prosody["monoloudness_intensity_sd_db"] else "–")
+    c1.metric("Monoloudness", f"{_fmt(prosody['monoloudness_intensity_sd_db'])} dB")
     c2.metric(
         "Formant-Streuung (F1/F2-IQR)",
-        f"{formant_dyn['f1_iqr_hz']:.0f}/{formant_dyn['f2_iqr_hz']:.0f} Hz" if formant_dyn["f1_iqr_hz"] else "–",
+        f"{_fmt(formant_dyn['f1_iqr_hz'], 0)}/{_fmt(formant_dyn['f2_iqr_hz'], 0)} Hz",
     )
-    c3.metric(
-        "Intonationskontur",
-        f"{intonation['n_phrases']} Phrasen" if intonation["n_phrases"] else "–",
-    )
+    c3.metric("Intonationskontur", f"{intonation['n_phrases']} Phrasen" if intonation["n_phrases"] else "–")
 
-    # --- Transkript-basierte Kennwerte (Sprechrate/Pausen/Lexik) -- eigener Schritt ---
+    # --- Transkript-basierte Kennwerte + der transkribierte Text selbst ---
     st.divider()
-    st.subheader("Sprechrate & Pausen (braucht Transkription)")
-    cached_transcript = _load_cached_transcript(recording)
+    st.subheader("Transkription, Sprechrate & Pausen")
 
     try:
         import core.transcription  # noqa: F401
@@ -153,28 +170,49 @@ if recording is not None:
     if not transcription_available:
         st.info("Transkription (WhisperX) ist auf diesem Server nicht installiert.")
     else:
+        cached_transcript = _load_cached_transcript(take["recording_path"])
         transcript = cached_transcript
         if transcript is not None:
             st.caption("✅ Transkript aus dem Cache geladen.")
-        elif st.button("🎧 Transkription starten (kann 1-2 Minuten dauern)"):
+        elif st.button("🎧 Transkription starten (dauert je nach Hardware 1-2 Minuten — App reagiert währenddessen nicht, das ist normal)"):
             from core.transcription import transcribe
 
-            with st.spinner("Transkribiere lokal …"):
-                transcript = transcribe(recording.path)
-            _save_transcript_cache(recording, transcript)
+            with st.spinner("Transkribiere lokal … bitte nicht wegnavigieren, sonst geht der Fortschritt verloren"):
+                transcript = transcribe(take["recording_path"])
+            _save_transcript_cache(take["recording_path"], transcript)
+            take["transcript"] = transcript
+            st.rerun()
 
         if transcript:
+            # --- Transkribierter Text mit Konfidenz-Hervorhebung (war im alten Testdaten-Modus
+            # vorhanden, beim Modul-Umbau versehentlich weggelassen -- Nutzer-Feedback 2026-08-15) ---
+            words_html = []
+            for w in transcript["words"]:
+                score = w.get("score")
+                if score is not None and score < CONFIDENCE_WARN_THRESHOLD:
+                    words_html.append(
+                        f'<span style="background:#fde68a;border-bottom:2px solid #d97706;'
+                        f'padding:0 2px;border-radius:2px;" '
+                        f'title="Konfidenz {score:.2f} — unsicher erkannt">{w["word"]}</span>'
+                    )
+                else:
+                    words_html.append(w["word"])
+            st.markdown(
+                f'<div class="dw-card"><div style="font-size:1.2rem;line-height:1.7;">'
+                f'{" ".join(words_html)}</div></div>',
+                unsafe_allow_html=True,
+            )
+            st.caption("Gelb unterstrichene Wörter: Erkennungs-Konfidenz unter 75%.")
+
             from core.linguistics import lexical_diversity_features
             from core.speech_metrics import compute_speech_metrics
-
             import soundfile as sf
 
-            duration_s = sf.info(recording.path).duration
+            duration_s = sf.info(take["recording_path"]).duration
             speech_metrics = compute_speech_metrics(transcript["words"], total_duration_s=duration_s)
             lexical = lexical_diversity_features(transcript["words"])
-
-            st.session_state["module_results"]["vorlesen"]["speech_metrics"] = speech_metrics
-            st.session_state["module_results"]["vorlesen"]["lexical"] = lexical
+            take["speech_metrics"] = speech_metrics
+            take["lexical"] = lexical
 
             if speech_metrics["net_speech_rate_wpm"] is not None:
                 lo, hi, zones = speech_rate_zones()
@@ -191,5 +229,14 @@ if recording is not None:
                         f"{lexical['ttr']:.2f}" if lexical["ttr"] is not None else "–",
                     )
 
+    with st.expander(f"Alle {len(takes)} Versuche verwalten"):
+        for i, t in enumerate(takes):
+            dcol1, dcol2, dcol3 = st.columns([2, 3, 1])
+            dcol1.write(f"Versuch {t['take_number']}" + (" ⭐ ausgewählt" if t.get("selected") else ""))
+            dcol2.caption(t["filename"])
+            if dcol3.button("🗑️ Löschen", key=f"del_lesetext_{i}"):
+                delete_take(MODULE, SUBTASK, i)
+                st.rerun()
+
 st.divider()
-st.caption("Pflichtaufgabe des Moduls — du kannst jederzeit weiter zum nächsten Modul.")
+st.caption("Pflichtaufgabe des Moduls — du kannst jederzeit weiter zum nächsten Modul, ohne etwas zu verlieren.")

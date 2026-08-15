@@ -160,6 +160,92 @@ hier nachtragen.
 
 ---
 
+## BUG-16 — Modul-Ergebnisse "verschwanden" beim Navigieren zwischen Seiten ✅ BEHOBEN
+
+**Symptom:** Nutzer meldet beim Testen von Modul 1+2 (Vokalisation/Vorlesen, siehe P2/P3 in
+docs/backlog.md): beim Hin- und Herspringen zwischen Modul-Seiten "gehen Dateien verloren" —
+bereits aufgenommene/analysierte Vokale/Lesetexte sind nach dem Zurückkommen nicht mehr
+sichtbar.
+
+**Root Cause:** Die Ergebnis-Anzeige (Gauges/Metriken) wurde in `views/vokalisation.py` und
+`views/vorlesen.py` NUR gerendert, wenn der Aufnahme-/Upload-Widget (`st.audio_input`/
+`st.file_uploader`) in DIESEM Rerun einen frischen Rückgabewert hatte (`if uploaded is not
+None:`). Beim Navigieren zu einer anderen Seite und zurück wird die Seite neu gemountet — der
+Widget-Rückgabewert ist dann wieder `None` (Streamlits Upload-Widgets behalten ihren Wert
+nicht dauerhaft über Remounts), obwohl die Datei auf der Platte UND die Analyse in
+`st.session_state` nach wie vor vorhanden waren. Kein echter Datenverlust, nur eine UI, die
+vorhandene Daten fälschlich nicht mehr anzeigte.
+
+**Fix:** Neues Modul `core/module_state.py` — Ergebnisse werden ab sofort IMMER aus
+`st.session_state["module_results"]` gerendert, nie in Abhängigkeit vom aktuellen
+Widget-Rückgabewert. Gleichzeitig als Take-Management ausgebaut (P1 aus dem Umsetzungsplan,
+vorgezogen, weil es genau diesen Bug behebt): mehrere Versuche pro Teilaufgabe möglich,
+manuelle Auswahl des "besten" Versuchs (radio), Löschen einzelner Versuche (entfernt Eintrag
+UND Datei von der Platte, da es sich um Session-Uploads in `derived/_uploads/` handelt, keine
+geschützten Rohdaten). Nach jeder neuen Aufnahme `st.rerun()` mit hochgezähltem Widget-Key,
+damit der Recorder danach sauber leer ist statt den alten Blob erneut zu verarbeiten.
+
+**Verifiziert**: Session-State vor `AppTest.run()` mit vorhandenen Versuchen vorbelegt (simuliert
+"von einer anderen Seite zurückkommen") — Ergebnisse erscheinen jetzt korrekt ohne dass der
+Widget einen Wert haben muss. Auswahl-Radio + Lösch-Button per `AppTest` durchgeklickt:
+Auswahl wechselt korrekt, Löschen entfernt Eintrag UND Datei von der Platte (verifiziert mit
+`os.path.exists()`).
+
+---
+
+## BUG-17 — Absturz bei unabhängig fehlenden Formant-/Voice-Breaks-Teilwerten ✅ BEHOBEN
+
+**Symptom:** Beim gezielten Testen des BUG-16-Fixes (Session-State mit echten Analyseergebnissen
+vorbelegt) stürzte `views/vokalisation.py` mit `TypeError: unsupported format string passed to
+NoneType.__format__` ab, sobald `voice_breaks_count` einen Wert hatte, aber
+`voice_breaks_degree_pct` `None` war.
+
+**Root Cause:** `f"{dyn['voice_breaks_count']} · {dyn['voice_breaks_degree_pct']:.1f}%"` wurde
+nur durch `if dyn["voice_breaks_count"] is not None else "–"` abgesichert — das prüft aber nur
+EINEN der beiden Werte, während `phonation_dynamics_features()` (`core/audio.py`) beide
+unabhängig voneinander aus separaten Regex-Treffern parst und daher unabhängig `None` sein
+können. Derselbe Fehlerklasse fand sich auch bei den einzelnen Formantwerten (F1/F2/F3, nur
+F1 wurde geprüft) in `vokalisation.py` und bei der Formant-Streuung (F1/F2-IQR, nur F1
+geprüft) in `views/vorlesen.py`. Der bereits existierende Testdaten-Modus (`views/
+testdaten.py`) hatte dieses Problem nicht, weil er konsequent den sicheren `_fmt()`-Helper
+nutzt — beim Neubau der Module-Seiten wurde dieses Muster übersehen.
+
+**Fix:** `_fmt()`-Helper (identisch zum bereits bewährten Muster aus `testdaten.py`) in beide
+Dateien ergänzt, alle betroffenen Formatierungen darauf umgestellt — jeder Wert wird jetzt
+unabhängig sicher formatiert, nicht mehr über einen "verwandten" Wert mitabgesichert.
+
+**Lehre**: Wenn ein Kennwert aus mehreren Regex-/Parsing-Treffern zusammengesetzt wird
+(wie bei `phonation_dynamics_features()`), NIE annehmen, dass "wenn Wert A da ist, ist Wert B
+auch da" — jeden Teilwert einzeln auf `None` prüfen. Durch gezieltes Testen mit echten
+Analyseergebnissen (nicht nur mit leerem Ausgangszustand) gefunden, bevor der Nutzer erneut
+darüber gestolpert wäre.
+
+---
+
+## RANDNOTIZ-13 — App reagiert während WhisperX-Transkription nicht ⚠️ OFFEN (bekannte Einschränkung)
+
+**Symptom:** Nutzer meldet, dass die App beim Transkribieren in Modul 2 (Vorlesen) für die
+Dauer der Transkription "hängen" blieb/nicht mehr reagierte.
+
+**Einordnung**: Kein neuer Bug, sondern eine bereits aus früheren Sessions bekannte
+Eigenschaft von WhisperX `large-v3` auf diesem Server (Beelink N150, 4 Kerne) — die
+Transkription ist ein blockierender, rechenintensiver Aufruf innerhalb des synchronen
+Streamlit-Skriptlaufs; für die Dauer (laut früheren Messungen ~1-2 Minuten) reagiert die
+betroffene Browser-Sitzung nicht, und da die Transkription alle verfügbaren CPU-Kerne des
+Containers beansprucht, kann sich das auch auf andere gleichzeitige Anfragen auf demselben
+Server auswirken.
+
+**Sofort-Maßnahme**: Button-Text in `views/vorlesen.py` und Spinner-Text setzen jetzt explizit
+die Erwartung ("App reagiert währenddessen nicht, das ist normal" / "bitte nicht wegnavigieren,
+sonst geht der Fortschritt verloren"), damit es nicht wie ein Absturz wirkt. Transkript-Cache
+(bereits vorhanden) sorgt dafür, dass das pro Aufnahme nur EINMAL passiert.
+
+**Echte Lösung wäre größerer Umbau** (nicht jetzt): Transkription als Hintergrund-Job statt
+blockierendem Aufruf (z.B. eigener Worker-Prozess/Queue) — bewusst zurückgestellt, kein
+kleiner Schritt. Als Backlog-Punkt vermerkt.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,

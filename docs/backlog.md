@@ -76,8 +76,18 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         schmalen Sidebar kaum bedienbar (winzige Buttons, keine Instruktion). Aus der Sidebar
         in den breiten Hauptbereich verschoben + task-spezifischer Instruktionstext direkt
         über dem Aufnahme-/Upload-Feld.
-- [ ] **P1 — Take-Management**: Nummerierung je Proband:in+Modul(+Unteraufgabe), Vergleichsansicht,
-      manuelle Auswahl des Versuchs für den Gesamtbericht.
+- [x] **P1 — Take-Management** ✅ UMGESETZT (2026-08-15, vorgezogen — behebt direkt BUG-16) —
+      `core/module_state.py`: Nummerierung je Modul+Unteraufgabe, manuelle Auswahl des besten
+      Versuchs, Löschen einzelner Versuche (Datei + Eintrag). Ergebnisse werden jetzt IMMER
+      aus `st.session_state` gerendert, nicht mehr vom aktuellen Widget-Rückgabewert abhängig
+      — das war der eigentliche Grund für den gemeldeten "Dateien gehen beim Navigieren
+      verloren"-Bug (siehe docs/bugtracker.md BUG-16). In Vokalisation + Vorlesen umgesetzt
+      und verifiziert (Auswahl-Wechsel + Löschen inkl. Datei-Löschung per `AppTest`
+      durchgeklickt). Dabei zusätzlich BUG-17 gefunden+behoben (Absturz bei unabhängig
+      fehlenden Formant-/Voice-Breaks-Teilwerten).
+      **Noch offen**: Vergleichsansicht (alle Versuche NEBENEINANDER mit Kennwerten, aktuell
+      nur Liste mit Radio-Auswahl + Metadaten) — reicht fürs Erste, echter Seite-an-Seite-
+      Vergleich wäre ein weiterer kleiner Ausbauschritt.
 - [x] **P2 — Modul-Grundgerüst** ✅ UMGESETZT (2026-08-15) — Umbau von Single-Page auf
       Multi-Page (`st.navigation`/`st.Page`, wie beim EDF-Analyzer). Neue Struktur:
       `app.py` nur noch schlanker Navigations-Einstiegspunkt (`st.set_page_config`/
@@ -133,6 +143,13 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       CSS-Lösung (wie der bestehende dezente Aufnahme-Hinweis) kann vermutlich keine
       Zeit-abhängige Farbe erzeugen, nur einen statischen "läuft"-Zustand. Bräuchte
       eventuell eigene JS-Komponente statt des nativen Widgets — erst bei Umsetzung klären.
+- [ ] **P9 — Transkription als Hintergrund-Job** (Nutzer-Feedback 2026-08-15, siehe
+      docs/bugtracker.md RANDNOTIZ-13) — WhisperX blockiert aktuell die komplette Browser-
+      Sitzung für 1-2 Minuten, fühlt sich wie ein Absturz an. Echte Lösung bräuchte einen
+      Hintergrund-Worker/eine Job-Queue statt des synchronen Aufrufs im Streamlit-Skript —
+      **bewusst kein kleiner Schritt**, größerer Architektur-Umbau. Sofort-Maßnahme (bereits
+      umgesetzt): Button-/Spinner-Text setzt jetzt klare Erwartung ("reagiert währenddessen
+      nicht, das ist normal").
 
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
