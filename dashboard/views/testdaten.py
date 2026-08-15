@@ -585,6 +585,8 @@ else:
 
         with st.expander("Wort-Zeitstempel (Detailtabelle)"):
             words_df = pd.DataFrame(transcript["words"])
+            if {"start", "end"}.issubset(words_df.columns):
+                words_df["duration_s"] = words_df["end"] - words_df["start"]
             st.dataframe(words_df, width='stretch', hide_index=True)
 
         st.caption(

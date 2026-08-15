@@ -235,20 +235,62 @@ else:
             take["speech_metrics"] = speech_metrics
             take["lexical"] = lexical
 
+            # --- Erkennungs-Konfidenz (war im alten Testdaten-Modus vorhanden, beim
+            # Modul-Umbau versehentlich weggelassen -- Nutzer-Feedback 2026-08-15) ---
+            scores = [w["score"] for w in transcript["words"] if w.get("score") is not None]
+            mean_confidence = sum(scores) / len(scores) if scores else None
+            low_confidence_count = sum(1 for s in scores if s < CONFIDENCE_WARN_THRESHOLD)
+
+            kc1, kc2 = st.columns(2)
+            kc1.metric("Ø Erkennungs-Konfidenz", f"{mean_confidence:.0%}" if mean_confidence is not None else "–")
+            kc2.metric("Unsichere Wörter (<75%)", low_confidence_count)
+
             if speech_metrics["net_speech_rate_wpm"] is not None:
                 lo, hi, zones = speech_rate_zones()
                 value = speech_metrics["net_speech_rate_wpm"]
-                sg1, sg2 = st.columns(2)
-                with sg1:
-                    st.pyplot(gauge_figure("Sprechrate", value, "WPM", lo, hi, zones), width="stretch")
-                    _, verdict = verdict_for_value(value, lo, hi, zones)
-                    st.caption(verdict)
-                with sg2:
-                    st.metric("Pausen (Anzahl)", speech_metrics["pause_count"])
-                    st.metric(
-                        "Lexikalische Diversität (TTR)",
-                        f"{lexical['ttr']:.2f}" if lexical["ttr"] is not None else "–",
-                    )
+                st.pyplot(gauge_figure("Sprechrate", value, "WPM", lo, hi, zones), width="stretch")
+                _, verdict = verdict_for_value(value, lo, hi, zones)
+                st.caption(verdict)
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Wörter", speech_metrics["n_words"])
+            m2.metric("Sprechrate (Netto)", f"{_fmt(speech_metrics['net_speech_rate_wpm'], 0)} Wörter/min")
+            m3.metric("Sprechrate (Artikulation)", f"{_fmt(speech_metrics['articulation_rate_wpm'], 0)} Wörter/min")
+            m4.metric("Flüssigkeits-Score", f"{_fmt(speech_metrics['fluency_score'], 2)}")
+
+            p1, p2, p3, p4 = st.columns(4)
+            p1.metric("Pausen (≥250ms)", speech_metrics["pause_count"])
+            p2.metric("Ø Pausendauer", f"{_fmt(speech_metrics['mean_pause_duration_s'], 2)} s")
+            p3.metric("Max. Pausendauer", f"{_fmt(speech_metrics['max_pause_duration_s'], 2)} s")
+            p4.metric("Rhythmus (nPVI)", f"{_fmt(speech_metrics['rhythm_npvi'], 1)}")
+
+            q1, q2, q3 = st.columns(3)
+            q1.metric(
+                "Mikropausen (250-500ms)",
+                f"{speech_metrics['micro_pause_count']} · Ø {_fmt(speech_metrics['mean_micro_pause_duration_s'], 2)}s",
+            )
+            q2.metric(
+                "Makropausen (≥500ms)",
+                f"{speech_metrics['macro_pause_count']} · Ø {_fmt(speech_metrics['mean_macro_pause_duration_s'], 2)}s",
+            )
+            q3.metric(
+                "Lexikalische Diversität (TTR / MTLD)",
+                f"{_fmt(lexical['ttr'], 2)} / {_fmt(lexical['mtld'], 1)}",
+            )
+
+            with st.expander("Wort-Zeitstempel (Detailtabelle)"):
+                words_df = pd.DataFrame(transcript["words"])
+                if {"start", "end"}.issubset(words_df.columns):
+                    words_df["duration_s"] = words_df["end"] - words_df["start"]
+                st.dataframe(words_df, width="stretch", hide_index=True)
+
+            st.caption(
+                "Sprechrate/Pausen basieren auf Wort-Zeitstempeln aus der Transkription "
+                "(WhisperX), nicht auf reiner akustischer Stille-Erkennung. Mikro-/"
+                "Makropausen (Schwelle 500ms) können auf unterschiedliche Ursachen "
+                "hindeuten — Mikropausen eher normale Atem-/Wortgrenzen, Makropausen eher "
+                "auffällige Zögerungen."
+            )
 
     st.divider()
     st.markdown("**Was bedeuten diese Werte?**")

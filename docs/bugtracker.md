@@ -270,6 +270,34 @@ Grenzfälle/Sentinel-Werte testen, nicht nur den Regelfall.
 
 ---
 
+## BUG-19 — Transkript-Detailinformationen beim Modul-Umbau versehentlich weggelassen ✅ BEHOBEN
+
+**Symptom:** Nutzer-Feedback (2026-08-15): Im ursprünglichen Testdaten-Modus (vor dem
+Guide-Umbau P1–P6) gab es beim Transkribieren deutlich mehr Information — Wort-Konfidenz,
+Wortdauer, Sprechrate, Pausenstruktur etc. In `views/vorlesen.py` und
+`views/spontansprache.py` war davon nach dem Umbau nur noch eine Sprechrate-Gauge +
+2 Metriken übrig.
+
+**Root Cause:** Beim Bau der 4 Guide-Module (P2/P3) wurde offenbar nur ein Ausschnitt der
+alten `testdaten.py`-Anzeigelogik übernommen, nicht die vollständige
+`compute_speech_metrics()`/`lexical_diversity_features()`-Auswertung samt Wort-Zeitstempel-
+Tabelle — kein Datenverlust (die zugrundeliegenden Funktionen lieferten die Werte immer
+schon), reines Anzeige-Regressionsproblem.
+
+**Fix:** Vollständige Metrik-Anzeige in beiden Modul-Seiten wiederhergestellt + erweitert um
+Ø Erkennungs-Konfidenz, Anzahl unsicherer Wörter und eine neu berechnete `duration_s`-Spalte
+in der Wort-Zeitstempel-Tabelle (auch in `testdaten.py` ergänzt). Details siehe
+`docs/backlog.md` (Nachbesserung zu P5/P6, 2026-08-15).
+
+**Lehre**: Bei größeren Struktur-Umbauten (hier: Single-Page → Guided-Module) reicht ein
+"Seite läuft ohne Exception"-Regressionstest nicht aus, um stille Funktions-/
+Informationsverluste zu erkennen — die alte Version bleibt der Referenzmaßstab für
+Vollständigkeit, nicht nur für Fehlerfreiheit. Deckt sich mit
+[[feedback_neue_sicht_findet_datenfehler]] (aus dem CWCMS-Projekt): nach einem UI-Umbau aktiv
+durchklicken und mit dem Vorzustand vergleichen.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,

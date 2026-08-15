@@ -222,6 +222,24 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       Clipping, plausible Stille-/SNR-Werte 19-34%/24-32dB), End-to-End über echten
       Schreib-Lese-Zyklus mit Anzeige auf der Modul-Seite bestätigt. Regressionstest über
       alle 6 Seiten ohne Exception, HTTP 200 nach Deploy.
+  - [x] **Nachbesserung (2026-08-15, Nutzer-Feedback)**: Transkript-Detailinformationen, die
+        im ursprünglichen Testdaten-Modus vorhanden waren (Wort-Konfidenz, Wortdauer,
+        abgeleitete Sprech-/Pausenparameter), waren beim Modul-Umbau in `views/vorlesen.py`
+        und `views/spontansprache.py` versehentlich auf eine reduzierte Anzeige (nur
+        Sprechrate-Gauge + 2 Metriken) zusammengeschrumpft. Wiederhergestellt + erweitert:
+        Ø Erkennungs-Konfidenz + Anzahl unsicherer Wörter (<75%), volle
+        `compute_speech_metrics()`-Ausgabe (Wörter, Netto-/Artikulations-Sprechrate,
+        Flüssigkeits-Score, Pausenzahl, Ø/Max-Pausendauer, Rhythmus/nPVI, Mikro-/
+        Makropausen-Aufschlüsselung), `lexical_diversity_features()` (TTR/MTLD), sowie eine
+        Wort-Zeitstempel-Detailtabelle (`start`/`end`/`score` + neu berechnete `duration_s`-
+        Spalte) in einem Expander. Dieselbe `duration_s`-Spalte auch in `views/testdaten.py`
+        ergänzt, wo die Wort-Zeitstempeltabelle bereits existierte, aber ohne Dauer-Spalte.
+        Verifiziert: End-to-End auf dem Server mit einer echten, aus dem Cache geladenen
+        Transkription (kein neuer WhisperX-Lauf nötig) — alle Metriken korrekt (27 Wörter,
+        140/165 WPM, Flüssigkeits-Score 1.00, nPVI 45.2, TTR 0.96/MTLD 204.1), Wort-Tabelle
+        mit korrekt berechneter `duration_s` (z.B. "Einst" 0.381s), identisch für Vorlesen
+        UND Spontansprache getestet. Regressionstest über alle 6 Seiten ohne Exception,
+        HTTP 200 nach Deploy.
 - [ ] **P7 — Audit-Parameter einbauen**: RAP/PPQ5/APQ11, MPT, echte VSA-Formel, F0-Tremor
       (bereits im externen Audit oben priorisiert) — technisch unabhängig, können parallel zu
       P2/P3 einlaufen, sobald das jeweilige Modul (Vokalisation) steht.
