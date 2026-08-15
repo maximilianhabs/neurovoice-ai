@@ -72,6 +72,73 @@ def shimmer_zones():
     return lo, hi, [(0, 5 / 20, GOOD), (5 / 20, 8 / 20, WARNING), (8 / 20, 1, CRITICAL)]
 
 
+def ddk_rate_zones():
+    """Referenz (P12, docs/backlog.md, Literaturrecherche 2026-08-15): gesunde Erwachsene
+    erreichen bei AMR ("pa"/"ta"/"ka" einzeln) 5-7 Silben/s, bei SMR ("pa-ta-ka" kombiniert)
+    im Mittel 6,57 Silben/s (SD 0,84) -- Pierce et al., "Alternating and sequential motion
+    rates in older adults"; oral-DDK-Studie gesunder junger Erwachsener (Jordanien, Speech
+    Language and Hearing 2022). Bei zerebellaerer Ataxie in einer Studie im Mittel nur 3,20
+    Silben/s vs. 5,61 Silben/s bei Kontrollen (Colorado-Dissertation zu DDK bei Ataxie) --
+    deutlich reduzierte Raten sind also literaturbasiert erwartbar, keine erfundene Schwelle.
+    Asymmetrisch: nur "zu langsam" wird als auffaellig markiert, keine Obergrenze (keine
+    Evidenz fuer "zu schnell" als eigenstaendiges Auffaelligkeitsmuster gefunden)."""
+    lo, hi = 0, 8
+    return lo, hi, [(0, 4 / 8, CRITICAL), (4 / 8, 5 / 8, WARNING), (5 / 8, 1, GOOD)]
+
+
+def mpt_zones():
+    """Referenz (P12, Literaturrecherche 2026-08-15): MPT ca. 25-35s (Maenner) / 15-25s
+    (Frauen) bei gesunden Erwachsenen, <10s allgemein als reduziert/auffaellig beschrieben
+    (Iowa Head and Neck Protocols; VoiceDoctor.net; mehrere zusammenfassende Quellen).
+    UNISEX-Kompromiss, da hier kein Geschlecht erfasst wird: untere (weibliche) Grenze als
+    konservative "Normbereich"-Schwelle verwendet, um maennliche UND weibliche Sprecher:innen
+    nicht faelschlich als auffaellig einzustufen. Nur aussagekraeftig bei dedizierter
+    "so lange wie moeglich halten"-Instruktion (siehe PARAMETER_INFO-Kontext)."""
+    lo, hi = 0, 40
+    return lo, hi, [(0, 10 / 40, CRITICAL), (10 / 40, 15 / 40, WARNING), (15 / 40, 1, GOOD)]
+
+
+def rap_zones():
+    """Referenz (P12, Literaturrecherche 2026-08-15): klassischer MDVP-Normwert RAP <0,68%
+    (Multi-Dimensional Voice Program, Kay Elemetrics/PENTAX). WICHTIG: MDVP und Praat liefern
+    fuer dieselbe Aufnahme systematisch unterschiedliche absolute Werte (dokumentierter
+    Algorithmus-Unterschied, kein Bug) -- Schwelle hier als Orientierung uebernommen, NICHT
+    gegen unsere eigene Praat-Pipeline nachvalidiert. Nur bei gehaltenem Vokal gueltig."""
+    lo, hi = 0, 3
+    return lo, hi, [(0, 0.68 / 3, GOOD), (0.68 / 3, 1.4 / 3, WARNING), (1.4 / 3, 1, CRITICAL)]
+
+
+def ppq5_zones():
+    """Referenz (P12, Literaturrecherche 2026-08-15): klassischer MDVP-Normwert PPQ5 <0,84%.
+    Gleicher MDVP-vs-Praat-Vorbehalt wie bei RAP (siehe rap_zones())."""
+    lo, hi = 0, 3
+    return lo, hi, [(0, 0.84 / 3, GOOD), (0.84 / 3, 1.7 / 3, WARNING), (1.7 / 3, 1, CRITICAL)]
+
+
+def apq11_zones():
+    """Referenz (P12, Literaturrecherche 2026-08-15): klassischer MDVP-Normwert APQ11 <3,07%.
+    Gleicher MDVP-vs-Praat-Vorbehalt wie bei RAP (siehe rap_zones())."""
+    lo, hi = 0, 15
+    return lo, hi, [(0, 3.07 / 15, GOOD), (3.07 / 15, 6 / 15, WARNING), (6 / 15, 1, CRITICAL)]
+
+
+def cpps_zones():
+    """Referenz (P12, Literaturrecherche 2026-08-15), Praat-spezifisch (passend zu unserer
+    eigenen Pipeline, anders als die MDVP-Werte oben): Cutoff 14,45dB fuer gehaltenen Vokal
+    /a/ (94,5% Trennschaerfe gesund/dysphon, Praat-Analyse) -- Quelle: "Cepstral Peak
+    Prominence Values for Clinical Voice Evaluation", ASHA/PMC 2020/2021.
+    **WICHTIGER VORBEHALT**: dieselbe Quelle nennt fuer Fliessprache (Rainbow Passage, Praat)
+    einen NIEDRIGEREN Cutoff von 9,33dB -- CPPS bei gehaltenem Vokal liegt systematisch hoeher
+    als bei Fliessprache. Diese Zone nutzt den VOKAL-Cutoff (14,45dB), da CPPS hier primaer im
+    Vokalisation-Modul gezeigt wird. **Bei Fliessprache (Vorlesen/Spontansprache/DDK) faellt
+    der Wert dadurch systematisch "strenger" aus als literaturbasiert gerechtfertigt** -- ein
+    Wert zwischen 9-14dB bei einer Lesetext-/Spontansprache-Aufnahme ist NICHT zwingend
+    auffaellig, auch wenn die Kachel "grenzwertig"/"auffaellig" zeigt. Explizit im
+    PARAMETER_INFO-Kontext dokumentiert, damit das nicht verloren geht."""
+    lo, hi = 0, 20
+    return lo, hi, [(0, 9.33 / 20, CRITICAL), (9.33 / 20, 14.45 / 20, WARNING), (14.45 / 20, 1, GOOD)]
+
+
 def clipping_zones():
     """Faustregel, NICHT literaturbasiert (anders als Jitter/HNR/etc.) -- reine technische
     Heuristik, siehe docs/backlog.md "Konzept: Design-Bereinigung", Baustein B."""

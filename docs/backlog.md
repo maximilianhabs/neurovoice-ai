@@ -692,16 +692,36 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
     Glossar-Blöcke mit korrektem Label/Evidenz-Badge/Quellenangabe bestätigt (z.B. "Monopitch"
     → "gut etabliert" → (Dys)Prosody-in-PD-Quelle). Regressionstest über alle 7 Seiten ohne
     Exception, HTTP 200 nach Deploy.
-- [ ] **P12 — Fehlende Referenzwerte/Normbereiche recherchieren** (Nutzer-Feedback 2026-08-15,
-      NICHT umgesetzt) — viele Parameter haben aktuell `zones_func: None` in
-      `core/interpretation.py::PARAMETER_INFO`, zeigen also nur "kein Normwert" ohne jede
-      Einordnung: u.a. DDK-Rate, DDK-Regelmäßigkeit (CV), Ø Zyklus-Intervall,
-      Artikulationsschärfe, Monopitch (F0-SD), Monoloudness, Formant F1/F2, Intonationskontur-
-      Phrasenzahl, TTR. Nutzer explizit: "da müssen wir uns was aus der Literatur
-      zusammensuchen". Braucht gezielte Literaturrecherche je Parameter (ähnlich der
-      bisherigen Arbeit in `docs/literatur_review.md`) — nicht alle werden einen etablierten
-      Cutoff haben (manche bleiben zurecht "eigene Heuristik, nur Eigenvergleich"), aber
-      sollte systematisch durchgegangen werden statt implizit offen zu bleiben.
+- [x] **P12 — Fehlende Referenzwerte/Normbereiche recherchieren** ✅ UMGESETZT (2026-08-15,
+      hohe Priorität, gründliche Websuche mit `WebSearch`) — systematisch alle Parameter mit
+      `zones_func: None` durchgegangen. Details + alle Quellen siehe
+      `docs/literatur_review.md`, Abschnitt "Referenzwerte-Recherche P12".
+  - **6 neue Ampel-Zonen ergänzt** (`core/reference_ranges.py`): `ddk_rate_zones()` (5-8Hz
+    normal, Literaturwerte gesunder Erwachsener 5-7 Silben/s AMR bzw. 6,57±0,84 Silben/s SMR;
+    Ataxie-Studie 3,20 vs. 5,61 Silben/s), `mpt_zones()` (≥15s normal, konservative
+    weibliche/untere Literaturgrenze da kein Geschlecht erfasst wird), `rap_zones()`/
+    `ppq5_zones()`/`apq11_zones()` (klassische MDVP-Normwerte 0,68%/0,84%/3,07% — mit
+    explizitem MDVP-vs-Praat-Vorbehalt, da beide Tools nachweislich systematisch
+    unterschiedliche Absolutwerte liefern), `cpps_zones()` (Praat-spezifische Cutoffs 14,45dB
+    Vokal / 9,33dB Fließsprache aus derselben Quelle — nutzt den strengeren Vokal-Cutoff, mit
+    explizitem Hinweis, dass die Ampel bei Fließsprache-Aufnahmen dadurch strenger ausfallen
+    kann als literaturbasiert gerechtfertigt).
+  - **4 Parameter bewusst OHNE neue Zone gelassen** (Recherche durchgeführt, aber keine
+    belastbare Einzelzahl mit Quelle gefunden — ehrlich dokumentiert statt erfunden):
+    Monopitch/F0-SD (nur grober 12-40Hz-Bereich ohne klare Einzelquelle), DDK-Regelmäßigkeit/CV
+    (qualitativ als Ataxie-Marker bestätigt, kein Zahlen-Cutoff), Monoloudness/Intensitäts-SD
+    (nur allgemeine Lautstärke-Pegel gefunden, kein SD-Wert), Vokalraum-Fläche/VSA (extrem
+    methodenabhängig, keine akzeptierte Hz²-Schwelle). Kontext-/Literatur-Text in
+    `PARAMETER_INFO` trotzdem um die Rechercheergebnisse angereichert.
+  - **Formant F1/F2 (Rohwerte)/Intonationskontur-Phrasenzahl/TTR bewusst unverändert**: diese
+    sind strukturell nicht normalisierbar (F1/F2 hängen von der unbekannten Vokal-Identität
+    ab, Phrasenzahl/TTR hängen von Aufnahmedauer/Textlänge ab) — kein Rechercheergebnis hätte
+    daran etwas geändert, bereits vorher korrekt als "deskriptiv" eingeordnet.
+  - **Verifiziert**: End-to-End mit echten Aufnahmen auf dem Server — alle 6 neuen Zonen
+    liefern plausible Status (z.B. RAP 0,30% → „im Normbereich", APQ11 3,71% → „grenzwertig",
+    CPPS 11,66dB → „grenzwertig", DDK-Rate 3,40Hz → „auffällig", MPT 2,35s → „auffällig", alle
+    konsistent mit den definierten Grenzen). Regressionstest über alle 7 Seiten ohne Exception,
+    HTTP 200 nach Deploy.
 - [ ] **P13 — Zu fachsprachliche Parameter-Bezeichnungen vereinfachen** (Nutzer-Feedback
       2026-08-15, NICHT umgesetzt) — konkret genannt: "Artikulationsschärfe", "DDK-Rate",
       "DDK-Regelmäßigkeit (CV)", "Ø Zyklus-Intervall" seien zu fachmännisch für Patient:innen/

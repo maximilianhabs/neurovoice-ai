@@ -13,7 +13,20 @@ vergeben, nur Wert + Kontext -- konsistent mit der bisherigen Gauge-Darstellung
 
 from __future__ import annotations
 
-from core.reference_ranges import hnr_zones, jitter_zones, shimmer_zones, speech_rate_zones, verdict_for_value, zone_for_value
+from core.reference_ranges import (
+    apq11_zones,
+    cpps_zones,
+    ddk_rate_zones,
+    hnr_zones,
+    jitter_zones,
+    mpt_zones,
+    ppq5_zones,
+    rap_zones,
+    shimmer_zones,
+    speech_rate_zones,
+    verdict_for_value,
+    zone_for_value,
+)
 
 AGE_CAVEAT_JITTER_SHIMMER_HNR_F0 = (
     "F0/Jitter/Shimmer/HNR verändern sich nachweislich mit Alter und Geschlecht (z.B. "
@@ -33,11 +46,16 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": (
             "Reduzierte Tonhöhenvariabilität ist ein klassisches Merkmal hypokinetischer "
             "Dysarthrie (Parkinson) — zusammen mit reduzierter Lautstärke und kurzen "
-            "„Sprechschüben“. Bei ataktischer Dysarthrie eher unauffällig oder erhöht."
+            "„Sprechschüben“. Bei ataktischer Dysarthrie eher unauffällig oder erhöht. "
+            "**P12-Recherche 2026-08-15**: normative Datensätze für Fließsprache berichten "
+            "SD-Werte grob im Bereich 12-40Hz (starke Streuung je nach Studie/Sprecher:in) — "
+            "bei gehaltenem Vokal ist die SD naturgemäß VIEL kleiner (Zielton wird bewusst "
+            "gehalten). Bewusst KEINE Ampel: kein einzelner, klar zitierbarer Cutoff mit "
+            "Sensitivität/Spezifität gefunden, nur eine grobe Sekundärquellen-Orientierung."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "Monopitch als eines der robustesten PD-Merkmale — (Dys)Prosody in Parkinson's Disease; ASHA Perspectives, siehe docs/literatur_review.md",
+        "literature": "Monopitch als eines der robustesten PD-Merkmale — (Dys)Prosody in Parkinson's Disease; ASHA Perspectives. F0SD-Grobbereich 12-40Hz: voicescience.org-Zusammenfassung normativer Datensätze",
     },
     "jitter_local_pct": {
         "label": "Jitter (local)",
@@ -84,15 +102,20 @@ PARAMETER_INFO: dict[str, dict] = {
         "label": "CPPS",
         "unit": "dB",
         "description": "Cepstral Peak Prominence (geglättet) — alternatives Stimmklang-Maß, funktioniert anders als Jitter/Shimmer auch bei fließender Sprache zuverlässig.",
-        "zones_func": None,
+        "zones_func": cpps_zones,
         "context": (
             "Robusteres Äquivalent zu Jitter/Shimmer/HNR bei Fließsprache. In der ALS- und "
             "Parkinson-Literatur als digitaler Sprach-Biomarker diskutiert — erniedrigter "
-            "Wert = auffälligere Stimmqualität."
+            "Wert = auffälligere Stimmqualität. **P12-Nachtrag**: Normbereich (14,45dB-Cutoff, "
+            "Praat) stammt aus Untersuchungen an GEHALTENEN VOKALEN — bei Fließsprache "
+            "(Vorlesen/Spontansprache/DDK) liegt der literaturbasierte Cutoff niedriger "
+            "(~9,33dB, dieselbe Quelle). Ein Wert zwischen 9-14dB bei einer Lesetext-/"
+            "Spontansprache-Aufnahme ist NICHT zwingend auffällig, auch wenn die Ampel hier "
+            "„grenzwertig“ zeigt — siehe core/reference_ranges.py::cpps_zones() für Details."
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Als robusteres Äquivalent bei Fließsprache in ALS-/PD-Biomarker-Studien diskutiert, siehe docs/literatur_review.md \"Quellen\"",
+        "literature": "Cepstral Peak Prominence Values for Clinical Voice Evaluation (ASHA/PMC, Praat-Cutoffs 14,45dB Vokal / 9,33dB Fließsprache)",
     },
     "net_speech_rate_wpm": {
         "label": "Sprechrate",
@@ -129,25 +152,32 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": (
             "Reduzierte Lautstärke-Variabilität passt zusammen mit Monopitch zum klassischen "
-            "Bild hypokinetischer Dysarthrie (Parkinson)."
+            "Bild hypokinetischer Dysarthrie (Parkinson). **P12-Recherche 2026-08-15**: gezielt "
+            "nach einem publizierten Intensitäts-SD-Normbereich gesucht — nur allgemeine "
+            "Sprachlautstärke-Pegel (60-65dB in 1m Abstand) gefunden, KEIN spezifischer "
+            "SD-über-eine-Äußerung-Cutoff. Bewusst weiterhin ohne Ampel."
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "Klassisches PD-Merkmal neben Monopitch — siehe docs/literatur_review.md Abschnitt 4",
+        "literature": "Klassisches PD-Merkmal neben Monopitch — siehe docs/literatur_review.md Abschnitt 4. Kein spezifischer SD-Cutoff in der Recherche gefunden.",
     },
     "ddk_rate_hz": {
         "label": "DDK-Rate",
         "unit": "Hz",
         "description": "Silbenzyklen pro Sekunde beim \"pa-ta-ka\"-Sprechen — wie schnell die Silbenfolge wiederholt werden kann.",
-        "zones_func": None,
+        "zones_func": ddk_rate_zones,
         "context": (
-            "Reine Verlangsamung eher bei hypokinetischer/spastischer Dysarthrie. Kein "
-            "etablierter Normbereich — siehe zusätzlich Regelmäßigkeit (CV) für ataktische "
-            "Muster."
+            "Reine Verlangsamung eher bei hypokinetischer/spastischer Dysarthrie. **P12**: "
+            "Normbereich 5-8Hz aus Literaturwerten gesunder Erwachsener (5-7 Silben/s "
+            "Einzellaute, 6,57±0,84 Silben/s kombiniert „pa-ta-ka“) — bei zerebellärer Ataxie "
+            "in einer Studie im Mittel nur 3,2 Silben/s vs. 5,61 Silben/s bei Kontrollen. "
+            "WICHTIG: unser eigener Erkennungsalgorithmus (Burst-basiert) ist NICHT gegen "
+            "diese Literaturwerte validiert, nur die Größenordnung stammt daraus — siehe "
+            "zusätzlich Regelmäßigkeit (CV) für ataktische Muster."
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "DDK-Aufgabe selbst ist Standard-Artikulationstest, unser eigener Erkennungsalgorithmus ist NICHT unabhängig validiert — siehe docs/literatur_review.md Abschnitt 3",
+        "literature": "Alternating and sequential motion rates in older adults (Pierce et al.); Oral-DDK-Rate gesunder junger Erwachsener (Speech Language and Hearing 2022); DDK bei zerebellärer Ataxie (Colorado-Dissertation)",
     },
     "cycle_interval_cv": {
         "label": "DDK-Regelmäßigkeit (CV)",
@@ -157,11 +187,15 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": (
             "Unregelmäßige, „stolpernde“ Silbenfolgen (hoher CV) gelten als möglicher Hinweis "
             "auf ataktische Dysarthrie (zerebelläre Störung) — reine Verlangsamung ohne "
-            "Unregelmäßigkeit spricht eher für hypokinetisch/spastisch."
+            "Unregelmäßigkeit spricht eher für hypokinetisch/spastisch. **P12-Recherche "
+            "2026-08-15**: CV wird in der Ataxie-Literatur als sinnvolles Maß bestätigt "
+            "(qualitativ signifikant unterschiedlich bei Ataxie), aber KEIN konkreter "
+            "Zahlen-Cutoff gefunden — bewusst weiterhin ohne Ampel, um keine erfundene "
+            "Schwelle vorzutäuschen."
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Regelmäßigkeit als möglicher ataktischer Marker diskutiert, weniger standardisiert als reine DDK-Rate — siehe docs/literatur_review.md Abschnitt 3",
+        "literature": "Coefficient of variation als Ataxie-Marker in Gang-/Sprechstudien bestätigt (z.B. Perceptual and Acoustic Analysis of Speech in Spinocerebellar Ataxia Type 1), aber ohne einheitlichen publizierten Cutoff für DDK-CV",
     },
     "n_words": {
         "label": "Wörter (erkannt)",
@@ -371,58 +405,65 @@ PARAMETER_INFO: dict[str, dict] = {
         "label": "Jitter (RAP)",
         "unit": "%",
         "description": "3-Punkt-Periodenperturbation — wie Jitter (local), aber über 3 benachbarte Zyklen geglättet, dadurch robuster gegen einzelne Ausreißer-Zyklen.",
-        "zones_func": None,
+        "zones_func": rap_zones,
         "context": (
             "Wie Jitter (local) ein unspezifischer Dysphonie-Marker, nur bei gehaltenem Vokal "
-            "zuverlässig interpretierbar. Kein projektintern verifizierter Cutoff hinterlegt "
-            "(siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
+            "zuverlässig interpretierbar. **P12**: Normbereich <0,68% aus der klassischen "
+            "MDVP-Konvention übernommen — MDVP und Praat liefern für dieselbe Aufnahme "
+            "systematisch unterschiedliche absolute Werte (dokumentierter Algorithmus-"
+            "Unterschied), die Schwelle ist also eine Orientierung, NICHT gegen unsere eigene "
+            "Praat-Pipeline nachvalidiert."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "RAP als Jitter-Untermaß ist Teil der klassischen MDVP-Konvention, aber hier ohne projektintern verifizierten Cutoff — siehe docs/backlog.md P12",
+        "literature": "RAP <0,68% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten",
     },
     "jitter_ppq5_pct": {
         "label": "Jitter (PPQ5)",
         "unit": "%",
         "description": "5-Punkt-Periodenperturbation — wie RAP, aber über 5 benachbarte Zyklen geglättet.",
-        "zones_func": None,
+        "zones_func": ppq5_zones,
         "context": (
             "Wie Jitter (local)/RAP ein unspezifischer Dysphonie-Marker, nur bei gehaltenem "
-            "Vokal zuverlässig interpretierbar. Kein projektintern verifizierter Cutoff "
-            "hinterlegt (siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
+            "Vokal zuverlässig interpretierbar. **P12**: Normbereich <0,84% aus der "
+            "klassischen MDVP-Konvention — gleicher MDVP-vs-Praat-Vorbehalt wie bei RAP "
+            "(Orientierung, nicht gegen unsere Pipeline nachvalidiert)."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "PPQ5 als Jitter-Untermaß ist Teil der klassischen MDVP-Konvention, aber hier ohne projektintern verifizierten Cutoff — siehe docs/backlog.md P12",
+        "literature": "PPQ5 <0,84% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten",
     },
     "shimmer_apq11_pct": {
         "label": "Shimmer (APQ11)",
         "unit": "%",
         "description": "11-Punkt-Amplitudenperturbation — wie Shimmer (local), aber über 11 benachbarte Zyklen geglättet, dadurch robuster gegen einzelne Ausreißer-Zyklen.",
-        "zones_func": None,
+        "zones_func": apq11_zones,
         "context": (
             "Wie Shimmer (local) ein unspezifischer Dysphonie-Marker, nur bei gehaltenem Vokal "
-            "zuverlässig interpretierbar. Kein projektintern verifizierter Cutoff hinterlegt "
-            "(siehe docs/backlog.md P12) — nur Rohwert, keine Ampel."
+            "zuverlässig interpretierbar. **P12**: Normbereich <3,07% aus der klassischen "
+            "MDVP-Konvention — gleicher MDVP-vs-Praat-Vorbehalt wie bei RAP/PPQ5."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "APQ11 als Shimmer-Untermaß ist Teil der klassischen MDVP-Konvention, aber hier ohne projektintern verifizierten Cutoff — siehe docs/backlog.md P12",
+        "literature": "APQ11 <3,07% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten",
     },
     "mpt_s": {
         "label": "Maximum Phonation Time (MPT)",
         "unit": "s",
         "description": "Längste zusammenhängende stimmhafte Passage in der Aufnahme — klassisches Stimm-/Atemreserve-Maß.",
-        "zones_func": None,
+        "zones_func": mpt_zones,
         "context": (
             "Reduzierte MPT gilt als Hinweis auf eingeschränkte Atem-/Stimmbandfunktion, z.B. "
             "bei ALS/bulbären Erkrankungen. Nur aussagekräftig, wenn gezielt „so lange wie "
             "möglich halten“ instruiert wurde — bei kurzen Standard-Vokalaufnahmen ist der Wert "
-            "nur die aufgenommene Dauer, nicht die tatsächliche maximale Phonationsdauer."
+            "nur die aufgenommene Dauer, nicht die tatsächliche maximale Phonationsdauer. "
+            "**P12**: Normbereich ≥15s (konservative untere/weibliche Literaturgrenze, da hier "
+            "kein Geschlecht erfasst wird) — gesunde Erwachsene erreichen typischerweise "
+            "25-35s (Männer)/15-25s (Frauen), <10s gilt allgemein als reduziert."
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "MPT ist ein klassisches klinisches Stimm-/Atemreserve-Maß, hier aber ohne dedizierte MPT-Aufnahme-Instruktion nur eingeschränkt aussagekräftig",
+        "literature": "MPT-Normwerte 25-35s (M)/15-25s (F), <10s reduziert — Iowa Head and Neck Protocols, VoiceDoctor.net, zusammenfassende Sekundärquellen",
     },
     "tremor_freq_hz": {
         "label": "F0-Tremor-Frequenz",
@@ -446,13 +487,16 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": (
             "Kleinere Fläche = stärker zentralisierter Vokalraum, gilt in der Literatur als "
-            "möglicher Hinweis auf Artikulationsundeutlichkeit/Dysarthrie. Kein projektintern "
-            "verifizierter Cutoff hinterlegt (siehe docs/backlog.md P12) — braucht alle 3 "
-            "Vokal-Teilaufgaben mit mindestens einem Versuch."
+            "möglicher Hinweis auf Artikulationsundeutlichkeit/Dysarthrie. **P12-Recherche "
+            "2026-08-15**: gezielt nach einer publizierten Hz²-Normschwelle gesucht — keine "
+            "gefunden. VSA ist extrem methodenabhängig (Vokalset, Messzeitpunkt in der "
+            "Vokaldauer, Anzahl Wiederholungen), Studien berichten Rohwerte, aber keinen "
+            "allgemein akzeptierten Cutoff. Braucht alle 3 Vokal-Teilaufgaben mit mindestens "
+            "einem Versuch, bleibt bewusst ohne Ampel."
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Klassische VSA-Dreiecksformel, aber laut Literatur uneinheitlich validiert (hohe Sprecher-zu-Sprecher-Varianz) — siehe docs/literatur_review.md Punkt 2 der Einschränkungen",
+        "literature": "Klassische VSA-Dreiecksformel, aber laut Literatur uneinheitlich validiert (hohe Sprecher-zu-Sprecher-Varianz, methodenabhängig) — siehe docs/literatur_review.md Punkt 2 der Einschränkungen; keine publizierte Hz²-Schwelle in der Recherche gefunden",
     },
 }
 

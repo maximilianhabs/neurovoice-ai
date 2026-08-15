@@ -117,6 +117,47 @@ Männern im Alter, bei Frauen kaum; F0 sinkt bei älteren Frauen) — aktuelle N
 allgemeine Erwachsenen-Ranges OHNE Alters-/Geschlechts-Bänderung (siehe P5 in docs/backlog.md
 für die zweistufige Herangehensweise).
 
+## Referenzwerte-Recherche P12 (2026-08-15, docs/backlog.md)
+
+Gezielte Websuche zu konkreten Normbereichen für Parameter, die bisher `zones_func: None`
+hatten (siehe `core/interpretation.py::PARAMETER_INFO`, `core/reference_ranges.py`). Nur
+Werte mit klarer, zitierbarer Quelle wurden als echte Ampel-Zone übernommen — bei vager oder
+widersprüchlicher Quellenlage bewusst KEINE Zone ergänzt, siehe Einzelbegründungen.
+
+**Neue Zonen ergänzt:**
+- **DDK-Rate**: gesunde Erwachsene 5-7 Silben/s (AMR einzeln), 6,57±0,84 Silben/s (SMR
+  kombiniert „pa-ta-ka“) — Pierce et al. "Alternating and sequential motion rates in older
+  adults"; oral-DDK-Studie gesunder junger Erwachsener (Speech, Language and Hearing 2022).
+  Bei zerebellärer Ataxie in einer Studie 3,20 vs. 5,61 Silben/s (Kontrollen) — Colorado-
+  Dissertation zu DDK und Sprechnatürlichkeit bei Ataxie.
+- **Maximum Phonation Time (MPT)**: 25-35s (Männer)/15-25s (Frauen) bei Gesunden, <10s
+  allgemein als reduziert beschrieben — Iowa Head and Neck Protocols, VoiceDoctor.net,
+  mehrere zusammenfassende Sekundärquellen.
+- **RAP/PPQ5/APQ11**: klassische MDVP-Normwerte RAP <0,68%, PPQ5 <0,84%, APQ11 <3,07% (Kay
+  Elemetrics/PENTAX Multi-Dimensional Voice Program). **Wichtiger Vorbehalt**: MDVP und Praat
+  liefern für dieselbe Aufnahme systematisch unterschiedliche absolute Werte (dokumentierter
+  Algorithmus-Unterschied) — Schwellen als Orientierung übernommen, nicht gegen unsere eigene
+  Praat-Pipeline nachvalidiert.
+- **CPPS**: Praat-spezifische Cutoffs gefunden (passend zu unserer eigenen Pipeline) — 14,45dB
+  bei gehaltenem Vokal /a/ (94,5% Trennschärfe gesund/dysphon), 9,33dB bei Fließsprache
+  (Rainbow-Passage-Äquivalent) — "Cepstral Peak Prominence Values for Clinical Voice
+  Evaluation" (ASHA/PMC). Da CPPS in mehreren Modulen mit unterschiedlichem Task-Typ gezeigt
+  wird (Vokalisation UND Vorlesen/Spontansprache/DDK), aber nur EINE Zonen-Funktion je
+  Parameter unterstützt wird, nutzt `cpps_zones()` den strengeren Vokal-Cutoff — bei
+  Fließsprache-Aufnahmen kann die Ampel dadurch strenger ausfallen als literaturbasiert
+  gerechtfertigt (explizit im `PARAMETER_INFO`-Kontext dokumentiert).
+
+**Bewusst OHNE neue Zone gelassen** (Recherche durchgeführt, aber keine belastbare Einzelzahl
+gefunden):
+- **Monopitch (F0-SD)**: normative Datensätze berichten grob 12-40Hz für Fließsprache, aber
+  keine einzelne zitierbare Schwelle mit Sensitivität/Spezifität.
+- **DDK-Regelmäßigkeit (CV)**: als Ataxie-Marker in mehreren Studien qualitativ bestätigt,
+  aber kein publizierter Zahlen-Cutoff gefunden.
+- **Monoloudness (Intensitäts-SD)**: nur allgemeine Sprachlautstärke-Pegel (60-65dB) gefunden,
+  kein SD-über-eine-Äußerung-spezifischer Wert.
+- **Vokalraum-Fläche (VSA)**: extrem methodenabhängig (Vokalset, Messzeitpunkt, Wiederholungs-
+  anzahl) — Studien berichten Rohwerte, aber keinen allgemein akzeptierten Hz²-Cutoff.
+
 ## Quellen (Auswahl)
 
 - [Analysis of Voice, Speech, and Language Biomarkers of Parkinson's Disease Collected in a Mixed Reality Setting](https://www.mdpi.com/1424-8220/25/8/2405)
@@ -143,3 +184,17 @@ für die zweistufige Herangehensweise).
 - [Obstruent voicing effects on F0, but without voicing: Phonetic correlates of Swiss German lenis, fortis, and aspirated stops](https://www.sciencedirect.com/science/article/abs/pii/S0095447017302681)
 - [Nordwind und Sonne — IMS Uni Stuttgart (Standardtext Deutsch)](https://www2.ims.uni-stuttgart.de/sgtutorial/nordwind.html)
 - [Nordwind und Sonne in 76 Mundarten — Phonogrammarchiv Uni Zürich](https://www.phonogrammarchiv.uzh.ch/de/Nordwind-und-Sonne.html)
+
+**P12-Recherche (2026-08-15) — Referenzwerte:**
+- [Alternating and sequential motion rates in older adults (Pierce et al.)](https://www.researchgate.net/publication/236652250_Alternating_and_sequential_motion_rates_in_older_adults)
+- [Oral-diadochokinetic rate for healthy young Jordanian adults](https://www.tandfonline.com/doi/full/10.1080/2050571X.2022.2156714)
+- [Diadochokinetic Syllable Rate and Regularity in Normal and in Spastic and Ataxic Dysarthric Subjects](https://pubmed.ncbi.nlm.nih.gov/7186569/)
+- [Running head: Diadochokinetic Rate and Speech Naturalness in Ataxia (Colorado-Dissertation)](https://scholar.colorado.edu/downloads/7p88ch76w)
+- [Maximum Phonation Time in Healthy Older Adults](https://www.sciencedirect.com/science/article/abs/pii/S0892199710001724)
+- [Maximum Phonation Time (MPT) — VoiceDoctor.net](https://voicedoctor.net/diagnosis/vocal-capabilities/vocal-tasks/maximum-phonation-time/)
+- [The Voice Clinic — Iowa Head and Neck Protocols](https://medicine.uiowa.edu/iowaprotocols/voice-clinic)
+- [Cepstral Peak Prominence Values for Clinical Voice Evaluation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7893528/)
+- [Quantifying the Cepstral Peak Prominence, a Measure of Dysphonia](https://pubmed.ncbi.nlm.nih.gov/25179777/)
+- [Average Speaking Frequencies: F0 Norms by Age, Sex, and Hormonal Status — Voice Science](https://www.voicescience.org/lexicon/average-speaking-frequencies/)
+- [Effects of Parkinson's Disease on Fundamental Frequency Variability in Running Speech](https://pubmed.ncbi.nlm.nih.gov/25838754/)
+- [Automatic assessment of vowel space area](https://pubs.aip.org/asa/jasa/article/134/5/EL477/968251)
