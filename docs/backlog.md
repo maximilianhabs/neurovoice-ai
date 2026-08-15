@@ -276,6 +276,28 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         Hintergrund, kein Blockieren des Pollings), Regressionstest über alle 6 Seiten ohne
         Exception, HTTP 200 nach Deploy.
 
+- [ ] **P10 — Proband:innen-Erfassung am Sitzungsanfang** (Nutzer-Feedback 2026-08-15, noch
+      NICHT umgesetzt, nur Backlog-Eintrag) — aktuell startet eine Sitzung direkt mit der
+      ersten Aufnahme, ohne dass irgendwo erfasst wird, WER untersucht wird. Für die
+      spätere longitudinale Auswertung (Verlauf über mehrere Sitzungen hinweg, das ist der
+      ganze Sinn des Projekts) muss ein Report eindeutig einem Subjekt zuordenbar sein.
+      **Nutzer-Vorgabe**: die Sitzung soll künftig damit BEGINNEN, dass Proband:in erfasst
+      wird (Patienteninitialen, Alter, evtl. Patientennummer) — "brauchen eine smarte
+      Lösung", noch nicht entschieden wie genau.
+  - **Zu klärende Punkte, bevor umgesetzt wird** (Auszug, nicht abschließend):
+    - Verhältnis zur bestehenden Session-ID (`core/session_store.py`, P4) — ersetzt die
+      Proband:innen-Erfassung die Session-ID oder kommt sie zusätzlich dazu (z.B. Subjekt-ID
+      + mehrere Sitzungen pro Subjekt für den longitudinalen Verlauf)?
+    - Datenschutz: Initialen/Patientennummer sind personenbezogen (auch wenn pseudonymisiert)
+      — wo/wie werden sie gespeichert (aktuell landet alles unverschlüsselt in
+      `derived/_sessions/*.json` bzw. `derived/_uploads/`), wie wird das mit dem Projektziel
+      "lokal, DSGVO-konform" (siehe Projektbeschreibung oben) in Einklang gebracht?
+    - Pflichtfeld oder optional? Bisher gibt es (bewusst) noch kein Login-/Patientensystem —
+      soll dieses Erfassungsformular der erste Baustein eines solchen Systems werden, oder
+      bewusst schlank bleiben (nur Freitext-Label ohne echte Patient:innen-Verwaltung)?
+    - Wie wird die Erfassung mit bereits bestehenden Sitzungen/Aufnahmen (vor Einführung
+      dieses Features) nachträglich verknüpft, falls überhaupt nötig?
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser
