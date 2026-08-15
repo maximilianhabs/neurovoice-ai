@@ -316,27 +316,81 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         Hintergrund, kein Blockieren des Pollings), Regressionstest über alle 6 Seiten ohne
         Exception, HTTP 200 nach Deploy.
 
-- [ ] **P10 — Proband:innen-Erfassung am Sitzungsanfang** (Nutzer-Feedback 2026-08-15, noch
-      NICHT umgesetzt, nur Backlog-Eintrag) — aktuell startet eine Sitzung direkt mit der
-      ersten Aufnahme, ohne dass irgendwo erfasst wird, WER untersucht wird. Für die
-      spätere longitudinale Auswertung (Verlauf über mehrere Sitzungen hinweg, das ist der
-      ganze Sinn des Projekts) muss ein Report eindeutig einem Subjekt zuordenbar sein.
-      **Nutzer-Vorgabe**: die Sitzung soll künftig damit BEGINNEN, dass Proband:in erfasst
-      wird (Patienteninitialen, Alter, evtl. Patientennummer) — "brauchen eine smarte
-      Lösung", noch nicht entschieden wie genau.
-  - **Zu klärende Punkte, bevor umgesetzt wird** (Auszug, nicht abschließend):
-    - Verhältnis zur bestehenden Session-ID (`core/session_store.py`, P4) — ersetzt die
-      Proband:innen-Erfassung die Session-ID oder kommt sie zusätzlich dazu (z.B. Subjekt-ID
-      + mehrere Sitzungen pro Subjekt für den longitudinalen Verlauf)?
-    - Datenschutz: Initialen/Patientennummer sind personenbezogen (auch wenn pseudonymisiert)
-      — wo/wie werden sie gespeichert (aktuell landet alles unverschlüsselt in
-      `derived/_sessions/*.json` bzw. `derived/_uploads/`), wie wird das mit dem Projektziel
-      "lokal, DSGVO-konform" (siehe Projektbeschreibung oben) in Einklang gebracht?
-    - Pflichtfeld oder optional? Bisher gibt es (bewusst) noch kein Login-/Patientensystem —
-      soll dieses Erfassungsformular der erste Baustein eines solchen Systems werden, oder
-      bewusst schlank bleiben (nur Freitext-Label ohne echte Patient:innen-Verwaltung)?
-    - Wie wird die Erfassung mit bereits bestehenden Sitzungen/Aufnahmen (vor Einführung
-      dieses Features) nachträglich verknüpft, falls überhaupt nötig?
+- [ ] **P10 — Proband:innen-Erfassung am Sitzungsanfang** (Nutzer-Feedback 2026-08-15, Konzept
+      jetzt ausgearbeitet inkl. 2 Grundsatzentscheidungen mit Nutzer geklärt — **weiterhin NICHT
+      umgesetzt**, erst nach Freigabe) — aktuell startet eine Sitzung direkt mit der ersten
+      Aufnahme, ohne dass irgendwo erfasst wird, WER untersucht wird. Für die spätere
+      longitudinale Auswertung (Verlauf über mehrere Sitzungen hinweg, das ist der ganze Sinn
+      des Projekts) muss ein Report eindeutig einem Subjekt zuordenbar sein.
+
+  ### Grundsatzentscheidungen (mit Nutzer geklärt, 2026-08-15)
+
+  1. **Proband:innen-ID gilt über mehrere Sitzungen hinweg** (nicht nur eine einzelne
+     Aufnahme-Runde) — echte longitudinale Verknüpfung ist das Ziel, nicht nur eine
+     Sitzungs-Kennzeichnung.
+  2. **Pflichtschritt, kein Überspringen** — jede Sitzung (auch der bestehende Testdaten-/
+     Entwicklermodus) bekommt automatisch eine ID zugewiesen, niemand kann ganz ohne
+     Zuordnung starten.
+
+  ### Konzept: zweistufige ID-Struktur
+
+  - **`subject_id`** (NEU) — pseudonyme Proband:innen-Kennung, gilt über beliebig viele
+    Sitzungen derselben Person hinweg. Kurzes, leicht abzuschreibendes/diktierbares Format,
+    z.B. `NV-XXXX` (4 alphanumerische Zeichen aus einem auf Verwechslungsgefahr geprüften
+    Alphabet, kein `0`/`O`/`1`/`I`/`l`). Kollisionsprüfung gegen bereits vergebene IDs beim
+    Generieren.
+  - **`session_id`** (bereits vorhanden, `core/session_store.py`, P4) — bleibt technische,
+    URL-basierte Kennung EINER Sitzung, unverändert. Eine `subject_id` kann also mehrere
+    `session_id`s haben (1:n).
+  - **Kein Name, keine Initialen** — bewusst NUR die pseudonyme ID + Alter, nichts
+    Namentliches. Eine Re-Identifizierung (welche ID gehört zu welcher echten Person) obliegt
+    der behandelnden Person außerhalb der App (eigene Zuordnungstabelle, falls überhaupt
+    nötig) — die App selbst speichert nichts, was direkt auf eine Person schließen lässt.
+  - **Alter wird JE SITZUNG neu erfasst**, nicht einmalig auf Proband:innen-Ebene gespeichert
+    — vermeidet das Problem "Alter müsste über Jahre hinweg aktualisiert werden" komplett,
+    da bei jeder neuen Sitzung ohnehin neu (oder per Vorbefüllung bestätigt) eingegeben wird.
+  - **Datum/Uhrzeit**: automatisch im Hintergrund erfasst (kein Eingabefeld) — deckt sich mit
+    dem bereits vorhandenen `created_at` in `core/session_store.py`.
+
+  ### Konzept: Startseite (neue erste Nav-Seite, vor "1. Vokalisation")
+
+  Zwei große, klar getrennte Optionen:
+  1. **"Neue:r Proband:in"** — Button "ID generieren" erzeugt eine neue `subject_id`, zeigt
+     sie groß zum Abschreiben/Notieren an (die Person, die die App bedient, muss sich die ID
+     selbst irgendwo notieren — die App bietet dafür keinen eigenen Speicherort außerhalb
+     ihrer selbst an). Feld "Alter" (Pflicht, Zahleneingabe). Button "Sitzung starten".
+  2. **"Bekannte:r Proband:in fortsetzen"** — Auswahl/Suche aus bereits bekannten
+     `subject_id`s (zeigt Anzahl bisheriger Sitzungen + Datum der letzten Sitzung als
+     Orientierung). Feld "Alter" (Pflicht, ggf. mit letztem bekannten Wert vorbefüllt, aber
+     neu bestätigt). Button "Sitzung starten".
+
+  ### Konzept: Datenmodell
+
+  - `derived/_sessions/<session_id>.json` (bestehend) — erweitert um `subject_id` und
+    `subject_age_at_session`.
+  - `derived/_subjects/<subject_id>.json` (NEU) — schlanker Index: `subject_id`,
+    `created_at`, Liste der zugehörigen `session_id`s. Grundlage für die Auswahlliste auf der
+    Startseite UND für eine spätere echte Verlaufsansicht/Export (P14).
+
+  ### Konzept: technische Umsetzung (grob)
+
+  - Neue `views/start.py` als erste Seite in `app.py`s `st.navigation()`.
+  - Zentrale Gate-Funktion (analog `core/shared.py::get_edf_or_stop()`-Muster beim
+    EDF-Analyzer) prüft vor `pg.run()`, ob eine `subject_id` in der Sitzung gesetzt ist —
+    falls nicht, werden alle anderen Seiten blockiert/auf die Startseite umgeleitet.
+  - Testdaten-/Entwicklermodus bekommt automatisch eine synthetische Test-ID (z.B.
+    `TEST-XXXX`) zugewiesen, damit der bestehende Entwickler-Workflow nicht manuell
+    unterbrochen wird, aber trotzdem konsequent "kein Modus ohne ID" gilt.
+
+  ### Offene Detailfragen (Umsetzungs-Ebene, nicht mehr grundsätzlich)
+
+  - Migration bestehender Sessions ohne `subject_id` — vermutlich einfach als "nicht
+    zugeordnet" markieren, kein Zwang zur nachträglichen Zuordnung.
+  - Datenschutz-Detail: Speicherung bleibt wie bisher unverschlüsselt auf der Platte (kein
+    neues Verschlüsselungs-Feature in diesem Schritt) — falls das zum Problem wird, gehört es
+    eher in den separaten Public-Release-Fahrplan als hierher.
+  - Exakte ID-Alphabet-/Formatwahl (Länge, Zeichensatz) — Vorschlag oben ist ein erster Wurf,
+    kein endgültiger Beschluss.
 
 ## Konzept: Design-Bereinigung — weg von Tacho-Gauges/Emojis, hin zu nüchternen Kacheln (2026-08-15)
 
