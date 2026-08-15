@@ -102,33 +102,41 @@ st.markdown(
 # Ziel-Dauern fuer DDK/Spontansprache). Rein informativ, erzwingt nichts.
 UPLOAD_TASK_INSTRUCTIONS = {
     "lesetext": (
-        "**Lies den folgenden Satz laut und in normalem Tempo vor:**\n\n"
-        "> Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere "
-        "wäre, als ein Wanderer, der in einen warmen Mantel gehüllt war, des Weges daherkam."
+        '<span class="dw-instruction-meta">Lies den folgenden Satz laut und in normalem '
+        'Tempo vor:</span>'
+        '<span class="dw-instruction-target">„Einst stritten sich Nordwind und Sonne, wer '
+        'von ihnen beiden wohl der Stärkere wäre, als ein Wanderer, der in einen warmen '
+        'Mantel gehüllt war, des Weges daherkam.“</span>'
     ),
     "vokal": (
-        "**Halte den Vokal „AAAAA“** in gleichbleibender Tonhöhe und Lautstärke für "
-        "**mindestens 2-3 Sekunden**. Wenn möglich 3 Wiederholungen."
+        '<span class="dw-instruction-meta">Halte den Vokal in gleichbleibender Tonhöhe und '
+        'Lautstärke für mindestens 2-3 Sekunden. Wenn möglich 3 Wiederholungen.</span>'
+        '<span class="dw-instruction-target">„AAAAA“</span>'
     ),
     "vokali": (
-        "**Halte den Vokal „IIIII“** in gleichbleibender Tonhöhe und Lautstärke für "
-        "**mindestens 2-3 Sekunden**. Wenn möglich 3 Wiederholungen."
+        '<span class="dw-instruction-meta">Halte den Vokal in gleichbleibender Tonhöhe und '
+        'Lautstärke für mindestens 2-3 Sekunden. Wenn möglich 3 Wiederholungen.</span>'
+        '<span class="dw-instruction-target">„IIIII“</span>'
     ),
     "vokalu": (
-        "**Halte den Vokal „UUUUU“** in gleichbleibender Tonhöhe und Lautstärke für "
-        "**mindestens 2-3 Sekunden**. Wenn möglich 3 Wiederholungen."
+        '<span class="dw-instruction-meta">Halte den Vokal in gleichbleibender Tonhöhe und '
+        'Lautstärke für mindestens 2-3 Sekunden. Wenn möglich 3 Wiederholungen.</span>'
+        '<span class="dw-instruction-target">„UUUUU“</span>'
     ),
     "ddkgemischt": (
-        "**Sprich so schnell und gleichmäßig wie möglich** „pa-ta-ka-pa-ta-ka...“ — "
-        "für ca. **10 Sekunden**."
+        '<span class="dw-instruction-meta">Sprich so schnell und gleichmäßig wie möglich, '
+        'für ca. 10 Sekunden:</span>'
+        '<span class="dw-instruction-target">„pa-ta-ka-pa-ta-ka...“</span>'
     ),
     "ddkeinzeln": (
-        "**Sprich nacheinander**, jeweils ca. 5 Sekunden: erst „pa-pa-pa...“, dann "
-        "„ta-ta-ta...“, dann „ka-ka-ka...“ — jeweils so schnell und gleichmäßig wie möglich."
+        '<span class="dw-instruction-meta">Sprich nacheinander, jeweils ca. 5 Sekunden, so '
+        'schnell und gleichmäßig wie möglich:</span>'
+        '<span class="dw-instruction-target">„pa-pa-pa...“ → „ta-ta-ta...“ → „ka-ka-ka...“</span>'
     ),
     "spontan": (
-        "**Erzähle frei von deinem letzten Urlaub oder einem Hobby**, ca. **30 Sekunden**.\n\n"
-        "Falls dir nichts einfällt: Welches Hobby hast du? Seit wann? Was gefällt dir daran?"
+        '<span class="dw-instruction-meta">Erzähle frei von deinem letzten Urlaub oder einem '
+        'Hobby, ca. 30 Sekunden. Falls dir nichts einfällt: Welches Hobby hast du? Seit wann? '
+        'Was gefällt dir daran?</span>'
     ),
     "unbekannt": "Nimm die gewünschte Aufgabe auf.",
 }

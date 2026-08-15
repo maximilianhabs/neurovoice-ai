@@ -121,8 +121,10 @@ chosen_key = st.session_state["lesetext_choice"]
 instr_col, scale_col = st.columns([4, 1])
 with instr_col:
     st.markdown(
-        f'<div class="dw-card-subtle"><b>Lies den folgenden Satz laut und in normalem Tempo vor:</b>'
-        f'<br><br>„{LESETEXTE[chosen_key]}"</div>',
+        f'<div class="dw-card-subtle">'
+        f'<span class="dw-instruction-meta">Lies den folgenden Satz laut und in normalem Tempo vor:</span>'
+        f'<span class="dw-instruction-target">„{LESETEXTE[chosen_key]}“</span>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 with scale_col:

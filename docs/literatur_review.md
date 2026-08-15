@@ -124,7 +124,22 @@ hatten (siehe `core/interpretation.py::PARAMETER_INFO`, `core/reference_ranges.p
 Werte mit klarer, zitierbarer Quelle wurden als echte Ampel-Zone übernommen — bei vager oder
 widersprüchlicher Quellenlage bewusst KEINE Zone ergänzt, siehe Einzelbegründungen.
 
-**Neue Zonen ergänzt:**
+### Protokoll: übernommene Referenzwerte auf einen Blick
+
+| Parameter | Normbereich (Ampel-Zone) | Quelle (Kurzform) |
+|---|---|---|
+| DDK-Rate | ≥5Hz normal, 4-5Hz grenzwertig, <4Hz auffällig (Referenz: gesund 5-7 Silben/s AMR, 6,57±0,84 Silben/s SMR) | Pierce et al. "Alternating and sequential motion rates in older adults"; Oral-DDK-Rate gesunder junger Erwachsener (Speech, Language and Hearing 2022) |
+| Maximum Phonation Time (MPT) | ≥15s normal, 10-15s grenzwertig, <10s auffällig (konservative untere/weibliche Grenze) | Iowa Head and Neck Protocols; VoiceDoctor.net |
+| Jitter (RAP) | <0,68% normal, 0,68-1,4% grenzwertig, >1,4% auffällig | MDVP-Konvention (Kay Elemetrics/PENTAX) |
+| Jitter (PPQ5) | <0,84% normal, 0,84-1,7% grenzwertig, >1,7% auffällig | MDVP-Konvention (Kay Elemetrics/PENTAX) |
+| Shimmer (APQ11) | <3,07% normal, 3,07-6% grenzwertig, >6% auffällig | MDVP-Konvention (Kay Elemetrics/PENTAX) |
+| CPPS | ≥14,45dB normal, 9,33-14,45dB grenzwertig, <9,33dB auffällig (Vokal-Cutoff, Praat) | Cepstral Peak Prominence Values for Clinical Voice Evaluation (ASHA/PMC) |
+
+**Bewusst ohne Zone geblieben** (Recherche durchgeführt, keine belastbare Einzelzahl gefunden):
+Monopitch (F0-SD), DDK-Regelmäßigkeit (CV), Monoloudness (Intensitäts-SD), Vokalraum-Fläche
+(VSA) — Details siehe unten.
+
+**Neue Zonen ergänzt (ausführlich):**
 - **DDK-Rate**: gesunde Erwachsene 5-7 Silben/s (AMR einzeln), 6,57±0,84 Silben/s (SMR
   kombiniert „pa-ta-ka“) — Pierce et al. "Alternating and sequential motion rates in older
   adults"; oral-DDK-Studie gesunder junger Erwachsener (Speech, Language and Hearing 2022).
@@ -157,6 +172,47 @@ gefunden):
   kein SD-über-eine-Äußerung-spezifischer Wert.
 - **Vokalraum-Fläche (VSA)**: extrem methodenabhängig (Vokalset, Messzeitpunkt, Wiederholungs-
   anzahl) — Studien berichten Rohwerte, aber keinen allgemein akzeptierten Hz²-Cutoff.
+
+## Perspektivische Zusatzparameter — Recherche 2026-08-15 (Nutzer-Interesse, NICHT umgesetzt)
+
+Nutzer-Wunsch: Geschlechtserkennung, Alterserkennung und weitere Sprachanalysen (Nervosität,
+"Lügenerkennung") als mögliche zukünftige Parameter. Gezielte Websuche zur Evidenzlage —
+**rein informativ, keine Umsetzung in diesem Schritt**, siehe docs/backlog.md für den
+Backlog-Eintrag.
+
+### Geschlechtserkennung aus der Stimme — solide Evidenzlage
+Gut etablierter Klassifikationsbereich. F0 ist der stärkste Einzelprädiktor (Männer grob
+100-146Hz, Frauen 188-221Hz), kombiniert mit Formanten/MFCCs erreichen SVM/GMM-Modelle 92-99%
+Genauigkeit auf sauberen Aufnahmen. **Für unser Projekt technisch einfach**: F0-Mittelwert und
+Formanten werden bereits berechnet (`core/audio.py::phonation_features()`/`formant_features()`),
+eine Klassifikation wäre im Kern nur eine Schwellenwert-/einfache Modell-Anwendung auf bereits
+vorhandene Werte, kein neuer Feature-Extraktions-Aufwand.
+
+### Alterserkennung aus der Stimme — moderate Evidenzlage
+Weniger präzise als Geschlecht: bei Kindern im Mittel nur ±1,3 Jahre Abweichung, bei
+Erwachsenen nur ~62% Trefferquote über 5 GROBE Altersgruppen (nicht Einzeljahre) mit Random-
+Forest-Modellen. Nutzt dieselben Grundgrößen (F0, Jitter, Shimmer, Formanten, Spectral Tilt),
+die wir teilweise schon berechnen. **Realistische Erwartungshaltung nötig**: eher grobe
+Alterskategorie als punktgenaue Schätzung, und ohnehin fragwürdig sinnvoll, wenn das Alter im
+Rahmen von P10 bereits manuell erfasst wird.
+
+### "Nervosität"/Stress aus der Stimme — inkonsistente Evidenzlage
+Legitimes Forschungsfeld, aber uneinheitliche Befundlage. Stress allgemein korreliert mit
+erhöhter F0/Intensität und verkürzter Sprechdauer (Prosodie-Merkmale am konsistentesten
+untersucht). **Für Angst/Nervosität speziell wurden in einem systematischen Review KEINE
+konsistenten akustischen Muster über Studien hinweg gefunden** — je nach Studie unterschiedliche
+Formant-Verschiebungen (F1 vs. F2), widersprüchliche Pitch-Richtung. Würde aktuell nur eine
+sehr unsichere, forschungsnahe Zusatzinformation liefern, keine verlässliche Kennzahl.
+
+### "Lügenerkennung" aus der Stimme — WISSENSCHAFTLICH WIDERLEGT, nicht empfohlen
+**Wichtiger Befund**: Voice-Stress-Analysis (VSA) zur Lügenerkennung gilt in der Forschung als
+weitgehend diskreditiert. Der US National Research Council kam 2003 zu dem Schluss, dass
+"trotz behaupteter hoher Genauigkeit die empirische Forschung zur Validität der Technik wenig
+ermutigend ist". Kontrollierte Studien fanden Erkennungsraten NICHT über Zufallsniveau, ein
+Feldtest erkannte nur 15% der Lügen über Drogenkonsum korrekt. **Empfehlung: dieser Parameter
+sollte NICHT umgesetzt werden** — ein Tool, das Nutzer:innen eine "Lügenerkennung" verspricht,
+obwohl die zugrundeliegende Methode wissenschaftlich widerlegt ist, wäre irreführend und
+passt nicht zum Projektprinzip "ehrlich über die Grenzen der Methode".
 
 ## Quellen (Auswahl)
 
@@ -198,3 +254,14 @@ gefunden):
 - [Average Speaking Frequencies: F0 Norms by Age, Sex, and Hormonal Status — Voice Science](https://www.voicescience.org/lexicon/average-speaking-frequencies/)
 - [Effects of Parkinson's Disease on Fundamental Frequency Variability in Running Speech](https://pubmed.ncbi.nlm.nih.gov/25838754/)
 - [Automatic assessment of vowel space area](https://pubs.aip.org/asa/jasa/article/134/5/EL477/968251)
+
+**Perspektivische Zusatzparameter (2026-08-15):**
+- [Voice based gender classification using machine learning](https://www.researchgate.net/publication/321479309_Voice_based_gender_classification_using_machine_learning)
+- [Gender voice classification with huge accuracy rate](https://www.researchgate.net/publication/342610605_Gender_voice_classification_with_huge_accuracy_rate)
+- [Automated prediction of children's age from voice acoustics](https://www.sciencedirect.com/science/article/abs/pii/S1746809422009442)
+- [Minimal Acoustic Markers for Age Prediction in Human Voice](https://campus-fryslan.studenttheses.ub.rug.nl/660/1/MA6028497HNaazeri.pdf)
+- [Can you hear my age? Influences of speech rate and speech spontaneity on estimation of speaker age](https://pmc.ncbi.nlm.nih.gov/articles/PMC4505082/)
+- [Detecting Deception: The Promise and the Reality of Voice Stress Analysis (Office of Justice Programs)](https://www.ojp.gov/ncjrs/virtual-library/abstracts/detecting-deception-promise-and-reality-voice-stress-analysis-0)
+- [Voice Stress Analysis: Only 15 Percent of Lies About Drug Use Detected in Field Test (NIJ)](https://nij.ojp.gov/topics/articles/voice-stress-analysis-only-15-percent-lies-about-drug-use-detected-field-test)
+- [Measuring negative emotions and stress through acoustic correlates in speech: A systematic review](https://pmc.ncbi.nlm.nih.gov/articles/PMC12289014/)
+- [In a Nervous Voice: Acoustic Analysis and Perception of Anxiety in Social Phobics' Speech](https://link.springer.com/article/10.1007/s10919-008-0055-9)

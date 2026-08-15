@@ -183,6 +183,22 @@ def apply_global_style() -> None:
         padding: 20px 24px;
     }}
 
+    /* Instruktions-Karten: Meta-Text (WAS zu tun ist) vs. Sprech-Ziel (WAS gesagt werden soll)
+    -- Nutzer-Feedback 2026-08-15 (Live-Test): das eigentlich zu Sprechende war kleiner/nicht
+    fett als der Instruktionstext drumherum, obwohl genau das im Fokus stehen sollte. */
+    .dw-instruction-meta {{
+        font-weight: 400;
+        color: var(--dw-text-secondary);
+    }}
+    .dw-instruction-target {{
+        display: block;
+        font-weight: 700;
+        font-size: 1.35em;
+        color: var(--dw-text-primary);
+        margin-top: 8px;
+        line-height: 1.4;
+    }}
+
     /* ── Kachel-Komponente (kpi_tile(), Design-Bereinigung 2026-08-15, siehe docs/backlog.md
     "Konzept: Design-Bereinigung") -- ersetzt die bisherigen Tacho-Gauges. Nuechtern: nur der
     obere Rand traegt die Statusfarbe, nicht die ganze Flaeche (1:1 vom EDF-Analyzer
@@ -297,15 +313,34 @@ def instruction_text_scale_control(key: str = "default") -> None:
     Sidebar soll bei einer kuenftigen Mobile-Optimierung einklappbar sein, ein dort
     "verschwindendes" Steuerelement waere fuer genau die Zielgruppe (schlecht lesende
     Patient:innen) unbrauchbar. Rendert jetzt IM Hauptbereich, kompakt, direkt vor der
-    Instruktions-Card aufzurufen. `key` erlaubt mehrere Instanzen auf einer Seite (z.B.
-    DDK/Vokalisation mit mehreren Tabs, je eigenes Widget noetig)."""
-    text_size = st.select_slider(
-        "Textgröße", options=list(INSTRUCTION_TEXT_SCALE.keys()), value="Normal",
-        key=f"text_scale_{key}", label_visibility="visible",
-    )
-    if INSTRUCTION_TEXT_SCALE[text_size] != 1.0:
+    Instruktions-Card aufzurufen.
+
+    BUGFIX 2026-08-15 (Live-Test): urspruengliche Fassung nutzte `st.select_slider(key=f"text_scale_{key}")`
+    -- jede Aufrufstelle (z.B. jeder Vokal-Tab in vokalisation.py) hatte damit einen EIGENEN,
+    unabhaengigen Widget-Zustand, der beim Tab-Wechsel wieder auf "Normal" zurueckfiel, obwohl
+    die Groesse auf einem anderen Tab schon gesetzt war. Fix: der aktuelle Wert liegt jetzt in
+    EINEM gemeinsamen `st.session_state["text_scale"]`, ueber die ganze Sitzung (auch
+    seitenuebergreifend) hinweg konsistent -- `key` dient nur noch dazu, pro Aufrufstelle
+    eindeutige BUTTON-Widget-IDs zu erzeugen (Streamlit verbietet doppelte IDs), nicht mehr zur
+    Werthaltung. Gleichzeitig auf `st.button()`-Gruppe statt Slider umgestellt (Nutzer-Feedback:
+    "kein Regler, sondern eher Buttons")."""
+    if "text_scale" not in st.session_state:
+        st.session_state["text_scale"] = "Normal"
+    current = st.session_state["text_scale"]
+
+    for label in INSTRUCTION_TEXT_SCALE:
+        clicked = st.button(
+            label, key=f"text_scale_btn_{key}_{label}",
+            type="primary" if label == current else "secondary",
+            width="stretch",
+        )
+        if clicked and label != current:
+            st.session_state["text_scale"] = label
+            st.rerun()
+
+    if INSTRUCTION_TEXT_SCALE[current] != 1.0:
         st.markdown(
-            f"<style>.dw-card-subtle, .dw-card-subtle * {{ font-size: {INSTRUCTION_TEXT_SCALE[text_size]}em !important; "
+            f"<style>.dw-card-subtle, .dw-card-subtle * {{ font-size: {INSTRUCTION_TEXT_SCALE[current]}em !important; "
             f"line-height: 1.5 !important; }}</style>",
             unsafe_allow_html=True,
         )

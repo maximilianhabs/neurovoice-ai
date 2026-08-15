@@ -92,8 +92,9 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
         with instr_col:
             st.markdown(
                 f'<div class="dw-card-subtle">'
-                f'<b>Halte den Vokal „{meta["vowel"]}“</b> in gleichbleibender Tonhöhe und Lautstärke '
-                f'für <b>mindestens 2-3 Sekunden</b>. Wenn möglich 3 Wiederholungen.'
+                f'<span class="dw-instruction-meta">Halte den Vokal in gleichbleibender Tonhöhe '
+                f'und Lautstärke für mindestens 2-3 Sekunden. Wenn möglich 3 Wiederholungen.</span>'
+                f'<span class="dw-instruction-target">„{meta["vowel"]}“</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )

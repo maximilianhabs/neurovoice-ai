@@ -834,6 +834,88 @@ Transkript alle 25 erwarteten Kacheln (Qualität+Akustik+Sprechrate+Pausen+Lexik
 C1/D1-Werte und der 3 Gruppentitel bestätigt, Radar-Expander erreicht ohne Exception.
 Regressionstest über alle 7 Seiten ohne Exception, HTTP 200 nach Deploy.
 
+## Live-Test-Nachbesserung + 2 neue Konzepte (2026-08-15)
+
+Beim ersten Live-Testen von P10-P12 gemeldet, hier gesammelt:
+
+- [x] **Bug: Textgrößen-Einstellung fiel beim Tab-Wechsel zurück** ✅ BEHOBEN — jeder Vokal-/
+      DDK-Tab hatte einen EIGENEN, unabhängigen Widget-Zustand
+      (`st.select_slider(key=f"text_scale_{key}")`), dadurch sprang die Größe beim Wechsel
+      zwischen /a/,/i/,/u/ wieder auf "Normal" zurück, obwohl sie auf einem anderen Tab schon
+      gesetzt war. Fix: EIN gemeinsamer `st.session_state["text_scale"]`-Wert über die ganze
+      Sitzung (auch seitenübergreifend), `key`-Parameter dient nur noch der Erzeugung
+      eindeutiger Button-Widget-IDs. Gleichzeitig auf `st.button()`-Gruppe statt
+      `st.select_slider()` umgestellt (Nutzer-Feedback: "kein Regler, eher Buttons").
+      Verifiziert: Klick auf "Groß" setzt `session_state["text_scale"]` korrekt, CSS-Skalierung
+      greift, Slider vollständig ersetzt (9 Buttons statt 3 Slider über die 3 Vokal-Tabs).
+- [x] **Instruktions-Karten: Sprech-Ziel war kleiner/dünner als der Meta-Text** ✅ BEHOBEN —
+      z.B. bei DDK stand "**Sprich so schnell und gleichmäßig wie möglich**" fett, aber
+      „pa-ta-ka..." (das eigentlich zu Sprechende) normal — genau umgekehrt zur Priorität.
+      Neue CSS-Klassen `.dw-instruction-meta` (normal, gedämpfte Farbe) und
+      `.dw-instruction-target` (fett, 1,35em, primäre Textfarbe) in `core/shared.py`.
+      Durchgezogen in allen 4 Guide-Modulen + `testdaten.py`s Upload-Instruktionen
+      (Vokalisation, Vorlesen, DDK kombiniert+einzeln, Lesetext/Vokal/DDK im Testdaten-Modus).
+      Spontansprache unverändert gelassen (kein fester Text zum Vorsprechen, Instruktion IST
+      der Inhalt). Verifiziert: beide CSS-Klassen korrekt im HTML vorhanden.
+
+- [ ] **Konzept: dezenter Audio-Piep bei Aufnahmestart** (Nutzer-Idee 2026-08-15, NICHT
+      umgesetzt, nur Konzept) — zusätzlich zum bestehenden visuellen Hinweis (roter Rahmen-Tint
+      bei laufender Aufnahme, siehe `core/shared.py::apply_global_style()`) soll ein kurzer,
+      dezenter Ton ("Blip") signalisieren, dass die Aufnahme jetzt läuft — sonst leicht zu
+      übersehen.
+  - **Technischer Ansatz**: `st.audio_input()` liefert wie bei P8 keinen Live-Callback beim
+    Start der Aufnahme. Eine reine CSS-Lösung kann keinen Ton abspielen — anders als bei P8
+    (Farbverlauf) ist hier eine kleine JS-Komponente unumgänglich.
+  - **Empfohlener Mechanismus**: `st.components.v1.html()` (nicht `st.markdown(unsafe_allow_html=True)`,
+    da `<script>`-Tags dort unzuverlässig ausgeführt werden, siehe P8-Erfahrung) mit einem
+    `MutationObserver`, der denselben Zustandswechsel beobachtet wie der bestehende CSS-Trick
+    (Erscheinen des Stop-Buttons mit `aria-label*="Stop"` im DOM, sobald `st.audio_input()` zu
+    nehmen beginnt) und bei diesem Übergang einen kurzen Ton über die Web Audio API abspielt
+    (`OscillatorNode`, z.B. 800Hz Sinuston, ~80-120ms, sanftes Fade-out) — **kein Audio-Datei-
+    Asset nötig**, passt zum bestehenden Prinzip "kein CDN/lokales Hosting" (der Ton wird
+    clientseitig synthetisch erzeugt, nicht als Datei geladen).
+  - **Lautstärke/Charakter**: bewusst SEHR leise/kurz (Nutzer-Vorgabe "nicht zu laut, ganz
+    dezent, einfach ein kleines Blip") — Gain-Node mit niedrigem Pegel (~0.1-0.15), kurze
+    Attack/Release-Hüllkurve, damit es nicht wie ein Alarm wirkt.
+  - **Offene Fragen für die Umsetzung**:
+    - Muss der `MutationObserver` pro Seite neu eingerichtet werden (jeder Modul-Seitenaufruf
+      ist ein neuer Streamlit-Script-Run) — vermutlich ja, daher als kleine wiederverwendbare
+      `core/shared.py`-Funktion analog zu `recording_duration_feedback_style()` (P8) bauen,
+      an denselben Aufrufstellen (`st.audio_input()`-Nutzung in allen 4 Modulen +
+      `testdaten.py`) ergänzen.
+    - `st.components.v1.html()` rendert in einem iframe — Zugriff auf das Eltern-DOM
+      (wo der Stop-Button tatsächlich erscheint) braucht `window.parent.document`, nicht
+      `document` — browserseitige Cross-Origin-Beschränkungen innerhalb Streamlits eigenem
+      iframe-Setup vorher prüfen (sollte funktionieren, da gleiche Origin, aber nicht blind
+      annehmen).
+    - Autoplay-Policies mancher Browser blockieren Sound ohne vorherige Nutzer-Interaktion —
+      da der Ton erst NACH einem Klick auf den Mikrofon-Button ausgelöst wird (echte
+      Nutzer-Geste), sollte das unproblematisch sein, aber beim ersten echten Test gegenprüfen.
+    - Wie bei P8: NICHT visuell/auditiv im Sandbox-Browser vorab testbar (kein
+      Mikrofonzugriff) — müsste beim ersten echten Test durch den Nutzer bestätigt werden.
+
+- [ ] **Konzept: Zukunfts-Parameter — Geschlecht/Alter/Nervosität aus der Stimme** (Nutzer-
+      Interesse 2026-08-15, "perspektivisch entwickeln", NICHT priorisiert/terminiert) —
+      Literaturrecherche siehe `docs/literatur_review.md`, Abschnitt "Perspektivische
+      Zusatzparameter". Kurzfassung:
+  - **Geschlechtserkennung**: solide Evidenzlage (92-99% Genauigkeit in Studien), technisch
+    einfach umsetzbar, da F0/Formanten/MFCCs bereits berechnet werden — nur Klassifikations-
+    Logik auf vorhandenen Werten fehlt. Voraussichtlich der am leichtesten umsetzbare der
+    3 Zukunfts-Parameter, FALLS gewünscht.
+  - **Alterserkennung**: moderate Evidenzlage (nur grobe Altersgruppen, ~62% Trefferquote bei
+    Erwachsenen) — fraglich sinnvoll, da Alter im Rahmen von P10 ohnehin schon manuell erfasst
+    wird. Eher als Konsistenz-/Plausibilitäts-Check denkbar als als Haupt-Feature.
+  - **Nervosität/Stress**: uneinheitliche Evidenzlage — Stress allgemein zeigt grobe
+    Prosodie-Korrelate (F0/Intensität hoch, Sprechdauer runter), aber für Angst/Nervosität
+    speziell wurden in einem systematischen Review KEINE konsistenten akustischen Muster über
+    Studien hinweg gefunden. Würde nur eine unsichere, explorative Zusatzinfo liefern.
+  - **"Lügenerkennung"**: **wissenschaftlich widerlegt** (Voice Stress Analysis, US National
+    Research Council 2003: Erkennungsraten nicht über Zufallsniveau; Feldtest nur 15%
+    Trefferquote). **Empfehlung: NICHT umsetzen** — würde dem Projektprinzip "ehrlich über die
+    Grenzen der Methode" widersprechen und Nutzer:innen in die Irre führen.
+  - Keine Umsetzungs-Priorität/Zeitplan festgelegt — reine Wissens-/Machbarkeits-Notiz für
+    später, auf expliziten Wunsch des Nutzers.
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser

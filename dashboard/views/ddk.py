@@ -48,16 +48,18 @@ SUB_TASKS = {
     "ddkgemischt": {
         "label": "DDK kombiniert (Pflicht)",
         "instruction": (
-            "<b>Sprich so schnell und gleichmäßig wie möglich</b> „pa-ta-ka-pa-ta-ka...“ — "
-            "für ca. <b>10 Sekunden</b>."
+            '<span class="dw-instruction-meta">Sprich so schnell und gleichmäßig wie möglich, '
+            'für ca. 10 Sekunden:</span>'
+            '<span class="dw-instruction-target">„pa-ta-ka-pa-ta-ka...“</span>'
         ),
         "required": True,
     },
     "ddkeinzeln": {
         "label": "DDK einzeln (optional)",
         "instruction": (
-            "<b>Sprich nacheinander</b>, jeweils ca. 5 Sekunden: erst „pa-pa-pa...“, dann "
-            "„ta-ta-ta...“, dann „ka-ka-ka...“ — jeweils so schnell und gleichmäßig wie möglich."
+            '<span class="dw-instruction-meta">Sprich nacheinander, jeweils ca. 5 Sekunden, so '
+            'schnell und gleichmäßig wie möglich:</span>'
+            '<span class="dw-instruction-target">„pa-pa-pa...“ → „ta-ta-ta...“ → „ka-ka-ka...“</span>'
         ),
         "required": False,
     },
