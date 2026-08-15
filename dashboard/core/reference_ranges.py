@@ -72,6 +72,19 @@ def shimmer_zones():
     return lo, hi, [(0, 5 / 20, GOOD), (5 / 20, 8 / 20, WARNING), (8 / 20, 1, CRITICAL)]
 
 
+def clipping_zones():
+    """Faustregel, NICHT literaturbasiert (anders als Jitter/HNR/etc.) -- reine technische
+    Heuristik, siehe docs/backlog.md "Konzept: Design-Bereinigung", Baustein B."""
+    lo, hi = 0, 5
+    return lo, hi, [(0, 0.1, GOOD), (0.1, 0.5 / 5, WARNING), (0.5 / 5, 1, CRITICAL)]
+
+
+def snr_zones():
+    """Faustregel aus allgemeiner Signalverarbeitung, keine stimmklinische Referenz."""
+    lo, hi = 0, 40
+    return lo, hi, [(0, 15 / 40, CRITICAL), (15 / 40, 25 / 40, WARNING), (25 / 40, 1, GOOD)]
+
+
 def verdict_for_value(value: float, lo: float, hi: float, zones: list[tuple[float, float, str]]) -> tuple[str, str]:
     """Liefert (Farbe, Label) fuer den Zonenbereich, in dem `value` liegt."""
     frac = max(0.0, min(1.0, (value - lo) / (hi - lo)))
@@ -83,3 +96,14 @@ def verdict_for_value(value: float, lo: float, hi: float, zones: list[tuple[floa
                 return color, "grenzwertig"
             return color, "auffällig"
     return NEUTRAL, "unbekannt"
+
+
+_COLOR_TO_ZONE = {GOOD: "success", WARNING: "warning", CRITICAL: "danger"}
+
+
+def zone_for_value(value: float, lo: float, hi: float, zones: list[tuple[float, float, str]]) -> str:
+    """Wie verdict_for_value(), liefert aber den maschinenlesbaren Zonen-Key
+    ('success'/'warning'/'danger'/'neutral') statt Hex-Farbe+Klartext -- fuer core/shared.py::
+    kpi_tile()."""
+    color, _ = verdict_for_value(value, lo, hi, zones)
+    return _COLOR_TO_ZONE.get(color, "neutral")

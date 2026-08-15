@@ -158,6 +158,47 @@ def apply_global_style() -> None:
         padding: 20px 24px;
     }}
 
+    /* ── Kachel-Komponente (kpi_tile(), Design-Bereinigung 2026-08-15, siehe docs/backlog.md
+    "Konzept: Design-Bereinigung") -- ersetzt die bisherigen Tacho-Gauges. Nuechtern: nur der
+    obere Rand traegt die Statusfarbe, nicht die ganze Flaeche (1:1 vom EDF-Analyzer
+    uebernommen, dort kpi_tile() genannt). ──────────────────────────────────────────────── */
+    .dw-tile {{
+        background: var(--dw-surface);
+        border: 1px solid var(--dw-border);
+        border-top: 3px solid var(--dw-tile-accent, var(--dw-border));
+        border-radius: var(--dw-radius-md);
+        padding: 12px 14px;
+        min-height: 122px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }}
+    .dw-tile-label {{
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--dw-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }}
+    .dw-tile-value {{
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--dw-text-primary);
+        line-height: 1.2;
+        margin: 2px 0;
+    }}
+    .dw-tile-sub {{
+        font-size: 12.5px;
+        font-weight: 600;
+    }}
+    .dw-tile-desc {{
+        font-size: 11.5px;
+        color: var(--dw-text-secondary);
+        line-height: 1.35;
+        margin-top: auto;
+        padding-top: 4px;
+    }}
+
     /* Mobile-Grundbasis */
     @media (max-width: 640px) {{
         h1 {{ font-size: 1.4rem !important; }}
@@ -168,6 +209,72 @@ def apply_global_style() -> None:
     }}
     </style>
     """, unsafe_allow_html=True)
+
+
+def quality_tiles(q: dict) -> None:
+    """Rendert die Recording-Quality-Kacheln (Clipping/Stille/SNR, P6+Design-Bereinigung
+    Baustein B) als 3-Spalten-Reihe -- geteilt zwischen allen 4 Guide-Modulen, damit die
+    Zonen-Logik nur an einer Stelle gepflegt wird. `q` = Rueckgabe von
+    core.audio.recording_quality_features()."""
+    from core.reference_ranges import clipping_zones, snr_zones, zone_for_value
+
+    def _fmt(value, decimals=1):
+        return f"{value:.{decimals}f}" if value is not None else "–"
+
+    qc1, qc2, qc3 = st.columns(3)
+    with qc1:
+        if q["clipping_pct"] is not None:
+            lo, hi, zones = clipping_zones()
+            zone = zone_for_value(q["clipping_pct"], lo, hi, zones)
+            label = {"success": "unauffällig", "warning": "vereinzelt", "danger": "deutlich"}[zone]
+        else:
+            zone, label = "neutral", "–"
+        kpi_tile("Clipping", f"{_fmt(q['clipping_pct'], 1)} %", label, zone,
+                 "Anteil der Samples nahe Vollaussteuerung — Faustregel, keine feste Norm.")
+    with qc2:
+        kpi_tile("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %", "taskabhängig, kein fester Korridor", "neutral",
+                 "Anteil leiser Fenster — bei Spontansprache mit Pausen normal auch 15-30%.")
+    with qc3:
+        if q["snr_estimate_db"] is not None:
+            lo, hi, zones = snr_zones()
+            zone = zone_for_value(q["snr_estimate_db"], lo, hi, zones)
+            label = {"success": "gut", "warning": "Hintergrundgeräusch hörbar", "danger": "Kennwerte ggf. verzerrt"}[zone]
+        else:
+            zone, label = "neutral", "–"
+        kpi_tile("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB", label, zone,
+                 "90.–10. Perzentil der Fenster-Lautstärke — Heuristik aus der Signalverarbeitung, keine stimmklinische Referenz.")
+    st.caption(
+        "Aufnahmequalität — rein informativ, kein automatisches Aussortieren. "
+        "Grenzwerte sind pragmatische Faustregeln, keine klinische Norm."
+    )
+
+
+_TILE_ZONE_COLORS = {
+    "success": SUCCESS,
+    "warning": WARNING,
+    "danger": DANGER,
+    "info": INFO,
+    "neutral": TEXT_SECONDARY,
+}
+
+
+def kpi_tile(label: str, value_text: str, sub_text: str = "", zone: str = "neutral", description: str | None = None) -> None:
+    """Nuechterne Kennwert-Kachel statt Tacho-Gauge (Design-Bereinigung 2026-08-15, siehe
+    docs/backlog.md "Konzept: Design-Bereinigung"/[[project_edf_ui_redesign]]). `zone` faerbt
+    NUR den oberen Rand + das Status-Wort, nicht die ganze Kachel -- bewusst gedaempft.
+    Rendert direkt via st.markdown (Seiteneffekt, wie st.metric()), kein Rueckgabewert.
+    """
+    color = _TILE_ZONE_COLORS.get(zone, TEXT_SECONDARY)
+    sub_html = f'<div class="dw-tile-sub" style="color:{color}">{sub_text}</div>' if sub_text else ""
+    desc_html = f'<div class="dw-tile-desc">{description}</div>' if description else ""
+    st.markdown(
+        f'<div class="dw-tile" style="--dw-tile-accent:{color}">'
+        f'<div class="dw-tile-label">{label}</div>'
+        f'<div class="dw-tile-value">{value_text}</div>'
+        f'{sub_html}{desc_html}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # Grobe empirische Schaetzung, NICHT praezise (WhisperX liefert keinen echten Fortschritts-

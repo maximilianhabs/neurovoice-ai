@@ -29,11 +29,10 @@ from core.audio import (
     recording_quality_features,
     save_uploaded_wav,
 )
-from core.interpretation import age_caveats_for, build_rows, flatten_take
+from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
-from core.plots import gauge_figure, intensity_figure, spectrogram_figure, waveform_figure
-from core.reference_ranges import speech_rate_zones, verdict_for_value
-from core.shared import transcribe_with_progress
+from core.plots import intensity_figure, spectrogram_figure, waveform_figure
+from core.shared import kpi_tile, quality_tiles, transcribe_with_progress
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "vorlesen"
@@ -72,7 +71,7 @@ def _save_transcript_cache(recording_path: str, transcript: dict) -> None:
 st.markdown(
     """
     <div class="dw-eyebrow">Modul 2 von 4 · Guide</div>
-    <div class="dw-hero-title">📖 Vorlesen</div>
+    <div class="dw-hero-title">Vorlesen</div>
     <div class="dw-subtitle">Standardtext — Artikulationskoordination ohne eigene Sprachformulierung</div>
     """,
     unsafe_allow_html=True,
@@ -136,14 +135,7 @@ else:
     st.audio(take["audio_bytes"], format="audio/wav")
 
     q = recording_quality_features(take["recording_path"])
-    qc1, qc2, qc3 = st.columns(3)
-    qc1.metric("Clipping", f"{_fmt(q['clipping_pct'], 1)} %")
-    qc2.metric("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %")
-    qc3.metric("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB")
-    st.caption(
-        "Aufnahmequalität — grobe Heuristik, noch nicht an echten Aufnahmen kalibriert. "
-        "Rein informativ, kein automatisches Aussortieren."
-    )
+    quality_tiles(q)
 
     with st.expander("Visualisierungen (Wellenform, Lautstärke, Spektrogramm)", expanded=True):
         sound = parselmouth.Sound(take["recording_path"])
@@ -158,16 +150,13 @@ else:
     intonation = take["intonation"]
 
     st.subheader("Ergebnisse")
-    g1, g2 = st.columns(2)
-    with g1:
-        st.pyplot(
-            gauge_figure("Artikulationsschärfe", articulation["mean_burst_sharpness_db_s"], "dB/s", 100, 400),
-            width="stretch",
-        )
-        st.caption("experimentell, nur Eigenvergleich")
-    with g2:
-        st.pyplot(gauge_figure("CPPS", cpp["cpps_db"], "dB", 0, 20), width="stretch")
-        st.caption("informativ, parameterabhängig")
+    flat = flatten_take(take)
+    tile_keys = ["mean_burst_sharpness_db_s", "cpps_db"]
+    tiles = build_tiles({k: flat[k] for k in tile_keys if k in flat})
+    tile_cols = st.columns(len(tiles)) if tiles else []
+    for col, tile in zip(tile_cols, tiles):
+        with col:
+            kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Monoloudness", f"{_fmt(prosody['monoloudness_intensity_sd_db'])} dB")
@@ -194,8 +183,12 @@ else:
         cached_transcript = _load_cached_transcript(take["recording_path"])
         transcript = cached_transcript
         if transcript is not None:
-            st.caption("✅ Transkript aus dem Cache geladen.")
-        elif st.button("🎧 Transkription starten (dauert je nach Hardware 1-2 Minuten — App reagiert währenddessen nicht, das ist normal)"):
+            st.caption("Transkript aus dem Cache geladen.")
+        elif st.button(
+            "Transkription starten (dauert je nach Hardware 1-2 Minuten — App reagiert "
+            "währenddessen nicht, das ist normal)",
+            icon=":material/graphic_eq:",
+        ):
             import soundfile as sf
 
             duration_s = sf.info(take["recording_path"]).duration
@@ -246,11 +239,11 @@ else:
             kc2.metric("Unsichere Wörter (<75%)", low_confidence_count)
 
             if speech_metrics["net_speech_rate_wpm"] is not None:
-                lo, hi, zones = speech_rate_zones()
-                value = speech_metrics["net_speech_rate_wpm"]
-                st.pyplot(gauge_figure("Sprechrate", value, "WPM", lo, hi, zones), width="stretch")
-                _, verdict = verdict_for_value(value, lo, hi, zones)
-                st.caption(verdict)
+                rate_tiles = build_tiles({"net_speech_rate_wpm": speech_metrics["net_speech_rate_wpm"]})
+                rt_col, _, _ = st.columns(3)
+                with rt_col:
+                    t = rate_tiles[0]
+                    kpi_tile(t["label"], t["value_text"], t["sub_text"], t["zone"], t["description"])
 
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Wörter", speech_metrics["n_words"])
@@ -293,20 +286,20 @@ else:
             )
 
     st.divider()
-    st.markdown("**Was bedeuten diese Werte?**")
-    flat = flatten_take(take)
-    rows = build_rows(flat)
-    if rows:
-        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-        for caveat in age_caveats_for(flat):
-            st.caption(f"⚠️ {caveat}")
+    with st.expander("Alle Werte im Detail"):
+        flat = flatten_take(take)
+        rows = build_rows(flat)
+        if rows:
+            st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+            for caveat in age_caveats_for(flat):
+                st.caption(caveat, help="Alters-/Geschlechts-Hinweis")
 
     with st.expander(f"Alle {len(takes)} Versuche verwalten"):
         for i, t in enumerate(takes):
             dcol1, dcol2, dcol3 = st.columns([2, 3, 1])
-            dcol1.write(f"Versuch {t['take_number']}" + (" ⭐ ausgewählt" if t.get("selected") else ""))
+            dcol1.write(f"Versuch {t['take_number']}" + (" · ausgewählt" if t.get("selected") else ""))
             dcol2.caption(t["filename"])
-            if dcol3.button("🗑️ Löschen", key=f"del_lesetext_{i}"):
+            if dcol3.button("Löschen", key=f"del_lesetext_{i}", icon=":material/delete:"):
                 delete_take(MODULE, SUBTASK, i)
                 st.rerun()
 

@@ -441,8 +441,41 @@ wiederholt werden — siehe [[project_edf_ui_redesign]])
 - Schicksal von `radar_figure()` (`core/plots.py`, aktuell ungenutzt/wo eingesetzt?) bei
   Gelegenheit mit prüfen, ob das dieselbe "Dashboard-Optik" hat, die der Nutzer ablehnt.
 
-**Status: reines Konzept, NICHT umgesetzt.** Umsetzung erst nach Nutzer-Freigabe, dann in
-kleinen, einzeln verifizierten Schritten wie oben skizziert.
+**Status: ✅ UMGESETZT (2026-08-15, Nutzer-Freigabe "Setze das so um, gutes Konzept").**
+
+- **Baustein A** — `core/shared.py::kpi_tile()` (Border-Top-Akzent-Kachel, CSS-Klassen
+  `.dw-tile*`) ersetzt `gauge_figure()` app-weit in allen 4 Guide-Modulen + `testdaten.py`.
+  Datengrundlage bleibt `core/interpretation.py::PARAMETER_INFO`, neue `build_tiles()`-
+  Funktion (+ `zone`-Feld in `interpret()`, neue `zone_for_value()` in
+  `core/reference_ranges.py`) liefert dieselben Werte wie die bisherige Tabelle, nur als
+  Kachel-Datensatz. Die ausführliche Interpretations-Tabelle bleibt erhalten, wandert aber in
+  einen Expander ("Alle Werte im Detail") — Kacheln sind jetzt der "Auf-einen-Blick"-Layer,
+  Tabelle die Detail-Ebene. `gauge_figure()` selbst bewusst NICHT gelöscht (Karteileiche,
+  aber kein Aufrufer mehr übrig — spätere Aufräum-Gelegenheit).
+- **Baustein B** — neue `clipping_zones()`/`snr_zones()` in `core/reference_ranges.py`
+  (pragmatische Faustregeln, explizit als solche gekennzeichnet, keine klinische Norm) +
+  geteilte `core/shared.py::quality_tiles(q)`-Funktion (ersetzt 3× `st.metric()` in allen 4
+  Modulen durch dieselbe Kachel-Optik). Stille-Anteil bewusst OHNE feste Ampel (taskabhängig,
+  wie im Konzept vorgesehen), nur Clipping + SNR bekommen eine echte Zonen-Farbe.
+- **Baustein C** — alle verbleibenden Emojis app-weit entfernt (`app.py` Sidebar-Icons +
+  Tab-Icon auf `:material/...:`-Shortcodes, Take-Management-Buttons auf `icon=`-Parameter,
+  Status-Captions/Cache-Hinweise ohne Emoji-Präfix). Kein einziger Treffer mehr bei
+  systematischer Emoji-Suche über `app.py`/`core/*.py`/`views/*.py`.
+
+**Verifiziert**: Regressionstest über alle 6 Seiten ohne Exception, End-to-End mit echten
+Aufnahmen für Vokalisation (Jitter 0,62%/Shimmer 4,56%/HNR 22,34dB — alle korrekt grün, CPPS
+11,66dB neutral, SNR 24,3dB korrekt gelb/"Hintergrundgeräusch hörbar"), DDK (DDK-Rate 3,40 Hz,
+identisch zum früher gemessenen Referenzwert 3,4 Hz) und Testdaten-Modus (Sprechrate
+140,38 WPM grün, CPPS 7,09dB — beide identisch zu früheren Referenzwerten für dieselbe
+Datei) — Kachel-HTML jeweils direkt aus dem AppTest-Markdown-Output geprüft, nicht nur "kein
+Crash". HTTP 200 nach Deploy.
+
+**Bewusst nicht (mehr) umgesetzt**: die feinere Bedeutungsnuance einzelner alter Gauge-
+Captions (z.B. "HNR … eingeschränkt bei Fließsprache" auf der Testdaten-Schnellansicht) ist
+in der konsolidierten Kachel-Beschreibung nicht mehr enthalten — bewusster Trade-off für ein
+einheitliches Kachel-Vokabular app-weit statt bespoke Text je Aufrufstelle, deckt sich mit
+Pitfall 6 aus dem Konzept (keine parallelen Varianten). Bei Bedarf könnte das über ein
+optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
 
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 

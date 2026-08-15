@@ -30,9 +30,10 @@ from core.audio import (
     prosody_features,
     save_uploaded_wav,
 )
-from core.plots import gauge_figure, intensity_figure, radar_figure, spectrogram_figure, waveform_figure
-from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones, verdict_for_value
-from core.shared import transcribe_with_progress
+from core.interpretation import build_tiles
+from core.plots import intensity_figure, radar_figure, spectrogram_figure, waveform_figure
+from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones
+from core.shared import kpi_tile, transcribe_with_progress
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 # Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
@@ -68,7 +69,7 @@ def _fmt(value, decimals=2):
 st.markdown(
     """
     <div class="dw-eyebrow">Entwicklermodus</div>
-    <div class="dw-hero-title">🧪 Testdaten & freie Auswahl</div>
+    <div class="dw-hero-title">Testdaten & freie Auswahl</div>
     <div class="dw-subtitle">Alle Kennwerte auf einen Blick, unabhängig vom Modul-Guide — für eigene Testaufnahmen</div>
     """,
     unsafe_allow_html=True,
@@ -139,7 +140,7 @@ if source_mode in ("Datei hochladen (WAV)", "Mikrofon aufnehmen"):
     )
 
     # --- Hauptbereich: grosse Instruktion + grosse Aufnahme-/Upload-Flaeche ---
-    st.subheader("🎙️ Aufnahme")
+    st.subheader("Aufnahme", anchor=False)
     st.markdown(
         f'<div class="dw-card-subtle">{UPLOAD_TASK_INSTRUCTIONS.get(upload_task, "")}</div>',
         unsafe_allow_html=True,
@@ -247,42 +248,26 @@ st.caption(
 )
 
 st.markdown("**Immer auswertbar**")
-g1, g2, g3, g4, g5 = st.columns(5)
 
-with g1:
-    if speech_metrics and speech_metrics["net_speech_rate_wpm"] is not None:
-        lo, hi, zones = speech_rate_zones()
-        value = speech_metrics["net_speech_rate_wpm"]
-        st.pyplot(gauge_figure("Sprechrate", value, "WPM", lo, hi, zones), width='stretch')
-        _, verdict = verdict_for_value(value, lo, hi, zones)
-        st.caption(verdict)
-    else:
-        st.pyplot(
-            gauge_figure("Sprechrate", na=True, na_reason="Noch nicht transkribiert — siehe unten"),
-            width='stretch',
-        )
+if speech_metrics and speech_metrics["net_speech_rate_wpm"] is not None:
+    rate_tile = build_tiles({"net_speech_rate_wpm": speech_metrics["net_speech_rate_wpm"]})[0]
+else:
+    rate_tile = {
+        "label": "Sprechrate", "value_text": "–", "sub_text": "noch nicht transkribiert — siehe unten",
+        "zone": "neutral", "description": "Wörter pro Minute, bezogen auf die Gesamtdauer der Aufnahme (inkl. Pausen).",
+    }
 
-with g2:
-    lo, hi, zones = hnr_zones()
-    value = features["hnr_mean_db"]
-    st.pyplot(gauge_figure("HNR", value, "dB", lo, hi, zones), width='stretch')
-    _, verdict = verdict_for_value(value, lo, hi, zones) if value is not None else (None, "–")
-    st.caption(f"{verdict} · eingeschränkt bei Fließsprache")
-
-with g3:
-    st.pyplot(gauge_figure("Monopitch (F0-SD)", features["f0_sd_hz"], "Hz", 0, 80), width='stretch')
-    st.caption("informativ, kein fester Normwert")
-
-with g4:
-    st.pyplot(
-        gauge_figure("Artikulationsschärfe", articulation["mean_burst_sharpness_db_s"], "dB/s", 100, 400),
-        width='stretch',
-    )
-    st.caption("experimentell, nur Eigenvergleich")
-
-with g5:
-    st.pyplot(gauge_figure("CPPS", cpp["cpps_db"], "dB", 0, 20), width='stretch')
-    st.caption("informativ, parameterabhängig")
+quick_flat = {"hnr_mean_db": features["hnr_mean_db"], "f0_sd_hz": features["f0_sd_hz"],
+              "mean_burst_sharpness_db_s": articulation["mean_burst_sharpness_db_s"], "cpps_db": cpp["cpps_db"]}
+quick_tiles_by_key = {t["label"]: t for t in build_tiles(quick_flat)}
+ordered_tiles = [rate_tile] + [
+    quick_tiles_by_key[label] for label in ("HNR", "Monopitch (F0-Streuung)", "Artikulationsschärfe", "CPPS")
+    if label in quick_tiles_by_key
+]
+gcols = st.columns(len(ordered_tiles))
+for col, tile in zip(gcols, ordered_tiles):
+    with col:
+        kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
 
 # --- Radar-Profil ---
 radar_axes, radar_values = [], []
@@ -313,24 +298,18 @@ if len(radar_axes) >= 3:
 st.markdown("**Braucht gehaltenen Vokal** — bei Lesetext meist nicht auswertbar")
 s1, s2, s3 = st.columns(3)
 with s1:
-    st.pyplot(
-        gauge_figure("Jitter (local)", na=True, na_reason="Nur bei gehaltenem Vokal zuverlässig"),
-        width='stretch',
-    )
+    kpi_tile("Jitter (local)", "–", "nur bei gehaltenem Vokal zuverlässig", "neutral",
+              "Wie stark die Tonhöhe von einem Stimmzyklus zum nächsten schwankt.")
 with s2:
-    st.pyplot(
-        gauge_figure("Shimmer (local)", na=True, na_reason="Nur bei gehaltenem Vokal zuverlässig"),
-        width='stretch',
-    )
+    kpi_tile("Shimmer (local)", "–", "nur bei gehaltenem Vokal zuverlässig", "neutral",
+              "Wie stark die Lautstärke von einem Stimmzyklus zum nächsten schwankt.")
 with s3:
-    st.pyplot(
-        gauge_figure("Vokalraum-Fläche", na=True, na_reason="Braucht mehrere Vokale pro Aufnahme, noch nicht möglich"),
-        width='stretch',
-    )
+    kpi_tile("Vokalraum-Fläche", "–", "braucht mehrere Vokale pro Aufnahme, noch nicht möglich", "neutral",
+              "Wie unterschiedlich verschiedene Vokale (i, a, u) im Formant-Raum klingen.")
 
 if recording.task != "vokal":
     st.info(
-        "⚠️ Diese Aufnahme ist Task-Typ "
+        "Diese Aufnahme ist Task-Typ "
         f"**„{recording.task}“** (kein gehaltener Vokal) — Jitter/Shimmer/VSA sind deshalb "
         "oben bewusst als „nicht auswertbar“ markiert, statt eine irreführende Ampel zu zeigen."
     )
@@ -419,7 +398,7 @@ table_rows = [
     ("MFCC 1-4 (Mittelwerte)",
      f"{_fmt(mfcc['mfcc_1_mean'], 0)} · {_fmt(mfcc['mfcc_2_mean'], 0)} · "
      f"{_fmt(mfcc['mfcc_3_mean'], 0)} · {_fmt(mfcc['mfcc_4_mean'], 0)}",
-     "Allgemeine Klangfarbe (Mel-Frequency Cepstral Coefficients) — ⚠️ empfindlich gegenüber "
+     "Allgemeine Klangfarbe (Mel-Frequency Cepstral Coefficients) — empfindlich gegenüber "
      "Mikrofonabstand/Raumakustik, v.a. innerhalb derselben Session vergleichbar",
      "kein Normwert, kanal-/mikrofonabhängig", "immer"),
     ("Jitter (local)", f"{_fmt(features['jitter_local_pct'])} %",
@@ -500,13 +479,17 @@ if not transcription_available:
 else:
     if cached_transcript is not None:
         transcript = cached_transcript
-        st.caption("✅ Transkript aus dem Cache geladen (bereits einmal berechnet, kein erneutes Warten nötig).")
-        if st.button("🔁 Neu transkribieren (überschreibt den Cache)"):
+        st.caption("Transkript aus dem Cache geladen (bereits einmal berechnet, kein erneutes Warten nötig).")
+        if st.button("Neu transkribieren (überschreibt den Cache)", icon=":material/refresh:"):
             transcript = transcribe_with_progress(recording.path, stats["duration_s"])
             _save_transcript_cache(recording, transcript)
     else:
         transcript = None
-        if st.button("🎧 Transkription starten (dauert bei large-v3 spürbar lange, das ist normal — läuft danach nur noch einmal pro Datei)"):
+        if st.button(
+            "Transkription starten (dauert bei large-v3 spürbar lange, das ist normal — läuft "
+            "danach nur noch einmal pro Datei)",
+            icon=":material/graphic_eq:",
+        ):
             transcript = transcribe_with_progress(recording.path, stats["duration_s"])
             _save_transcript_cache(recording, transcript)
 
@@ -531,7 +514,7 @@ else:
                         padding:1rem 1.3rem;margin:0.4rem 0 0.6rem;">
               <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
                           color:#3182ce;font-weight:700;margin-bottom:0.5rem;">
-                🤖 KI-Transkription (WhisperX, Modell large-v3)
+                KI-Transkription (WhisperX, Modell large-v3)
               </div>
               <div style="font-size:1.3rem;line-height:1.7;color:#1a202c;">
                 {transcript_html}
@@ -541,7 +524,7 @@ else:
             unsafe_allow_html=True,
         )
         st.caption(
-            "⚠️ Automatisch erkannt, keine manuelle Korrektur — einzelne Wörter können falsch "
+            "Automatisch erkannt, keine manuelle Korrektur — einzelne Wörter können falsch "
             "erfasst sein. Gelb unterstrichene Wörter haben eine Erkennungs-Konfidenz unter 75% "
             "(Maus drüberhalten zeigt den genauen Wert) — hier lohnt sich ein Abgleich mit dem Audio."
         )

@@ -18,9 +18,10 @@ import parselmouth
 import streamlit as st
 
 from core.audio import articulation_features, ddk_rate_features, recording_quality_features, save_uploaded_wav
-from core.interpretation import age_caveats_for, build_rows, flatten_take
+from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
-from core.plots import gauge_figure, intensity_figure, spectrogram_figure, waveform_figure
+from core.plots import intensity_figure, spectrogram_figure, waveform_figure
+from core.shared import kpi_tile, quality_tiles
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "ddk"
@@ -52,7 +53,7 @@ def _fmt(value, decimals=1):
 st.markdown(
     """
     <div class="dw-eyebrow">Modul 4 von 4 · Guide</div>
-    <div class="dw-hero-title">🔁 Diadochokinese</div>
+    <div class="dw-hero-title">Diadochokinese</div>
     <div class="dw-subtitle">Schnelle Silbenfolgen — motorisch anspruchsvollste Aufgabe der Batterie</div>
     """,
     unsafe_allow_html=True,
@@ -119,14 +120,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             st.audio(take["audio_bytes"], format="audio/wav")
 
             q = recording_quality_features(take["recording_path"])
-            qc1, qc2, qc3 = st.columns(3)
-            qc1.metric("Clipping", f"{_fmt(q['clipping_pct'], 1)} %")
-            qc2.metric("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %")
-            qc3.metric("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB")
-            st.caption(
-                "Aufnahmequalität — grobe Heuristik, noch nicht an echten Aufnahmen "
-                "kalibriert. Rein informativ, kein automatisches Aussortieren."
-            )
+            quality_tiles(q)
 
             with st.expander("Visualisierungen (Wellenform, Lautstärke, Spektrogramm)", expanded=True):
                 sound = parselmouth.Sound(take["recording_path"])
@@ -136,17 +130,14 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
 
             ddk = take["ddk"]
             articulation = take["articulation"]
+            flat = flatten_take(take)
 
-            g1, g2 = st.columns(2)
-            with g1:
-                st.pyplot(gauge_figure("DDK-Rate", ddk["ddk_rate_hz"], "Hz", 0, 8), width="stretch")
-                st.caption("informativ, kein etablierter Normbereich")
-            with g2:
-                st.pyplot(
-                    gauge_figure("Artikulationsschärfe", articulation["mean_burst_sharpness_db_s"], "dB/s", 100, 400),
-                    width="stretch",
-                )
-                st.caption("experimentell, nur Eigenvergleich")
+            tile_keys = ["ddk_rate_hz", "mean_burst_sharpness_db_s"]
+            tiles = build_tiles({k: flat[k] for k in tile_keys if k in flat})
+            tile_cols = st.columns(len(tiles)) if tiles else []
+            for col, tile in zip(tile_cols, tiles):
+                with col:
+                    kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
 
             mean_interval_ms = ddk["mean_cycle_interval_s"] * 1000 if ddk["mean_cycle_interval_s"] is not None else None
             c1, c2, c3 = st.columns(3)
@@ -161,20 +152,19 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                     "Literatur als möglicher Hinweis auf ataktische Dysarthrie, nicht nur die reine Rate."
                 )
 
-            st.markdown("**Was bedeuten diese Werte?**")
-            flat = flatten_take(take)
-            rows = build_rows(flat)
-            if rows:
-                st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-                for caveat in age_caveats_for(flat):
-                    st.caption(f"⚠️ {caveat}")
+            with st.expander("Alle Werte im Detail"):
+                rows = build_rows(flat)
+                if rows:
+                    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+                    for caveat in age_caveats_for(flat):
+                        st.caption(caveat, help="Alters-/Geschlechts-Hinweis")
 
             with st.expander(f"Alle {len(takes)} Versuche verwalten"):
                 for i, t in enumerate(takes):
                     dcol1, dcol2, dcol3 = st.columns([2, 3, 1])
-                    dcol1.write(f"Versuch {t['take_number']}" + (" ⭐ ausgewählt" if t.get("selected") else ""))
+                    dcol1.write(f"Versuch {t['take_number']}" + (" · ausgewählt" if t.get("selected") else ""))
                     dcol2.caption(t["filename"])
-                    if dcol3.button("🗑️ Löschen", key=f"del_{task_key}_{i}"):
+                    if dcol3.button("Löschen", key=f"del_{task_key}_{i}", icon=":material/delete:"):
                         delete_take(MODULE, task_key, i)
                         st.rerun()
 

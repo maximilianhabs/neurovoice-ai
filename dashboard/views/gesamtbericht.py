@@ -17,7 +17,7 @@ from core.session_store import get_session_id
 st.markdown(
     """
     <div class="dw-eyebrow">Zusammenfassung</div>
-    <div class="dw-hero-title">📊 Gesamtbericht</div>
+    <div class="dw-hero-title">Gesamtbericht</div>
     <div class="dw-subtitle">Laborwert-Stil — deskriptiv, keine Diagnose</div>
     """,
     unsafe_allow_html=True,
@@ -31,7 +31,7 @@ st.caption(
 )
 
 st.info(
-    "ℹ️ **Wichtig**: Diese Übersicht ist rein beschreibend. Ein „auffälliger“ Wert bedeutet "
+    "**Wichtig**: Diese Übersicht ist rein beschreibend. Ein „auffälliger“ Wert bedeutet "
     "NICHT automatisch eine Erkrankung — der Kontext-Kommentar zeigt nur, mit welchen "
     "Mustern eine Auffälligkeit in der Literatur assoziiert wird. Keine Diagnose, keine "
     "ärztliche Einschätzung ersetzt."
@@ -65,4 +65,4 @@ else:
             st.dataframe(df, width="stretch", hide_index=True)
 
             for caveat in age_caveats_for(flat):
-                st.caption(f"⚠️ {caveat}")
+                st.caption(caveat, help="Alters-/Geschlechts-Hinweis")

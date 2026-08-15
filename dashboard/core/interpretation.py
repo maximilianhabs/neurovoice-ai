@@ -13,7 +13,7 @@ vergeben, nur Wert + Kontext -- konsistent mit der bisherigen Gauge-Darstellung
 
 from __future__ import annotations
 
-from core.reference_ranges import hnr_zones, jitter_zones, shimmer_zones, speech_rate_zones, verdict_for_value
+from core.reference_ranges import hnr_zones, jitter_zones, shimmer_zones, speech_rate_zones, verdict_for_value, zone_for_value
 
 AGE_CAVEAT_JITTER_SHIMMER_HNR_F0 = (
     "F0/Jitter/Shimmer/HNR verändern sich nachweislich mit Alter und Geschlecht (z.B. "
@@ -204,6 +204,7 @@ def interpret(param_key: str, value: float | None) -> dict | None:
         "value": value,
         "range": "kein etablierter Normbereich",
         "status": "kein Normwert",
+        "zone": "neutral",
         "context": info["context"],
         "age_caveat": info["age_caveat"],
     }
@@ -213,6 +214,7 @@ def interpret(param_key: str, value: float | None) -> dict | None:
         result["range"] = f"{lo:.0f}–{hi:.0f} {info['unit']}".strip()
         _, status = verdict_for_value(value, lo, hi, zones)
         result["status"] = status
+        result["zone"] = zone_for_value(value, lo, hi, zones)
 
     return result
 
@@ -249,6 +251,28 @@ def build_rows(flat: dict) -> list[dict]:
             "Kontext (deskriptiv)": info["context"],
         })
     return rows
+
+
+def build_tiles(flat: dict) -> list[dict]:
+    """Baut die Kachel-Daten (Baustein A, docs/backlog.md "Konzept: Design-Bereinigung") fuer
+    die "Auf-einen-Blick"-Ansicht direkt auf der Modul-Seite -- dieselbe Datengrundlage wie
+    build_rows(), nur kompakt fuer core/shared.py::kpi_tile() statt einer Tabellenzeile."""
+    tiles = []
+    for param_key in PARAMETER_INFO:
+        if param_key not in flat:
+            continue
+        info = interpret(param_key, flat[param_key])
+        if info is None:
+            continue
+        value_text = f"{info['value']:.2f} {info['unit']}".strip() if info["value"] is not None else "–"
+        tiles.append({
+            "label": info["label"],
+            "value_text": value_text,
+            "sub_text": info["status"],
+            "zone": info["zone"],
+            "description": info["description"],
+        })
+    return tiles
 
 
 def age_caveats_for(flat: dict) -> set[str]:
