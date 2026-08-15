@@ -181,6 +181,72 @@ def basic_stats(path: str) -> dict:
     }
 
 
+SILENCE_THRESHOLD_DBFS = -40.0  # Fenster unterhalb gelten als "Stille" -- grobe Heuristik,
+# noch nicht an echten Aufnahmen kalibriert (siehe Docstring unten).
+CLIPPING_THRESHOLD = 0.99  # Anteil der Vollaussteuerung, ab dem ein Sample als "geklippt" zaehlt
+
+
+def recording_quality_features(path: str, frame_ms: float = 30.0) -> dict:
+    """Recording-Quality-Check (P6, siehe docs/backlog.md, externer Audit Prio 1) --
+    SNR-Naeherung, Clipping-Anteil, Stille-Anteil aus den Rohdaten, ohne neue Abhaengigkeit
+    (nutzt dieselbe soundfile-Basis wie basic_stats()).
+
+    BEWUSST REIN INFORMATIV, KEIN HARTES CUTOFF-GATE (Nutzer-Prinzip aus
+    [[feedback_signalverarbeitung_kennwerte]]: Schwellen erst an echten Aufnahmen
+    kalibrieren, bevor irgendwas als "schlecht" markiert wird -- die Schwellen hier
+    (SILENCE_THRESHOLD_DBFS/CLIPPING_THRESHOLD) sind grobe Startwerte, keine validierten
+    Grenzwerte).
+
+    SNR-Schaetzung: 90. Perzentil der Fenster-Lautstaerke (lauter/Sprach-Anteil) minus
+    10. Perzentil (leiser, aber von Null verschiedener Anteil, Naeherung fuer den
+    Rauschboden) -- kein echtes Signal-Rausch-Verhaeltnis im messtechnischen Sinn (dafuer
+    braeuchte man eine echte Stille-Referenz ohne Sprache), aber ein brauchbarer
+    Anhaltspunkt ohne zusaetzliches Tooling.
+
+    Bugfix beim Testen gefunden (2026-08-15, synthetischer Test mit reiner Stille):
+    ein erster Entwurf filterte Fenster mit RMS==0 VOR der Stille-Berechnung heraus --
+    dadurch wurde reine Digitalstille faelschlich NICHT als Stille gezaehlt (0% statt 100%).
+    Jetzt zwei getrennte Fenster-Reihen: `frame_db_all` (epsilon-geflooert, zaehlt ALLES
+    fuer die Stille-Quote) vs. `frame_rms_nonzero` (nur fuer die SNR-Schaetzung, da reine
+    Digital-Nullen kein realer Rauschboden sind und die Schaetzung sonst absurd aufblaehen
+    -- bei echtem Mikrofon-Grundrauschen praktisch nie exakt Null, betrifft also v.a.
+    synthetische Randfaelle/angehaengte Stille).
+    """
+    samples, sample_rate = sf.read(path, dtype="float64", always_2d=True)
+    samples_mono = samples.mean(axis=1)
+    n = len(samples_mono)
+    empty = {"clipping_pct": None, "silence_pct": None, "snr_estimate_db": None}
+    if n == 0:
+        return empty
+
+    clipping_pct = float(100 * np.mean(np.abs(samples_mono) >= CLIPPING_THRESHOLD))
+
+    frame_len = max(1, int(sample_rate * frame_ms / 1000))
+    n_frames = n // frame_len
+    if n_frames == 0:
+        return {**empty, "clipping_pct": clipping_pct}
+
+    frames = samples_mono[: n_frames * frame_len].reshape(n_frames, frame_len)
+    frame_rms = np.sqrt(np.mean(frames ** 2, axis=1))
+
+    EPS = 1e-10
+    frame_db_all = 20 * np.log10(np.maximum(frame_rms, EPS))
+    silence_pct = float(100 * np.mean(frame_db_all < SILENCE_THRESHOLD_DBFS))
+
+    frame_rms_nonzero = frame_rms[frame_rms > 0]
+    if len(frame_rms_nonzero) < 2:
+        snr_estimate_db = None
+    else:
+        frame_db_nonzero = 20 * np.log10(frame_rms_nonzero)
+        snr_estimate_db = float(np.percentile(frame_db_nonzero, 90) - np.percentile(frame_db_nonzero, 10))
+
+    return {
+        "clipping_pct": clipping_pct,
+        "silence_pct": silence_pct,
+        "snr_estimate_db": snr_estimate_db,
+    }
+
+
 def phonation_features(path: str) -> dict:
     """Stufe-1-Features (siehe docs/backlog.md): F0, Jitter, Shimmer, HNR via Parselmouth."""
     sound = parselmouth.Sound(path)

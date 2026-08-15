@@ -205,9 +205,23 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         erscheint auf der Vokalisation-Seite mit allen 6 Spalten inkl. neuer "Was es misst"-
         Spalte, Werte identisch zu Referenzwerten, Regressionstest über alle 6 Seiten ohne
         Exception, HTTP 200 nach Deploy.
-- [ ] **P6 — Recording-Quality-Check** (bereits Prio 1 im externen Audit oben) — passt hier
-      besonders gut als vorgeschalteter Schritt in jedem Modul, gerade wegen variabler
-      Laptop-Mikrofonqualität.
+- [x] **P6 — Recording-Quality-Check** ✅ UMGESETZT (2026-08-15) — neue
+      `recording_quality_features()` in `core/audio.py` (kein neuer Tech-Stack, nutzt
+      dieselbe soundfile-Basis wie `basic_stats()`): Clipping-Anteil (% Samples nahe
+      Vollaussteuerung), Stille-Anteil (% Fenster unter -40dBFS, grobe Startschwelle) und
+      eine SNR-Näherung (90.–10. Perzentil der Fenster-Lautstärke). **Bewusst rein
+      informativ, kein hartes Cutoff-Gate** (Prinzip aus
+      [[feedback_signalverarbeitung_kennwerte]]: Schwellen erst an echten Aufnahmen
+      kalibrieren) — in allen 4 Guide-Modulen direkt nach dem Aufnahme-Player als
+      3-Metriken-Zeile mit erklärendem Caption, kein Aussortieren. Echter Bug beim Testen
+      VOR dem Deploy gefunden+behoben (siehe docs/bugtracker.md BUG-18): reine Digitalstille
+      wurde durch einen `frame_rms > 0`-Filter fälschlich als 0% Stille statt 100% gezählt —
+      gefunden durch gezielt konstruierte synthetische Testfälle (Stille/Clipping/Misch),
+      nicht nur echte Aufnahmen. Verifiziert: synthetische Grenzfälle (reine Stille → 100%,
+      leere Datei → alle `None`, Mischfall → korrekte ~33%) UND echte Testdateien (kein
+      Clipping, plausible Stille-/SNR-Werte 19-34%/24-32dB), End-to-End über echten
+      Schreib-Lese-Zyklus mit Anzeige auf der Modul-Seite bestätigt. Regressionstest über
+      alle 6 Seiten ohne Exception, HTTP 200 nach Deploy.
 - [ ] **P7 — Audit-Parameter einbauen**: RAP/PPQ5/APQ11, MPT, echte VSA-Formel, F0-Tremor
       (bereits im externen Audit oben priorisiert) — technisch unabhängig, können parallel zu
       P2/P3 einlaufen, sobald das jeweilige Modul (Vokalisation) steht.

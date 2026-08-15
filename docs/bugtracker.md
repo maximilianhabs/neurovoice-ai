@@ -246,6 +246,30 @@ kleiner Schritt. Als Backlog-Punkt vermerkt.
 
 ---
 
+## BUG-18 — Recording-Quality-Check zählte reine Stille fälschlich als 0% ✅ BEHOBEN (vor Deploy gefunden)
+
+**Symptom:** Beim Testen der neuen `recording_quality_features()` (P6) mit einer
+synthetischen Testdatei (1s Stille + 1s Ton + 1s geklipptes Signal) zeigte die
+Stille-Quote 0% statt der erwarteten ~33%.
+
+**Root Cause:** Fenster mit RMS exakt 0 (reine Digitalstille) wurden VOR der
+Stille-Berechnung per `frame_rms[frame_rms > 0]` herausgefiltert (um `log(0)` zu
+vermeiden) — dadurch flossen sie gar nicht mehr in die Stille-Prozent-Rechnung ein.
+
+**Fix:** Zwei getrennte Fenster-Reihen — `frame_db_all` (epsilon-geflooert mit
+`np.maximum(frame_rms, 1e-10)`, zählt ALLES für die Stille-Quote) vs. `frame_rms_nonzero`
+(nur für die SNR-Schätzung, da reine Digital-Nullen kein realer Rauschboden sind und die
+Schätzung sonst absurd aufblähen würden — mit echtem Mikrofon-Grundrauschen praktisch nie
+exakt Null, betrifft also v.a. synthetische Randfälle/angehängte Stille).
+
+**Lehre**: Vor dem Deploy mit gezielt konstruierten synthetischen Testfällen (reine Stille,
+reines Clipping, Mischfall) statt nur echten Aufnahmen getestet — echte Aufnahmen allein
+hätten diesen Bug nicht zwingend aufgedeckt, da sie selten exakte Digitalstille enthalten
+(Mikrofon-Grundrauschen). Deckt sich mit [[feedback_signalverarbeitung_kennwerte]]: gezielt
+Grenzfälle/Sentinel-Werte testen, nicht nur den Regelfall.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,

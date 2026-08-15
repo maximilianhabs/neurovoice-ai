@@ -17,7 +17,7 @@ import pandas as pd
 import parselmouth
 import streamlit as st
 
-from core.audio import articulation_features, ddk_rate_features, save_uploaded_wav
+from core.audio import articulation_features, ddk_rate_features, recording_quality_features, save_uploaded_wav
 from core.interpretation import age_caveats_for, build_rows, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import gauge_figure, intensity_figure, spectrogram_figure, waveform_figure
@@ -117,6 +117,16 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
 
             take = takes[chosen_idx]
             st.audio(take["audio_bytes"], format="audio/wav")
+
+            q = recording_quality_features(take["recording_path"])
+            qc1, qc2, qc3 = st.columns(3)
+            qc1.metric("Clipping", f"{_fmt(q['clipping_pct'], 1)} %")
+            qc2.metric("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %")
+            qc3.metric("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB")
+            st.caption(
+                "Aufnahmequalität — grobe Heuristik, noch nicht an echten Aufnahmen "
+                "kalibriert. Rein informativ, kein automatisches Aussortieren."
+            )
 
             with st.expander("Visualisierungen (Wellenform, Lautstärke, Spektrogramm)", expanded=True):
                 sound = parselmouth.Sound(take["recording_path"])
