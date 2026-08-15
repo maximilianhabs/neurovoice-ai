@@ -11,7 +11,7 @@ Wert eine Erkrankung BEDEUTET. Inhaltliche Basis: docs/literatur_review.md.
 import pandas as pd
 import streamlit as st
 
-from core.interpretation import PARAMETER_INFO, interpret
+from core.interpretation import age_caveats_for, build_rows, flatten_take
 from core.session_store import get_session_id
 
 st.markdown(
@@ -52,29 +52,8 @@ else:
             if selected is None:
                 continue
 
-            # Alle Kennwert-Gruppen (phonation/dynamics/cpp/... je nach Modul unterschiedlich
-            # benannt) zu einem flachen Dict zusammenfassen, um gegen PARAMETER_INFO zu suchen.
-            flat: dict = {}
-            for key, val in selected.items():
-                if isinstance(val, dict):
-                    flat.update(val)
-
-            rows = []
-            for param_key in PARAMETER_INFO:
-                if param_key not in flat:
-                    continue
-                info = interpret(param_key, flat[param_key])
-                if info is None:
-                    continue
-                value_str = f"{info['value']:.2f} {info['unit']}".strip() if info["value"] is not None else "–"
-                rows.append({
-                    "Parameter": info["label"],
-                    "Wert": value_str,
-                    "Normbereich": info["range"],
-                    "Status": info["status"],
-                    "Kontext (deskriptiv)": info["context"],
-                })
-
+            flat = flatten_take(selected)
+            rows = build_rows(flat)
             if not rows:
                 continue
 
@@ -85,10 +64,5 @@ else:
             df = pd.DataFrame(rows)
             st.dataframe(df, width="stretch", hide_index=True)
 
-            age_caveats = {
-                interpret(k, flat[k])["age_caveat"]
-                for k in PARAMETER_INFO
-                if k in flat and interpret(k, flat[k]) and interpret(k, flat[k])["age_caveat"]
-            }
-            for caveat in age_caveats:
+            for caveat in age_caveats_for(flat):
                 st.caption(f"⚠️ {caveat}")

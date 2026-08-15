@@ -13,11 +13,14 @@ Ergebnis sofort nach der Aufnahme verfügbar. DDK-Rate hat keinen etablierten No
 
 import os
 
+import pandas as pd
+import parselmouth
 import streamlit as st
 
 from core.audio import articulation_features, ddk_rate_features, save_uploaded_wav
+from core.interpretation import age_caveats_for, build_rows, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
-from core.plots import gauge_figure
+from core.plots import gauge_figure, intensity_figure, spectrogram_figure, waveform_figure
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "ddk"
@@ -115,6 +118,12 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             take = takes[chosen_idx]
             st.audio(take["audio_bytes"], format="audio/wav")
 
+            with st.expander("Visualisierungen (Wellenform, Lautstärke, Spektrogramm)", expanded=True):
+                sound = parselmouth.Sound(take["recording_path"])
+                st.pyplot(waveform_figure(sound), width="stretch")
+                st.pyplot(intensity_figure(sound), width="stretch")
+                st.pyplot(spectrogram_figure(sound), width="stretch")
+
             ddk = take["ddk"]
             articulation = take["articulation"]
 
@@ -141,6 +150,14 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                     "Höherer Variationskoeffizient (CV) = unregelmäßigere Zyklen — gilt in der "
                     "Literatur als möglicher Hinweis auf ataktische Dysarthrie, nicht nur die reine Rate."
                 )
+
+            st.markdown("**Was bedeuten diese Werte?**")
+            flat = flatten_take(take)
+            rows = build_rows(flat)
+            if rows:
+                st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+                for caveat in age_caveats_for(flat):
+                    st.caption(f"⚠️ {caveat}")
 
             with st.expander(f"Alle {len(takes)} Versuche verwalten"):
                 for i, t in enumerate(takes):

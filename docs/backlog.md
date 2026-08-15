@@ -190,6 +190,21 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       Werte/Status/Normbereiche korrekt, identisch zu früher in dieser Session gemessenen
       Referenzwerten, Alters-Caveat erscheint korrekt. Regressionstest über alle 6 Seiten
       ohne Exception, HTTP 200 nach Deploy.
+  - [x] **Nachbesserung (2026-08-15, Nutzer-Feedback)**: Visualisierungen (Wellenform/
+        Lautstärke/Spektrogramm mit F0+Formant-Tracks) — die es nur im alten Testdaten-Modus
+        gab — in alle 4 Guide-Module zurückgebracht (`waveform_figure`/`intensity_figure`/
+        `spectrogram_figure` aus `core/plots.py`, wiederverwendet). Interpretations-Tabelle
+        (P5) läuft jetzt NICHT mehr nur im Gesamtbericht, sondern DIREKT auf jeder Modul-
+        Seite, wo aufgenommen/analysiert wird ("Was bedeuten diese Werte?" direkt unter den
+        Kennwerten). `core/interpretation.py` um `description`-Feld ("Was es misst") pro
+        Parameter erweitert + 4 neue Parameter (Formant F1/F2, Intonationskontur-Phrasen,
+        TTR) ergänzt, damit die Tabelle die tatsächlich pro Modul gezeigten Kennwerte
+        abdeckt. Duplizierte Zeilen-Bau-Logik zwischen den Modulen und
+        `views/gesamtbericht.py` in geteilte Helper (`flatten_take()`, `build_rows()`,
+        `age_caveats_for()`) extrahiert. Verifiziert: End-to-End mit echten Daten — Tabelle
+        erscheint auf der Vokalisation-Seite mit allen 6 Spalten inkl. neuer "Was es misst"-
+        Spalte, Werte identisch zu Referenzwerten, Regressionstest über alle 6 Seiten ohne
+        Exception, HTTP 200 nach Deploy.
 - [ ] **P6 — Recording-Quality-Check** (bereits Prio 1 im externen Audit oben) — passt hier
       besonders gut als vorgeschalteter Schritt in jedem Modul, gerade wegen variabler
       Laptop-Mikrofonqualität.
