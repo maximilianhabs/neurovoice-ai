@@ -108,6 +108,37 @@ dem Deploy — keine Auswirkung auf echte Nutzer, da noch nicht live genutzt.
 
 ---
 
+## BUG-15 — Mikrofonaufnahme (`st.audio_input`) schlug fehl: App lief nur über HTTP ✅ BEHOBEN
+
+**Symptom:** Beim echten Test durch den Nutzer im Browser (2026-08-15, erste Nutzung von P0
+"Mikrofonaufnahme im Browser") erschien beim Klick auf den Aufnahme-Button "An error has
+occurred, please try again" — keine Aufnahme möglich, auch keine sichtbare
+Mikrofon-Berechtigungsabfrage.
+
+**Root Cause:** Browser (Chrome/Firefox/Safari gleichermaßen) verweigern den Zugriff auf
+`getUserMedia` (die zugrunde liegende Web-API für Mikrofon-/Kamerazugriff) grundsätzlich auf
+unverschlüsselten Origins — Ausnahme ist nur `localhost`. Unser Dashboard lief bisher
+ausschließlich über `http://100.67.129.76:8501` (kein HTTPS), eine private Tailscale-IP zählt
+dabei NICHT als "sicherer Kontext". Kein App-Bug im engeren Sinn, sondern eine
+Browser-Sicherheitsrichtlinie, die erst beim echten Mikrofon-Testversuch sichtbar wurde
+(automatisierte Tests/AppTest können das nicht abdecken, da sie keinen echten Browser
+verwenden).
+
+**Fix:** `tailscale serve --bg http://100.67.129.76:8501` — stellt automatisches, gültiges
+HTTPS innerhalb des eigenen Tailnets bereit (Zertifikat via Tailscale selbst, kein Public-
+Internet-Zugriff, kein eigenes Zertifikats-Handling). Neue App-Adresse:
+`https://homeserver.tailaecdbb.ts.net`. Setup brauchte zwei einmalige Freischaltungen:
+(1) `sudo tailscale set --operator=maximilian` auf dem Server (NOPASSWD-freundlich, analog
+zum Stromspar-Timer-Setup), (2) "Serve" im Tailscale-Admin-Konto bestätigen
+(login.tailscale.com, nur mit Nutzer-Login möglich, einmalig pro Tailnet).
+
+**Lehre für künftige Browser-Feature-Integrationen**: Mikrofon/Kamera/Standort/Clipboard-
+Zugriff (alle `getUserMedia`-artigen Browser-APIs) brauchen einen sicheren Kontext (HTTPS
+oder localhost) — bei jeder neuen Browser-API-Funktion vorher prüfen, ob die App aktuell
+über HTTPS erreichbar ist, nicht erst beim ersten fehlgeschlagenen Nutzertest merken.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,

@@ -57,9 +57,16 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       (Streamlit 1.61.1, `sample_rate: int | None = 16000` bestätigt). Kein neues Paket nötig.
       Verifiziert: Regressionstest über alle 8 bestehenden Aufnahmen ohne Exception,
       Mikrofon-Modus zeigt Task-Dropdown + korrekten Hinweistext ohne Aufnahme, HTTP 200 nach
-      Deploy. **Echter Mikrofon-Test im Browser selbst noch offen** — Tailscale-only
-      erreichbar, der sandboxed Browser hier kann weder die Adresse laden noch auf ein
-      Mikrofon zugreifen; bitte selbst im eigenen Browser gegentesten.
+      Deploy. **Echter Mikrofon-Test im Browser deckte einen echten Blocker auf** (siehe
+      docs/bugtracker.md BUG-15): Browser verweigern Mikrofonzugriff grundsätzlich auf
+      unverschlüsselten HTTP-Origins — App lief nur über `http://100.67.129.76:8501`.
+      **Fix**: `tailscale serve --bg http://100.67.129.76:8501` — automatisches HTTPS
+      innerhalb des Tailnets (kein öffentlicher Zugriff, kein eigenes Zertifikats-Handling
+      nötig). Neue Adresse: **`https://homeserver.tailaecdbb.ts.net`**. Setup brauchte
+      einmalig `tailscale set --operator=maximilian` (NOPASSWD-Pattern) + einmalige
+      Freischaltung von "Serve" im Tailscale-Admin-Konto (Nutzer-Bestätigung über
+      login.tailscale.com). HTTP 200 über die neue HTTPS-Adresse bestätigt, echter
+      Mikrofon-Aufnahme-Test durch den Nutzer selbst noch ausstehend.
 - [ ] **P1 — Take-Management**: Nummerierung je Proband:in+Modul(+Unteraufgabe), Vergleichsansicht,
       manuelle Auswahl des Versuchs für den Gesamtbericht.
 - [ ] **P2 — Modul-Grundgerüst**: Umbau von Single-Page auf Multi-Page (`st.navigation`/`st.Page`,
