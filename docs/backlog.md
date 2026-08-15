@@ -95,6 +95,11 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       Rohdaten-Anzeige des Sitzungs-Zustands (`st.json`), echte Laborwert-Aufbereitung ist P5.
       Verifiziert: alle 6 Seiten einzeln headless ohne Exception, Navigation zwischen Seiten
       via `AppTest.switch_page()` ohne Exception, HTTP 200 nach Deploy.
+  - [x] **Ampel-Gauges statt nackter Zahlen** ✅ NACHGEBESSERT (2026-08-15, Nutzer-Feedback
+        beim Testen) — Jitter/Shimmer/HNR/CPPS zeigen jetzt dieselben Referenzbereich-Gauges
+        wie der Testdaten-Modus (`core/plots.py::gauge_figure()` +
+        `core/reference_ranges.py`), statt reiner `st.metric()`-Zahlen. Verifiziert per
+        PNG-Export gegen echte Testdatei (Jitter 0,6% korrekt im grünen Normbereich).
 - [x] **P3 (teilweise)** ✅ Platzhalter für die restlichen 3 Module (`views/vorlesen.py`,
       `views/spontansprache.py`, `views/ddk.py`) angelegt, klar als "🚧 im Aufbau" markiert
       mit Verweis auf den Testdaten-Modus — Navigationsstruktur ist vollständig, echte
@@ -109,6 +114,15 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
 - [ ] **P7 — Audit-Parameter einbauen**: RAP/PPQ5/APQ11, MPT, echte VSA-Formel, F0-Tremor
       (bereits im externen Audit oben priorisiert) — technisch unabhängig, können parallel zu
       P2/P3 einlaufen, sobald das jeweilige Modul (Vokalisation) steht.
+- [ ] **P8 — Live-Aufnahmedauer-Farbfeedback** (Nutzer-Idee 2026-08-15, bewusst zurückgestellt,
+      nur UX-Politur): während der Mikrofonaufnahme farblich anzeigen, wie lange schon
+      aufgenommen wird — grün bis zur Zielsekunde (z.B. 3s für Vokale), ab ~4-5s orange, ab
+      ~10s rot ("weil's unnötig ist" — Signal, dass die Aufnahme beendet werden kann/sollte).
+      **Technisch unklar/zu prüfen**: `st.audio_input` liefert aktuell keinen Live-Callback
+      während der Aufnahme läuft (nur das fertige Ergebnis nach Stop) — eine reine
+      CSS-Lösung (wie der bestehende dezente Aufnahme-Hinweis) kann vermutlich keine
+      Zeit-abhängige Farbe erzeugen, nur einen statischen "läuft"-Zustand. Bräuchte
+      eventuell eigene JS-Komponente statt des nativen Widgets — erst bei Umsetzung klären.
 
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 

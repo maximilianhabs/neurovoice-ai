@@ -22,6 +22,8 @@ import os
 import streamlit as st
 
 from core.audio import cpp_features, formant_features, phonation_dynamics_features, phonation_features, save_uploaded_wav
+from core.plots import gauge_figure
+from core.reference_ranges import hnr_zones, jitter_zones, shimmer_zones, verdict_for_value
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 
@@ -103,20 +105,43 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                     "formants": form,
                 }
 
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("F0 (Mittel)", f"{phon['f0_mean_hz']:.0f} Hz" if phon["f0_mean_hz"] else "–")
-                c2.metric("Jitter (local)", f"{phon['jitter_local_pct']:.2f} %" if phon["jitter_local_pct"] else "–")
-                c3.metric("Shimmer (local)", f"{phon['shimmer_local_pct']:.2f} %" if phon["shimmer_local_pct"] else "–")
-                c4.metric("HNR", f"{phon['hnr_mean_db']:.1f} dB" if phon["hnr_mean_db"] else "–")
+                # Ampel-Gauges statt nackter Zahlen (Nutzer-Feedback 2026-08-15) -- nutzt
+                # dieselben Referenzbereiche/Farben wie der Testdaten-Modus (core/plots.py,
+                # core/reference_ranges.py), damit beide Ansichten konsistent bleiben.
+                g1, g2, g3, g4 = st.columns(4)
+                with g1:
+                    lo, hi, zones = jitter_zones()
+                    value = phon["jitter_local_pct"]
+                    st.pyplot(gauge_figure("Jitter (local)", value, "%", lo, hi, zones), width="stretch")
+                    if value is not None:
+                        _, verdict = verdict_for_value(value, lo, hi, zones)
+                        st.caption(verdict)
+                with g2:
+                    lo, hi, zones = shimmer_zones()
+                    value = phon["shimmer_local_pct"]
+                    st.pyplot(gauge_figure("Shimmer (local)", value, "%", lo, hi, zones), width="stretch")
+                    if value is not None:
+                        _, verdict = verdict_for_value(value, lo, hi, zones)
+                        st.caption(verdict)
+                with g3:
+                    lo, hi, zones = hnr_zones()
+                    value = phon["hnr_mean_db"]
+                    st.pyplot(gauge_figure("HNR", value, "dB", lo, hi, zones), width="stretch")
+                    if value is not None:
+                        _, verdict = verdict_for_value(value, lo, hi, zones)
+                        st.caption(verdict)
+                with g4:
+                    st.pyplot(gauge_figure("CPPS", cpp["cpps_db"], "dB", 0, 20), width="stretch")
+                    st.caption("informativ, parameterabhängig")
 
-                c5, c6, c7 = st.columns(3)
-                c5.metric("CPPS", f"{cpp['cpps_db']:.1f} dB" if cpp["cpps_db"] else "–")
-                c6.metric(
+                c1, c2, c3 = st.columns(3)
+                c1.metric("F0 (Mittel)", f"{phon['f0_mean_hz']:.0f} Hz" if phon["f0_mean_hz"] else "–")
+                c2.metric(
                     "Voice Breaks",
                     f"{dyn['voice_breaks_count']} · {dyn['voice_breaks_degree_pct']:.1f}%"
                     if dyn["voice_breaks_count"] is not None else "–",
                 )
-                c7.metric(
+                c3.metric(
                     "Formanten F1/F2/F3",
                     f"{form['f1_mean_hz']:.0f}/{form['f2_mean_hz']:.0f}/{form['f3_mean_hz']:.0f} Hz"
                     if form["f1_mean_hz"] else "–",
