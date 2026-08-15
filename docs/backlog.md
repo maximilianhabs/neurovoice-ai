@@ -78,10 +78,27 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         über dem Aufnahme-/Upload-Feld.
 - [ ] **P1 — Take-Management**: Nummerierung je Proband:in+Modul(+Unteraufgabe), Vergleichsansicht,
       manuelle Auswahl des Versuchs für den Gesamtbericht.
-- [ ] **P2 — Modul-Grundgerüst**: Umbau von Single-Page auf Multi-Page (`st.navigation`/`st.Page`,
-      wie beim EDF-Analyzer bereits genutzt), EIN Modul (Vokalisation, da einfachste Aufgabe)
-      komplett als Vorlage durchbauen, inkl. Instruktionstext im Modul selbst.
-- [ ] **P3** — restliche 3 Module nach demselben Muster.
+- [x] **P2 — Modul-Grundgerüst** ✅ UMGESETZT (2026-08-15) — Umbau von Single-Page auf
+      Multi-Page (`st.navigation`/`st.Page`, wie beim EDF-Analyzer). Neue Struktur:
+      `app.py` nur noch schlanker Navigations-Einstiegspunkt (`st.set_page_config`/
+      `apply_global_style()` zentral hier), `dashboard/views/` mit einer Datei je Seite.
+      **Vokalisation komplett als Vorlage gebaut** (`views/vokalisation.py`): 3 Tabs
+      (/a/ Pflicht, /i/+/u/ optional), je Tab eigene Instruktion + Mikrofon-/Upload-Wahl,
+      berechnet Phonation/Dynamics/CPP/Formanten direkt nach Aufnahme, Ergebnisse landen in
+      `st.session_state["module_results"]["vokalisation"]` (nur Sitzungs-Zustand, keine
+      Persistenz — das ist P4). **Take-Management (P1) bewusst noch NICHT enthalten** — eine
+      Aufnahme pro Teilaufgabe, erneutes Aufnehmen überschreibt die Anzeige (keine
+      Mehrfachversuche/Vergleich/Auswahl "bester Versuch" bislang).
+      Bestehende Single-Page-Funktionalität komplett unverändert nach `views/testdaten.py`
+      verschoben ("Entwicklermodus"/"Testdaten & freie Auswahl" in der Navigation) — nichts
+      verloren, wie vom Nutzer gefordert. `views/gesamtbericht.py` als vorläufige
+      Rohdaten-Anzeige des Sitzungs-Zustands (`st.json`), echte Laborwert-Aufbereitung ist P5.
+      Verifiziert: alle 6 Seiten einzeln headless ohne Exception, Navigation zwischen Seiten
+      via `AppTest.switch_page()` ohne Exception, HTTP 200 nach Deploy.
+- [x] **P3 (teilweise)** ✅ Platzhalter für die restlichen 3 Module (`views/vorlesen.py`,
+      `views/spontansprache.py`, `views/ddk.py`) angelegt, klar als "🚧 im Aufbau" markiert
+      mit Verweis auf den Testdaten-Modus — Navigationsstruktur ist vollständig, echte
+      Umsetzung der 3 Module folgt nach demselben Muster wie Vokalisation.
 - [ ] **P4 — Persistentes Speicherschema + Gesamtbericht**: strukturiertes Format je Sitzung
       (Anknüpfung an Punkt 23 aus dem externen Audit oben, "Strukturiertes Analyse-Schema").
 - [ ] **P5 — Laborwert-Stil-Interpretation**: Normbereiche + Kontext-Kommentare, erweitert
