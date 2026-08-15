@@ -13,6 +13,9 @@ import streamlit as st
 from core.interpretation import age_caveats_for, build_rows, flatten_take
 from core.session_store import get_session_id
 from core.shared import render_interpretation_table
+from core.subject_store import require_subject_or_stop
+
+require_subject_or_stop()
 
 st.markdown(
     """
@@ -22,6 +25,17 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# P10 (docs/backlog.md): Proband:innen-Zuordnung MUSS auf dem Report sichtbar sein (Nutzer-
+# Vorgabe), nicht nur als Sidebar-Badge -- direkt unter dem Titel, prominent.
+subject_id = st.session_state.get("subject_id")
+subject_age = st.session_state.get("subject_age")
+st.markdown(
+    f'<div class="dw-card-subtle"><b>Proband:in:</b> <code>{subject_id}</code> · '
+    f'<b>Alter:</b> {subject_age if subject_age is not None else "–"}</div>',
+    unsafe_allow_html=True,
+)
+st.write("")
 
 session_id = get_session_id()
 st.caption(

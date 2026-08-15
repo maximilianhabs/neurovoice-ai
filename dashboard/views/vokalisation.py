@@ -37,6 +37,7 @@ from core.audio import (
 )
 from core.interpretation import age_caveats_for, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take, selected_take
+from core.subject_store import require_subject_or_stop
 from core.plots import intensity_figure, spectrogram_figure, waveform_figure
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
@@ -46,6 +47,8 @@ from core.shared import (
     recording_duration_feedback_style,
     render_interpretation_table,
 )
+
+require_subject_or_stop()
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "vokalisation"

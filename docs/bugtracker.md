@@ -298,6 +298,29 @@ durchklicken und mit dem Vorzustand vergleichen.
 
 ---
 
+## BUG-20 — Sidebar-Proband:innen-Badge im Testdaten-Modus beim ersten Aufruf leer ✅ BEHOBEN
+
+**Symptom:** Beim Testen von P10 (Proband:innen-Erfassung, `views/testdaten.py` weist
+automatisch eine `TEST-XXXX`-ID zu) blieb `core/shared.py::render_subject_badge()` in der
+Sidebar beim allerersten Seitenaufruf leer, obwohl die ID korrekt in `st.session_state`
+gesetzt wurde.
+
+**Root Cause:** `render_subject_badge()` läuft zentral in `app.py`, VOR `pg.run()`. Die
+automatische ID-Zuordnung passiert aber INNERHALB von `views/testdaten.py`, also erst
+WÄHREND `pg.run()` — die Badge hatte den frisch gesetzten Wert beim erstmaligen Rendern also
+noch nicht gesehen.
+
+**Fix:** `st.rerun()` direkt nach der automatischen Zuordnung in `testdaten.py`. Kein
+Endlosschleifen-Risiko, da der umgebende `if not st.session_state.get("subject_id")`-Guard
+nach dem Rerun nicht mehr greift.
+
+**Lehre**: Zentral VOR `pg.run()` gerenderte Sidebar-Elemente sehen Zustandsänderungen, die
+erst INNERHALB der Seite selbst passieren, immer erst einen Rerun später — bei jeder
+automatischen (nicht durch einen Button ausgelösten) State-Änderung in einer View explizit
+prüfen, ob ein zentral gerendertes Element dadurch veraltet sein könnte.
+
+---
+
 ## RANDNOTIZ-11 — WhisperX glättet Füllwörter aus erster Spontansprache-Testaufnahme weg ⚠️ OFFEN (Befund, kein Bug)
 
 **Symptom:** Erste echte Spontansprache-Testaufnahme (2026-07-24, "Wandertour"-Beschreibung,

@@ -310,6 +310,28 @@ def recording_duration_feedback_style(green_s: float, orange_s: float, red_s: fl
     )
 
 
+def render_subject_badge() -> None:
+    """Zeigt die aktuell zugeordnete Proband:innen-ID + Alter in der Sidebar (P10, docs/
+    backlog.md) -- Nutzer-Vorgabe: auf JEDER Seite/jedem Modul sichtbar bleiben, damit klar
+    ist, "bei welcher ID man grade ist". Einmal zentral in app.py aufgerufen, VOR pg.run() --
+    Sidebar-Inhalt ausserhalb der eigentlichen Seiten-Funktion bleibt ueber Seitenwechsel
+    hinweg bestehen, muss also nicht in jeder View einzeln aufgerufen werden."""
+    subject_id = st.session_state.get("subject_id")
+    if not subject_id:
+        return
+    age = st.session_state.get("subject_age")
+    st.sidebar.markdown(
+        f'<div style="padding:10px 12px;margin-bottom:12px;border-radius:var(--dw-radius-md);'
+        f'background:var(--dw-bg-subtle);border:1px solid var(--dw-border);">'
+        f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.02em;'
+        f'color:var(--dw-text-secondary);font-weight:600;">Proband:in</div>'
+        f'<div style="font-size:16px;font-weight:700;color:var(--dw-text-primary);">{subject_id}</div>'
+        f'<div style="font-size:12px;color:var(--dw-text-secondary);">Alter {age if age is not None else "–"}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def render_interpretation_table(rows: list[dict]) -> None:
     """Rendert die Laborwert-Interpretationstabelle (core.interpretation.build_rows()) so, dass
     lange Texte ("Was es misst"/"Kontext") vollstaendig lesbar sind. Nutzer-Feedback

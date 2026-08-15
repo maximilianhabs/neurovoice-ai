@@ -71,6 +71,10 @@ def save_session_snapshot(session_id: str) -> None:
     payload = {
         "schema_version": SCHEMA_VERSION,
         "session_id": session_id,
+        # P10 (docs/backlog.md): Proband:innen-Zuordnung -- subject_id gilt ueber mehrere
+        # Sitzungen hinweg (core/subject_store.py), Alter wird JE SITZUNG neu erfasst.
+        "subject_id": st.session_state.get("subject_id"),
+        "subject_age_at_session": st.session_state.get("subject_age"),
         "created_at": existing_created_at or now,
         "updated_at": now,
         "modules": serializable,
@@ -83,9 +87,6 @@ def load_session_snapshot(session_id: str) -> None:
     """Laedt eine gespeicherte Sitzung zurueck in st.session_state, falls vorhanden UND
     st.session_state noch leer ist (verhindert, dass ein Laden waehrend derselben Sitzung
     frische, noch nicht gespeicherte Aenderungen ueberschreibt)."""
-    if st.session_state.get("module_results"):
-        return
-
     path = _session_file(session_id)
     if not os.path.exists(path):
         return
@@ -94,6 +95,17 @@ def load_session_snapshot(session_id: str) -> None:
         with open(path, encoding="utf-8") as f:
             payload = json.load(f)
     except (json.JSONDecodeError, OSError):
+        return
+
+    # P10: subject_id/Alter IMMER uebernehmen, unabhaengig vom module_results-Fruehausstieg
+    # unten -- leichtgewichtig, kein Risiko frische Take-Aenderungen zu ueberschreiben (anders
+    # als module_results, das deshalb den strengeren Guard behaelt).
+    if payload.get("subject_id") and not st.session_state.get("subject_id"):
+        st.session_state["subject_id"] = payload["subject_id"]
+    if payload.get("subject_age_at_session") is not None and st.session_state.get("subject_age") is None:
+        st.session_state["subject_age"] = payload["subject_age_at_session"]
+
+    if st.session_state.get("module_results"):
         return
 
     module_results = {}

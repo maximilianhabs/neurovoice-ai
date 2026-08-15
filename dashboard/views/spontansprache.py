@@ -43,6 +43,9 @@ from core.shared import (
     render_interpretation_table,
     transcribe_with_progress,
 )
+from core.subject_store import require_subject_or_stop
+
+require_subject_or_stop()
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "spontansprache"

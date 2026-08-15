@@ -316,9 +316,8 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
         Hintergrund, kein Blockieren des Pollings), Regressionstest über alle 6 Seiten ohne
         Exception, HTTP 200 nach Deploy.
 
-- [ ] **P10 — Proband:innen-Erfassung am Sitzungsanfang** (Nutzer-Feedback 2026-08-15, Konzept
-      jetzt ausgearbeitet inkl. 2 Grundsatzentscheidungen mit Nutzer geklärt — **weiterhin NICHT
-      umgesetzt**, erst nach Freigabe) — aktuell startet eine Sitzung direkt mit der ersten
+- [x] **P10 — Proband:innen-Erfassung am Sitzungsanfang** ✅ UMGESETZT (2026-08-15) — aktuell
+      startet eine Sitzung direkt mit der ersten
       Aufnahme, ohne dass irgendwo erfasst wird, WER untersucht wird. Für die spätere
       longitudinale Auswertung (Verlauf über mehrere Sitzungen hinweg, das ist der ganze Sinn
       des Projekts) muss ein Report eindeutig einem Subjekt zuordenbar sein.
@@ -391,6 +390,64 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
     eher in den separaten Public-Release-Fahrplan als hierher.
   - Exakte ID-Alphabet-/Formatwahl (Länge, Zeichensatz) — Vorschlag oben ist ein erster Wurf,
     kein endgültiger Beschluss.
+
+  ### Umsetzung (2026-08-15, nach Nutzer-Freigabe "setze das so um")
+
+  Konzept 1:1 wie oben umgesetzt, plus explizite Nutzer-Vorgabe aus der Freigabe: die
+  zugeordnete Proband:in muss auf JEDER Seite sichtbar bleiben (nicht nur auf der Startseite)
+  UND explizit im Gesamtbericht erscheinen.
+
+  - **`core/subject_store.py`** (NEU): `generate_subject_id()` (Format `NV-XXXX`, Alphabet
+    ohne `0`/`O`/`1`/`I`/`l`, kollisionsgeprüft gegen `derived/_subjects/`),
+    `list_subjects()` (Index-Liste, neueste Aktivität zuerst), `bind_subject_to_session()`
+    (schreibt `subject_id`/Alter in `st.session_state`, persistiert sofort die Sitzungsdatei
+    UND aktualisiert `derived/_subjects/<id>.json`), `require_subject_or_stop()` (Gate-Funktion
+    analog zum EDF-Analyzer-Muster `get_edf_or_stop()`).
+  - **`core/session_store.py`** erweitert: Payload trägt jetzt `subject_id` +
+    `subject_age_at_session`. `load_session_snapshot()` übernimmt beide IMMER (auch wenn
+    `module_results` schon gefüllt ist und der bestehende Guard dafür früh aussteigt) — sonst
+    würde die Proband:innen-Zuordnung beim erneuten Laden verloren gehen.
+  - **`views/start.py`** (NEU): erste Seite im Guide. Zwei Tabs — "Neue:r Proband:in"
+    (ID-Generator-Button + Pflichtfeld Alter) und "Bekannte:r Proband:in fortsetzen"
+    (Auswahlliste aus `list_subjects()`, zeigt Anzahl bisheriger Sitzungen + letztes Datum).
+    Ist die Sitzung bereits zugeordnet, zeigt die Seite das direkt an + einen Weiter-Button.
+  - **`app.py`**: `views/start.py` als erste Seite in `st.navigation()`. Neue zentrale
+    `core/shared.py::render_subject_badge()` einmal VOR `pg.run()` aufgerufen — Sidebar-Inhalt
+    außerhalb der Seiten-Funktion bleibt über Seitenwechsel hinweg bestehen, erfüllt damit die
+    "auf jeder Seite"-Vorgabe ohne Wiederholung in jeder einzelnen View.
+  - **`require_subject_or_stop()`** ganz oben in allen 4 Guide-Modulen + `views/gesamtbericht.py`
+    eingebaut (vor jeder anderen Ausgabe) — blockiert mit klarer Meldung + Link zur Startseite,
+    solange keine ID zugeordnet ist.
+  - **`views/gesamtbericht.py`**: zusätzlich zur Sidebar-Badge eine prominente Zeile direkt im
+    Report-Inhalt selbst ("Proband:in: `NV-XXXX` · Alter: NN"), wie explizit gefordert.
+  - **`views/testdaten.py`**: bekommt automatisch eine `TEST-XXXX`-ID zugewiesen (eigenes
+    Präfix, damit Test-IDs in der Auswahlliste klar von echten Proband:innen-IDs
+    unterscheidbar bleiben) — kein manueller Schritt nötig, damit der Entwickler-Workflow
+    nicht unterbrochen wird, aber "Pflicht, kein Überspringen" gilt konsequent auch hier.
+
+  **Bug gefunden + behoben (vor Deploy final verifiziert)**: die automatische TEST-ID-Zuweisung
+  in `testdaten.py` zeigte im allerersten Aufruf eine LEERE Sidebar-Badge — `render_subject_badge()`
+  läuft in `app.py` VOR `pg.run()`, sieht das gerade erst in `testdaten.py` gesetzte
+  `subject_id` also erst im nächsten Rerun. Fix: `st.rerun()` direkt nach der automatischen
+  Zuordnung (guard verhindert eine Endlosschleife, da `subject_id` danach gesetzt ist).
+
+  **Verifiziert**: End-to-End auf dem Server — Gate blockiert korrekt mit Warnung + Startseite-
+  Link, ID-Generierung funktioniert, vollständiger Bind-Flow (ID + Alter → Sitzung starten)
+  bestätigt per direktem Session-Datei-Inhalt (`subject_id`/`subject_age_at_session` korrekt
+  persistiert), Sidebar-Badge UND Gesamtbericht-Zeile zeigen die zugeordnete ID nach einem
+  simulierten Seiten-Reload korrekt an, "Bekannte:r Proband:in fortsetzen"-Liste zeigt
+  vorherige IDs korrekt, Testdaten-Modus bekommt automatisch eine TEST-ID inkl. sichtbarer
+  Badge (nach dem Rerun-Fix). Regressionstest über alle 7 Seiten (inkl. neuer Startseite) ohne
+  Exception, HTTP 200 nach Deploy.
+
+  **Nebenbefund beim Aufräumen**: mehrere frühere Verifikations-Durchgänge dieser Session
+  (P7/Design-Bereinigung) hatten Test-Dateien in `derived/_uploads/` hinterlassen, die mein
+  Cleanup-Muster nicht erfasst hatte (Suchmuster prüfte den an `save_uploaded_wav()`
+  übergebenen Namen, nicht den tatsächlich gespeicherten Dateinamen mit
+  Zeitstempel-Präfix) — die eindeutig identifizierbaren wurden nachträglich entfernt. Übrige,
+  nicht eindeutig als Testartefakt erkennbare Dateien in `_uploads/` bewusst NICHT gelöscht
+  (könnten eigene manuelle Testaufnahmen des Nutzers sein) — bei Gelegenheit gemeinsam
+  durchsehen.
 
 ## Konzept: Design-Bereinigung — weg von Tacho-Gauges/Emojis, hin zu nüchternen Kacheln (2026-08-15)
 

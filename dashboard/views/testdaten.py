@@ -41,6 +41,20 @@ from core.shared import (
     render_interpretation_table,
     transcribe_with_progress,
 )
+from core.session_store import get_session_id
+from core.subject_store import bind_subject_to_session, generate_subject_id
+
+# P10 (docs/backlog.md): auch der Testdaten-/Entwicklermodus bekommt automatisch eine ID
+# zugewiesen (Nutzer-Entscheidung "Pflicht, kein Ueberspringen") -- ohne manuellen Schritt,
+# damit der bestehende Entwickler-Workflow nicht unterbrochen wird. Eigenes "TEST"-Praefix,
+# damit Test-IDs in der "Bekannte:r Proband:in fortsetzen"-Liste auf views/start.py klar von
+# echten Proband:innen-IDs unterscheidbar bleiben.
+if not st.session_state.get("subject_id"):
+    bind_subject_to_session(get_session_id(), generate_subject_id(prefix="TEST"), age=0)
+    # Sidebar-Badge (core/shared.py::render_subject_badge()) rendert in app.py VOR pg.run(),
+    # sieht das gerade erst gesetzte subject_id also erst im naechsten Rerun -- ohne Rerun
+    # bliebe die Badge im allerersten Aufruf leer (Timing-Bug, gefunden beim Testen).
+    st.rerun()
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 # Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
