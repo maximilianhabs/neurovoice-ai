@@ -69,8 +69,23 @@ UPLOAD_PATIENT_ID = "_uploads"
 # rechnet mit derselben Einheit um, sonst zeigt sie z.B. "Limit 26 MB" bei "25 MB" Absicht.
 MAX_UPLOAD_BYTES = 25 * 1_000_000
 
+# Phase A, Schritt 2 (Self-Service-Upload, siehe docs/backlog.md): feste Task-Typ-Liste fuer
+# Uploads, deckungsgleich mit den Task-Codes, die bislang aus Dateinamen geparst wurden
+# (FILENAME_RE) -- "vokal" (gehaltenes /a/) kommt bisher aus keiner echten Testaufnahme,
+# ist aber im Aufnahme-Konzept (docs/backlog.md "Patienten-Testprotokoll") vorgesehen.
+UPLOAD_TASK_LABELS = {
+    "lesetext": "Lesetext (Vorlesen)",
+    "vokal": "Gehaltener Vokal /a/",
+    "vokali": "Gehaltener Vokal /i/",
+    "vokalu": "Gehaltener Vokal /u/",
+    "ddkgemischt": "DDK kombiniert (\"pa-ta-ka\")",
+    "ddkeinzeln": "DDK einzeln (pa / ta / ka nacheinander)",
+    "spontan": "Spontansprache (freies Erzählen)",
+    "unbekannt": "Unbekannt / Sonstiges",
+}
 
-def save_uploaded_wav(derived_dir: str, filename: str, data: bytes) -> Recording:
+
+def save_uploaded_wav(derived_dir: str, filename: str, data: bytes, task: str = "unbekannt") -> Recording:
     """Validiert + speichert eine hochgeladene WAV-Datei, gibt eine Recording zurueck.
 
     Bewusst als reine Funktion getrennt von der Streamlit-file_uploader-Widget-Logik in
@@ -83,6 +98,12 @@ def save_uploaded_wav(derived_dir: str, filename: str, data: bytes) -> Recording
     WAV-Uploads, kein M4A/ALAC) -- das ist ein spaeterer Schritt (siehe docs/backlog.md
     "Self-Service-Upload", Schritt 4).
 
+    Args:
+        task: Task-Typ, wie ihn die/der Nutzer:in beim Upload ausgewaehlt hat (siehe
+            UPLOAD_TASK_LABELS). Faellt auf "unbekannt" zurueck, falls ein unbekannter Wert
+            hereinkommt -- verhindert, dass ein manipulierter/veralteter Aufrufer einen Wert
+            einschleust, der nicht zur Ampel-/Fit-Logik (core/reference_ranges.py) passt.
+
     Raises:
         ValueError: bei zu grosser Datei oder wenn die Datei kein gueltiges, nicht-leeres
             WAV ist -- mit einer fuer die UI verstaendlichen Fehlermeldung.
@@ -94,6 +115,8 @@ def save_uploaded_wav(derived_dir: str, filename: str, data: bytes) -> Recording
         )
     if len(data) == 0:
         raise ValueError("Datei ist leer.")
+    if task not in UPLOAD_TASK_LABELS:
+        task = "unbekannt"
 
     upload_dir = os.path.join(derived_dir, UPLOAD_PATIENT_ID)
     os.makedirs(upload_dir, exist_ok=True)
@@ -125,7 +148,7 @@ def save_uploaded_wav(derived_dir: str, filename: str, data: bytes) -> Recording
         filename=unique_name,
         path=out_path,
         date=timestamp[:10],
-        task="unbekannt",
+        task=task,
         take="1",
     )
 

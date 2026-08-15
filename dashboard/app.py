@@ -8,6 +8,7 @@ import parselmouth
 import streamlit as st
 
 from core.audio import (
+    UPLOAD_TASK_LABELS,
     articulation_features,
     basic_stats,
     cpp_features,
@@ -25,6 +26,7 @@ from core.audio import (
 )
 from core.plots import gauge_figure, intensity_figure, radar_figure, spectrogram_figure, waveform_figure
 from core.reference_ranges import FIT_LABELS, hnr_zones, speech_rate_zones, verdict_for_value
+from core.shared import apply_global_style
 
 DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 # Getrennt von DATA_DIR (das read-only bleibt) -- hier landen abgeleitete Ergebnisse wie
@@ -58,20 +60,37 @@ def _fmt(value, decimals=2):
 
 
 st.set_page_config(page_title="NeuroVoice AI — Analyse-Dashboard", layout="wide", page_icon="🎙️")
-st.title("🎙️ NeuroVoice AI — Analyse-Dashboard")
+apply_global_style()
 
-# --- Sidebar: Datei auswählen ODER hochladen (Phase A, Schritt 1 -- siehe docs/backlog.md
-# "Self-Service-Upload"). Task-Typ-Abfrage fuer Uploads + Konvertierung anderer Formate als
-# WAV sind bewusst noch nicht Teil dieses Schritts, kommen als naechste kleine Schritte.
+# Design-Transfer vom EDF-Analyzer (2026-08-14, siehe [[project_edf_ui_redesign]]):
+# Eyebrow+Hero-Title+Subtitle-Muster statt st.title() -- auf App-Seitentitel herunterskaliert.
+st.markdown(
+    """
+    <div class="dw-eyebrow">Sprachbiomarker-Analyse</div>
+    <div class="dw-hero-title">🎙️ NeuroVoice AI</div>
+    <div class="dw-subtitle">Lokales, datenschutzkonformes Analyse-Dashboard</div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- Sidebar: Datei auswählen ODER hochladen (Phase A, siehe docs/backlog.md
+# "Self-Service-Upload"). Schritt 1: Upload-UI. Schritt 2 (hier): Task-Typ-Abfrage, damit
+# die Ampel-/Fit-Logik (core/reference_ranges.py) bei Uploads genauso greift wie bei den
+# eigenen Testaufnahmen. Konvertierung anderer Formate als WAV bleibt ein spaeterer Schritt.
 source_mode = st.sidebar.radio("Quelle", ["Vorhandene Aufnahmen", "Datei hochladen (WAV)"])
 
 if source_mode == "Datei hochladen (WAV)":
     uploaded_file = st.sidebar.file_uploader("WAV-Datei (max. 25 MB)", type=["wav"])
+    upload_task = st.sidebar.selectbox(
+        "Was wurde aufgenommen?",
+        list(UPLOAD_TASK_LABELS.keys()),
+        format_func=lambda k: UPLOAD_TASK_LABELS[k],
+    )
     if uploaded_file is None:
         st.info("Bitte eine WAV-Datei in der Seitenleiste hochladen.")
         st.stop()
     try:
-        recording = save_uploaded_wav(DERIVED_DIR, uploaded_file.name, uploaded_file.getvalue())
+        recording = save_uploaded_wav(DERIVED_DIR, uploaded_file.name, uploaded_file.getvalue(), task=upload_task)
     except ValueError as exc:
         st.sidebar.error(str(exc))
         st.stop()
@@ -93,9 +112,9 @@ else:
     recording = recordings[selected_idx]
 
 st.sidebar.markdown(f"**Datei:** `{recording.filename}`")
-st.sidebar.markdown(f"**Task-Typ:** `{recording.task}`")
+st.sidebar.markdown(f"**Task-Typ:** `{UPLOAD_TASK_LABELS.get(recording.task, recording.task)}`")
 if recording.task == "unbekannt":
-    st.sidebar.caption("Task-Typ bei Uploads noch nicht abfragbar — kommt als nächster Schritt.")
+    st.sidebar.caption("Ohne bekannten Task-Typ sind vokal-spezifische Werte (Jitter/Shimmer/VSA) nicht sicher einordenbar.")
 
 # --- Player ---
 with open(recording.path, "rb") as f:

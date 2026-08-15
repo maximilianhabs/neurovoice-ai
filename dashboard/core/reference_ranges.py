@@ -16,10 +16,16 @@ gegen echte SVD-Zahlen austauschen (offene Frage, siehe docs/backlog.md).
 
 from __future__ import annotations
 
-GOOD = "#0ca30c"
-WARNING = "#fab219"
-CRITICAL = "#d03b3b"
-NEUTRAL = "#9aa6b2"
+from core.design_tokens import SUCCESS, WARNING as _WARNING, DANGER, TEXT_SECONDARY
+
+# Design-Transfer vom EDF-Analyzer (2026-08-14, siehe [[project_edf_ui_redesign]]): gleiche
+# kanonische Ampelfarben wie dort, statt eigener Ad-hoc-Hex-Werte -- fachliche Bedeutung
+# (gut/grenzwertig/auffällig/neutral) bleibt unverändert, nur die konkreten Töne wurden auf
+# core/design_tokens.py umgestellt, damit beide Streamlit-Apps optisch zusammengehören.
+GOOD = SUCCESS
+WARNING = _WARNING
+CRITICAL = DANGER
+NEUTRAL = TEXT_SECONDARY
 
 FIT_IMMER = "immer"
 FIT_EINGESCHRAENKT = "eingeschraenkt"

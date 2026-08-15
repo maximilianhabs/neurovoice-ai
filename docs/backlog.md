@@ -106,6 +106,38 @@ Wörter vorlesen lassen"), nicht nur nach Literatur-Robustheit:
 **Offen**: Ampel-Grenzwerte stammen aus allgemeiner Literatur/IReST, noch nicht aus der
 Saarbrücker Voice Database projektspezifisch gezogen (bestehende offene Frage, s.u.).
 
+## Design-System-Transfer vom EDF-Analyzer ✅ UMGESETZT (2026-08-15)
+
+Übertragung des Apple-artigen Redesigns (siehe EDF-Analyzer-Repo, `[[project_edf_ui_redesign]]`)
+auf NeuroVoice AI — gleiche Design-Tokens, damit alle eigenen Streamlit-Apps optisch
+zusammengehören. Bewusst als EIN Schritt umgesetzt statt phasenweise wie beim EDF-Analyzer
+(dort ~10 Seiten, hier nur 1 Seite — Aufwand/Nutzen-Verhältnis anders).
+
+- [x] `core/design_tokens.py` — Farb-/Radius-/Typografie-/Spacing-Konstanten, Werte identisch
+      zum EDF-Analyzer übernommen (Apple Blue `#0071e3` Akzent, Off-White `#f5f5f7`, near-black
+      Text `#1d1d1f`)
+- [x] `core/shared.py::apply_global_style()` — CSS-Variablen + Utility-Klassen
+      (`.dw-eyebrow`/`.dw-hero-title`/`.dw-subtitle`/`.dw-card`). Bewusst KEIN eigenes
+      Font-Hosting (anders als EDF-Analyzer mit lokalem Inter) — nur Systemschriften
+      (-apple-system/SF Pro), kein CDN-Request, passt zum Datenschutz-Prinzip des Projekts
+- [x] `.streamlit/config.toml` neu angelegt — Theme-Werte gespiegelt + `maxUploadSize=25`
+      als zweite, unabhängige Schranke zusätzlich zur eigenen Prüfung in `save_uploaded_wav()`
+- [x] `core/reference_ranges.py` — GOOD/WARNING/CRITICAL/NEUTRAL auf dieselben kanonischen
+      Töne wie der EDF-Analyzer umgestellt (SUCCESS/WARNING/DANGER/TEXT_SECONDARY aus
+      design_tokens), fachliche Bedeutung unverändert
+- [x] `core/plots.py` — Wellenform/Intensitätskurve/Gauge/Radar auf Tokens umgestellt.
+      **Bewusst NICHT angefasst**: die F0-/Formant-Overlay-Farben im Spektrogramm — die sind
+      funktional gegen die "afmhot"-Colormap kontrastgewählt, keine Marken-/Chrome-Farbe
+      (gleiche Begründung wie beim EDF-Analyzer, der sein dunkles EEG-Viewer-Theme aus
+      demselben Grund unberührt ließ)
+- [x] `app.py` — Titel auf Eyebrow+Hero-Title+Subtitle-Muster umgestellt statt `st.title()`
+
+**Verifiziert**: `py_compile` über alle geänderten Dateien sauber, Regressionstest über alle
+8 bestehenden Aufnahmen headless via AppTest ohne Exception, HTTP 200 nach Deploy. Gauge-/
+Radar-/Wellenform-/Intensitäts-Diagramme als PNG aus dem Container exportiert und visuell
+geprüft (Ampelfarben grün/orange/rot statt der alten Töne, Apple-Blau statt vorherigem Blau,
+Daten unverändert/nicht korrumpiert durch die Farbänderung).
+
 ## Phase 2 — Feature-Extraktion (nach stabiler Aufnahme-Pipeline)
 
 Tool-Basis: **Parselmouth** (Phonation/Spektral/Prosodie) + **WhisperX** (Transkript +
@@ -424,6 +456,14 @@ statt dass alles über die feste Ordnerstruktur (`data/raw/<patient_id>/...`) l�
       erfolgreich, Daten bit-identisch nach Upload-Roundtrip. Ein kosmetischer Bug beim
       Testen gefunden+behoben (Einheiten-Mismatch in der Größenlimit-Fehlermeldung, siehe
       docs/bugtracker.md BUG-14).
+- [x] **Task-Typ-Abfrage, Phase A Schritt 2** ✅ UMGESETZT (2026-08-15) — Dropdown
+      "Was wurde aufgenommen?" beim Upload (`UPLOAD_TASK_LABELS` in `core/audio.py`: Lesetext/
+      Vokal a-i-u/DDK kombiniert/DDK einzeln/Spontansprache/Unbekannt), `save_uploaded_wav()`
+      um `task`-Parameter erweitert — validiert gegen die feste Liste, fällt bei unbekanntem
+      Wert sicher auf `"unbekannt"` zurück (verifiziert: gültiger Task, ungültiger Task,
+      kein Task angegeben). Damit greift die Ampel-/Fit-Logik bei Uploads jetzt genauso wie
+      bei den eigenen Testaufnahmen. Regressionstest bestanden (alle 8 Aufnahmen weiterhin
+      ohne Exception).
 - [ ] Serverseitige Validierung + automatische Konvertierung hochgeladener Dateien (heutige
       `convert_and_verify.sh`-Logik müsste in die App selbst wandern statt nur als SSH-Skript
       zu laufen)
