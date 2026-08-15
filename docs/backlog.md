@@ -415,6 +415,107 @@ subtile Muster, die klassische Akustik-Features verpassen könnten.
       bereits mehrfach vermieden haben (siehe docs/literatur_review.md "Diskrepanz automatisierte
       Metriken vs. klinischer Eindruck"). **Nicht vor echten Validierungsdaten umsetzen.**
 
+## Externes wissenschaftliches Audit 2026-08-15
+
+Nutzer hat eine ausführliche externe Fachkritik eingebracht (multimodales 8-Ebenen-Konzept,
+Praat-Erweiterungen, Recording-Quality-Pflichtmodul, Longitudinal-Fokus, ML-Architektur).
+Jeder Kritikpunkt wurde **gegen den tatsächlichen Code geprüft**, nicht blind übernommen —
+wichtiges Ergebnis: ein erheblicher Teil der "Korrekturen" betraf Dinge, die wir nie so gebaut
+hatten bzw. die bei uns bereits richtig sind.
+
+### Geprüfte "Korrekturen" — Ergebnis: bei uns bereits korrekt bzw. nie so vorhanden
+
+- **HNR-Interpretation**: Kritik unterstellte eine "verdrehte" Interpretation (hohes HNR =
+  Rauschen). **Bei uns nie so gewesen** — Glossar (`app.py`) sagt korrekt "Höher = klarere
+  Stimme", `hnr_zones()` bewertet >20dB als gut, <15dB als auffällig. Kein Fix nötig.
+- **Jitter/Shimmer als zentrale Biomarker**: Kritik empfiehlt, sie nicht als globale
+  Hauptmarker zu behandeln, CPP zu bevorzugen. **Bereits so umgesetzt** seit dem
+  Normwert-Ampel-Konzept (2026-07-21/22): Jitter/Shimmer laufen klein/muted unter "braucht
+  gehaltenen Vokal", CPP läuft groß/vorne unter "immer auswertbar" (Stufe 6, `cpp_features()`).
+- **Sprechrate vs. Artikulationsrate trennen**: **Bereits umgesetzt** —
+  `speech_metrics.py::compute_speech_metrics()` liefert `net_speech_rate_wpm` UND
+  `articulation_rate_wpm` getrennt, seit Chunk 3 (2026-07-21).
+- **Phänotyp/Score statt Diagnose, keine unvalidierten Gewichtungsscores**: **Bereits
+  Projekt-Prinzip**, siehe "Klinische Indizes"-Eintrag oben (Vorbehalt seit 2026-07-22) und
+  README ("Kein Diagnose-KI-Ersatz"). Kein aktuelles ML-Modell im Projekt, das eine
+  Fehlinterpretation überhaupt zulassen würde.
+- **"Acoustic Nasality Index" statt echter "Nasalance"**: Kritik bezieht sich auf ein
+  einfaches <500Hz/>500Hz-Energieverhältnis als Nasalitätsmaß. **Bei uns nie implementiert**
+  — wir haben aktuell KEIN Nasalitäts-/Resonanz-Feature. Wichtiger Hinweis für den Fall, dass
+  das mal gebaut wird: dann von Anfang an als "Acoustic Nasality Index" benennen, nicht als
+  "Nasalance" (echte Nasalance bräuchte kalibrierte Instrumentalmessung).
+- **Patient-Level-Split für ML (keine Aufnahmen derselben Person in Train UND Test)**:
+  aktuell nicht relevant (kein ML-Modell vorhanden), aber wichtiger Grundsatz für den Tag,
+  an dem eines gebaut wird — hier vermerkt, nicht vergessen.
+
+### Echte, neu identifizierte Lücken — priorisiert nach Aufwand
+
+**Prio 1 — kleine Schritte, kein neuer Tech-Stack (nutzen vorhandene Praat-Infrastruktur):**
+- [ ] **RAP, PPQ5, APQ11** — feinere Jitter-/Shimmer-Untermaße. Technisch trivial: nutzen
+      denselben `point_process` (`"To PointProcess (periodic, cc)"`), der in
+      `phonation_features()` schon für Jitter/Shimmer local existiert — nur zusätzliche
+      `praat.call(point_process, "Get jitter (rap)"/"Get jitter (ppq5)", ...)`-Aufrufe nötig.
+- [ ] **Maximum Phonation Time (MPT)** — wie lange kann ein gehaltener Vokal ohne Unterbrechung
+      gehalten werden. Einfach aus stimmhafter Dauer der Vokal-Aufnahmen ableitbar (gleiche
+      Grundlage wie `phonation_dynamics_features()`s Voice-Breaks-Erkennung), kein neues Modell.
+      Braucht Vokal-Task mit klarer Instruktion "so lange wie möglich halten" — aktuelle
+      Vokal-Aufnahmen (vokali/vokalu, 2026-07-24) waren nicht auf maximale Dauer instruiert,
+      neue MPT-spezifische Aufnahme sinnvoll.
+- [ ] **Vokalraum-Fläche (VSA), echte Dreiecksformel** — bereits als offener Punkt vermerkt
+      (siehe Stufe 2 oben), jetzt technisch möglich seit /a/(aus Lesetext)/i//u/ als separate
+      Aufnahmen vorliegen (2026-07-24) — fehlt nur noch die Umsetzung selbst, keine neuen Daten.
+- [ ] **Recording Quality Check** (vereinfachte Vorstufe zum vorgeschlagenen "RQI 0-100"):
+      SNR-Näherung, Clipping-Anteil, Stille-Anteil — aus bereits vorhandenen `basic_stats()`-
+      Rohdaten ableitbar (Peak/RMS dBFS sind schon da), kein neuer Tech-Stack. **Wichtig, aber
+      bewusst nicht als hartes Cutoff-Gate umsetzen** (Prinzip aus
+      [[feedback_signalverarbeitung_kennwerte]]: erst an echten Aufnahmen kalibrieren, bevor
+      etwas als "schlecht" markiert wird) — erst informativ anzeigen, Schwellen später schärfen.
+
+**Prio 2 — moderater Aufwand, baut auf vorhandenen Daten/Funktionen auf:**
+- [ ] **F0-Tremor-Analyse** (FFT/PSD der F0-Zeitreihe, Tremor-Peak-Frequenz/-Amplitude/-Power)
+      statt nur F0-SD — nutzt dieselbe F0-Zeitreihe wie `phonation_dynamics_features()`, aber
+      neue Analyse (Detrending + Spektralanalyse der Tonhöhenkurve selbst, nicht des Audios).
+      Interessant für Parkinson- vs. essenziellen-Tremor-Differenzierung laut Kritik.
+- [ ] **Formant-Übergangsraten bei definierten Vokalwechseln** (z.B. /a/→/i/, F2-Slope in
+      Hz/ms) — Erweiterung von `formant_dynamics_features()`, das bisher nur globale
+      Geschwindigkeit über eine ganze Aufnahme misst, nicht gezielt an einem Vokalübergang.
+      Bräuchte eine neue Aufgabe (z.B. "aaa-iii-aaa" in einer Aufnahme) statt reiner
+      Einzelvokale.
+- [ ] **Standardisiertes Aufnahmeprotokoll erweitern**: MPT-Task, Sätze mit gezielt
+      unterschiedlichen Artikulationsorten (bilabial/alveolar/velar/Frikative) — ergänzt das
+      bereits bestehende Patienten-Testprotokoll-Konzept oben (Aufgabe 1-3).
+
+**Prio 3 — neuer Tech-Stack, größerer Aufwand:**
+- [ ] **openSMILE eGeMAPSv02** als standardisierter Feature-Block (ergänzt, ersetzt nicht die
+      eigenen Parselmouth-Features) — neue Python-Abhängigkeit, muss gegen die
+      Server-Ressourcen geprüft werden (siehe Chunk-5-Lehre bei WhisperX).
+- [ ] **Speech-Intelligibility-Score (WER/CER)** — ASR-Text (WhisperX, bereits vorhanden) gegen
+      erwarteten Text vergleichen (bei standardisierten Aufgaben wie Lesetext/DDK bekannt).
+      Braucht Referenztext-Hinterlegung pro Task + Editierdistanz-Berechnung.
+- [ ] **Silero VAD** als Ersatz/Ergänzung zur bisherigen Intensitäts-basierten Stimm-/Pause-
+      Erkennung — leichtgewichtig, lokal/ONNX-fähig, aber neue Abhängigkeit, Nutzen gegenüber
+      der bestehenden Lösung (Intensitätsschwellen aus Praat) noch nicht belegt.
+- [ ] **wav2vec2/WavLM-Embeddings** — bereits als eigenständige Initiative oben vermerkt
+      ("Self-Supervised-Learning-Embeddings"), Grundsatzfrage weiterhin ungeklärt.
+
+**Prio 4 — strukturell, braucht Longitudinal-Daten bzw. DB-Umbau:**
+- [ ] **Strukturiertes Analyse-Schema statt reiner Tabelle** (Analysis-ID, Recording-Hash,
+      Feature-Versionierung, Zeitstempel) — für Reproduzierbarkeit, falls das Projekt über
+      die eigene Testphase hinauswächst. Aktuell nicht dringend (1 Proband, kein Reporting-
+      Bedarf über eine Sitzung hinaus).
+- [ ] **Longitudinal-Tracking/Δ-Metriken** — bereits oben vermerkt, wartet weiterhin auf echte
+      Mehrfach-Sessions über Zeit (aktuell alle 8 Testaufnahmen von 2 Tagen, kein echter
+      Verlauf).
+
+### Nicht übernommen / bewusst zurückgestellt
+
+ML-Klassifikation (XGBoost/SHAP), Deep-Learning-Embeddings als Klassifikator, "Hypokinetic/
+Bulbar/Ataxic Score"-Konstrukte — passen zum "Später"-Abschnitt unten (explizit nicht Teil
+des aktuellen Auftrags) UND zum bereits bestehenden Vorbehalt bei "Klinische Indizes" oben:
+ohne echte, gelabelte Patientendaten wäre jede Gewichtung/jeder Score unbelegt. Die Grund-
+Philosophie der externen Kritik (Ebene A "Messung" / B "Phänotyp" / C "Ätiologie" strikt
+trennen) deckt sich mit unserem bisherigen Vorgehen, ändert aber nichts an der Priorisierung.
+
 ## Online-Verfügbarkeit & Self-Service-Upload (Konzept, Stand 2026-07-22)
 
 Nutzerwunsch: Die Applikation soll irgendwann "online" laufen. Zwei unterschiedliche Ausbaustufen,
