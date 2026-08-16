@@ -1,5 +1,29 @@
 # Konzept: P9 — Transkription als Hintergrund-Job + lokale Docker-Nutzung (Mac/Windows)
 
+## Nachtrag 2026-08-16: lokaler Docker-Workflow pausiert — Server bleibt primärer Testweg
+
+Nach dem echten lokalen Testlauf (arm64-Build erfolgreich, Container liefen) zeigte sich beim
+Transkribieren ein reales Problem: Docker Desktop auf diesem Mac hat nur 8GB VM-Speicher
+zugeteilt (bei insgesamt 16GB physischem RAM), und der Worker allein brauchte beim
+gleichzeitigen Laden von WhisperX large-v3 + deutschem Alignment-Modell ~6GB — zu knapp, wenn
+parallel noch andere lokale Docker-Projekte laufen (hier: `nz-dienstplan`). Ergebnis: der
+Worker-Container stürzte ab/startete neu (`RestartCount: 1`), ein Job blieb verwaist bei 60%
+"running" stehen, ein zweiter zeigte "Job nicht gefunden". **Kein Software-Bug** — der Server
+hat 12GB RAM exklusiv plus ein festes 7GB-Limit nur für den Worker, ohne Konkurrenz durch
+andere Projekte, deshalb lief es dort bisher immer sauber.
+
+**Nutzer-Entscheidung 2026-08-16**: lokale Docker-Nutzung als aktiven Entwicklungs-/Test-
+Workflow PAUSIEREN — die andere lokal laufenden Docker-Projekte (nz-dienstplan) und die
+NeuroVoice-Container selbst wurden gestoppt (Named Volumes mit Modell-Cache bleiben aber
+erhalten). **Primärer Arbeitsablauf ab sofort wieder: Server-Deploy via SSH/scp**, wie vor P9.
+Der Code für die lokale Docker-Variante (`docker-compose.local.yml`, Dockerfile-Fixes,
+README-Doku) bleibt vollständig im Repo erhalten und funktionsfähig — wird aber NICHT mehr bei
+jeder kleinen Änderung parallel mitgezogen/getestet. Stattdessen: **einmal am Ende, wenn die
+Software einen stabilen/finalen Stand erreicht hat**, wird die lokale Docker-Variante für
+Nutzer:innen mit anderen Betriebssystemen (Mac/Windows/Linux ohne Zugriff auf den eigenen
+Server) fertig poliert und verifiziert — als bewusster, separater Abschlussschritt, nicht als
+laufende Nebenspur.
+
 Status: **Konzept, NICHT umgesetzt** (2026-08-16, Nutzer-Auftrag: "mache als nächstes P9 —
 bereite ein Konzept vor, Ziel ist, dass User das Tool lokal auf Mac oder Windows laufen lassen
 können, z.B. über Docker"). Siehe `docs/backlog.md` P9 und `docs/bugtracker.md` RANDNOTIZ-13

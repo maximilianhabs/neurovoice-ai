@@ -328,6 +328,19 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       Mac/Linux) sowie eine Übersicht der verwendeten Kernbibliotheken mit Lizenzen ergänzt.
       Docker-Build-Cache nach Abschluss bereinigt (~14GB durch die vorherigen
       Fehlversuche angesammelt, entfernt).
+      **Nachtrag 2026-08-16, lokaler Testlauf**: beim echten Transkribieren im lokalen Docker-
+      Setup fiel auf, dass Docker Desktop auf diesem Mac (16GB RAM, 8GB VM-Limit) für WhisperX
+      large-v3 + Alignment-Modell zu knapp bemessen ist, besonders mit anderen parallel
+      laufenden lokalen Docker-Projekten — Worker-Container stürzte ab/startete neu, ein Job
+      blieb verwaist hängen. Kein Software-Bug (auf dem Server mit 12GB exklusiv + 7GB-Limit
+      lief es immer sauber), aber ein echter Ressourcen-Engpass auf schwächerer lokaler
+      Hardware. **Nutzer-Entscheidung**: lokaler Docker-Workflow als aktive Test-/Entwicklungs-
+      Nebenspur PAUSIERT (andere lokale Docker-Projekte + NeuroVoice-Container gestoppt,
+      Modell-Cache-Volume bleibt erhalten) — primärer Arbeitsablauf wieder Server-Deploy via
+      SSH/scp wie vor P9. Die lokale Docker-Variante bleibt vollständig im Repo, wird aber erst
+      als bewusster Abschlussschritt poliert, wenn die Software einen stabilen/finalen Stand
+      erreicht hat (Details siehe `docs/konzept_p9_hintergrundjob_lokal.md`, Nachtrag oben im
+      Dokument).
   - [x] **Geschätzte Fortschrittsleiste** ✅ UMGESETZT (2026-08-15, Nutzer-Wunsch) —
         `core/shared.py::transcribe_with_progress()`: Transkription läuft in einem
         Hintergrund-Thread, Hauptthread pollt alle 0,5s und aktualisiert eine `st.progress()`-
