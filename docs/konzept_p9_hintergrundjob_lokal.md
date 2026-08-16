@@ -186,6 +186,17 @@ torch/whisperx: `docker exec <container> pip list | grep -i nvidia` sollte leer 
 - Images anderer Projekte (`anonymisator`, `edf-analyzer`, etc.) werden dabei NIE angefasst —
   Cleanup ist immer auf die gerade betroffenen Test-/Zwischenartefakte beschränkt.
 
+**✅ VOLLSTÄNDIG VERIFIZIERT, beide Plattformen (2026-08-16):**
+- **Server (amd64)**: `pip list | grep -iE 'nvidia|cuda'` leer, Image 15,1GB → 5,22GB,
+  `triton` (722,9MB) bewusst als legitime Direkt-Abhängigkeit von `whisperx` belassen, ~42GB
+  Alt-Cache bereinigt.
+- **Lokal (Apple Silicon, arm64)**: `pip list | grep -iE 'nvidia|cuda'` ebenfalls leer — hier
+  fehlt sogar `triton` komplett (dessen Paket-Metadaten schließen arm64 offenbar aus, da
+  primär für x86-GPU-Setups gedacht). Image 4,69GB → 3,84GB. Kompletter Neubau ohne Cache:
+  ca. 14 Minuten (schneller als der allererste arm64-Build mit 21 Minuten, da keine großen
+  CUDA-Wheels mehr heruntergeladen werden mussten — die Parselmouth-Kompilierung bleibt der
+  dominante Zeitfaktor, siehe oben).
+
 2. **Windows/Intel-Mac**: unkritischer, da Docker Desktop dort ohnehin dasselbe `linux/amd64`-
    Image wie der Server nutzt — der Host-Betriebssystem-Unterschied ist für den Container selbst
    irrelevant, `praat-parselmouth` bringt für Linux-amd64 bereits vorgebaute Wheels mit (bereits

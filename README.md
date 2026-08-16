@@ -99,7 +99,7 @@ bestimmt, welche Pakete heruntergeladen werden.
 |---|---|---|
 | Python-Abhängigkeiten (Torch CPU, WhisperX-Ökosystem, Streamlit, Parselmouth, …) | ca. 1,5–2 GB Download | Beim Bauen des Docker-Images |
 | WhisperX-Sprachmodell „large-v3" | ca. 3 GB | Beim ersten tatsächlichen Transkriptions-Lauf (nicht beim Bauen selbst) |
-| Fertiges Docker-Image (beide Container zusammen) | ca. 4,7 GB auf der Platte | Nach dem Bauen |
+| Fertiges Docker-Image (ein Dienst; UI + Worker teilen sich dieselbe Basis) | ca. 3,8–5,2 GB auf der Platte, je nach Plattform | Nach dem Bauen |
 
 **Empfohlener freier Speicherplatz insgesamt: mind. 15–20 GB** — das deckt Docker-Image,
 Sprachmodell UND den temporären Bau-Zwischenspeicher ab (Docker legt beim Bauen selbst
@@ -111,7 +111,7 @@ Docker-Cache):**
 
 | Plattform | Muss Parselmouth kompiliert werden? | Gemessene Bauzeit (einmalig) |
 |---|---|---|
-| **Apple Silicon (M1–M5), primäres Zielsystem** | **Ja** — für `linux/arm64` gibt es kein fertiges Parselmouth-Paket, wird beim Bauen aus dem C/C++-Quellcode übersetzt (Praats eigener Code, das dauert den Großteil der Zeit) | **ca. 21 Minuten** (davon allein ca. 15 Min. für die Parselmouth-Kompilierung) |
+| **Apple Silicon (M1–M5), primäres Zielsystem** | **Ja** — für `linux/arm64` gibt es kein fertiges Parselmouth-Paket, wird beim Bauen aus dem C/C++-Quellcode übersetzt (Praats eigener Code, das dauert den Großteil der Zeit) | **ca. 14 Minuten** (fast ausschließlich die Parselmouth-Kompilierung — alles andere lädt als fertiges CPU-Paket, keine unnötigen GPU-Pakete) |
 | **Windows (Docker Desktop, WSL2-Backend)** | Nein — fertiges Paket vorhanden (dieselbe `linux/amd64`-Architektur wie unser Produktivserver) | Nicht separat gemessen, aber strukturell identisch zum Server-Rebuild — deutlich schneller als arm64, im niedrigen einstelligen Minutenbereich zu erwarten |
 | **Intel-Mac (Docker Desktop)** | Nein — ebenfalls `linux/amd64`, wie Windows oben | Wie Windows oben |
 | **Linux (Ubuntu o.ä.) via Docker** | Nein, sofern `amd64` (die meisten PCs/Server) | Wie Windows oben — das ist auch die auf unserem eigenen Produktivserver (Ubuntu, Intel N150) tatsächlich genutzte und geprüfte Variante |

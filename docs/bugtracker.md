@@ -644,6 +644,16 @@ eingesparte Größe wert. AppTest-Smoke-Test + HTTP 200 nach dem Rebuild bestät
 ~42GB an altem, durch die mehreren Fehlversuche angesammeltem Docker-Build-Cache auf dem
 Server bereinigt (`docker builder prune`).
 
+**Zusätzlich verifiziert (lokal, Apple Silicon arm64, 2026-08-16)**: kompletter Neubau ohne
+Cache (`--no-cache`) erfolgreich, `pip list | grep -iE 'nvidia|cuda'` liefert NICHTS —
+arm64 hatte nicht einmal `triton` (dessen Abhängigkeitsmarker schließt arm64 offenbar
+automatisch aus, `triton` ist primär für x86-GPU-Setups gedacht). Image-Größe 3,84GB
+(vorher, vor diesem Fix: 4,69GB). Bauzeit ca. 14 Minuten (schneller als der allererste
+arm64-Build mit 21 Minuten, da keine großen CUDA-Wheels mehr heruntergeladen werden mussten —
+die Parselmouth-Kompilierung bleibt der dominante Zeitfaktor). `torch`/`whisperx`/
+`parselmouth`/`core.job_queue` alle im fertigen Image funktionsfähig bestätigt. Test-Image
+und zugehöriger Build-Cache nach der Verifikation wieder entfernt.
+
 **Lehre für künftige Dependency-Änderungen**: Wenn ein Paket über ein alternatives
 Index-Repository installiert wird, um eine bestimmte Variante zu erzwingen (hier: CPU-only),
 reicht das NICHT automatisch für Pakete, die DAVON ABHÄNGEN — die müssen explizit im selben
