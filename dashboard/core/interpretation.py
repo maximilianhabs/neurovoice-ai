@@ -207,7 +207,16 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "Klassisches PD-Merkmal neben Monopitch — siehe docs/literatur_review.md Abschnitt 4. Kein spezifischer SD-Cutoff in der Recherche gefunden.",
+        "literature": "Klassisches PD-Merkmal neben Monopitch — siehe docs/literatur_review.md Abschnitt 4. Kein spezifischer SD-Cutoff in der Recherche gefunden; qualitative Bestätigung u.a. bei Ma et al., „Loudness perception and speech intensity control in Parkinson's disease“ (Journal of Communication Disorders)",
+        "typical_values": (
+            "Kein publizierter Zahlenwert gefunden, nur die Richtung ist gut belegt: Monoloudness "
+            "(reduzierte Intensitäts-SD) gilt klassisch als eines der prototypischen Merkmale "
+            "hypokinetischer Dysarthrie. Ehrlicher Hinweis zur Literaturlage: einzelne Quellen "
+            "in dieser Recherche berichteten uneinheitlich auch von ERHÖHTER Variabilität in "
+            "bestimmten Kontexten (z.B. unter gezieltem Lautstärke-Training) — die klassische "
+            "„weniger Variabilität in Ruhe-Sprechweise“-Aussage bleibt aber die dominante, am "
+            "häufigsten zitierte Position."
+        ),
     },
     "ddk_rate_hz": {
         "label": "DDK-Rate",
@@ -266,7 +275,15 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Coefficient of variation als Ataxie-Marker in Gang-/Sprechstudien bestätigt (z.B. Perceptual and Acoustic Analysis of Speech in Spinocerebellar Ataxia Type 1), aber ohne einheitlichen publizierten Cutoff für DDK-CV",
+        "literature": "Coefficient of variation als Ataxie-Marker in Gang-/Sprechstudien bestätigt (z.B. Perceptual and Acoustic Analysis of Speech in Spinocerebellar Ataxia Type 1), aber ohne einheitlichen publizierten Cutoff für DDK-CV; zusätzlich Kent et al. 1979, „Diadochokinetic syllable rate and regularity in normal and in spastic and ataxic dysarthric subjects“",
+        "typical_values": (
+            "Kein publizierter CV-Prozentwert gefunden, aber eine konkrete Rohwert-Grundlage: "
+            "Kent et al. (1979) berichten eine mittlere Silbenzyklus-Dauer von 166ms (SD 80ms) "
+            "bei ataktischer Dysarthrie gegenüber 80ms (SD 40ms) bei gesunden Kontrollen — die "
+            "absolute Streuung ist bei Ataxie also größer, auch wenn das VERHÄLTNIS SD/Mittelwert "
+            "in diesen beiden Zahlen ähnlich bleibt. Bewusst KEINE eigene CV-Prozentzahl aus "
+            "diesen Rohdaten abgeleitet, da die Quelle CV nicht direkt so berichtet."
+        ),
     },
     "n_words": {
         "label": "Wörter (erkannt)",
@@ -286,7 +303,16 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": "Wie die Netto-Sprechrate unspezifisch für einzelne Dysarthrie-Typen — der Vergleich Netto- vs. Artikulationsrate zeigt, wie viel der Verlangsamung reine Pausenzeit ist.",
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "Netto- vs. Artikulationsrate ist Standardunterscheidung in der Sprechfluss-Literatur — siehe docs/literatur_review.md Abschnitt 5",
+        "literature": "Netto- vs. Artikulationsrate ist Standardunterscheidung in der Sprechfluss-Literatur — siehe docs/literatur_review.md Abschnitt 5; für Parkinson-spezifische Reduktion u.a. „A preliminary study of factors influencing perception of articulatory rate in Parkinson disease“ (PubMed) und De Letter et al. 2016",
+        "typical_values": (
+            "Kein publizierter WPM-Einzelwert gefunden, Richtung aber gut belegt: reduzierte "
+            "Artikulationsrate ist bei Parkinson-Dysarthrie mit kürzeren, silbenärmeren "
+            "Sprechabschnitten und häufigeren/längeren Pausen assoziiert. Gilt als Grundlage "
+            "der Sprechrate-Reduktions-Therapie (langsameres Sprechen soll artikulatorisch "
+            "präzisere Zielformen ermöglichen) — wie bei der Netto-Sprechrate ist die Richtung "
+            "nicht bei allen Patient:innen einheitlich (siehe Sprechrate-Eintrag zur "
+            "„Festination“)."
+        ),
     },
     "fluency_score": {
         "label": "Flüssigkeits-Score",
@@ -306,7 +332,14 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": "Kein klinischer Normwert (eher sprachtypologisches Maß) — stark reduzierter Wert (monotoner Rhythmus) passt zum Bild hypokinetischer Dysarthrie.",
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "nPVI ist ein etabliertes Rhythmus-Maß, hier aber auf Wortebene statt der ursprünglichen Silbenebene angepasst — siehe docs/literatur_review.md Abschnitt 4",
+        "literature": "nPVI ist ein etabliertes Rhythmus-Maß, hier aber auf Wortebene statt der ursprünglichen Silbenebene angepasst — siehe docs/literatur_review.md Abschnitt 4; nPVI-V als Teil eines Vorhersagemodells für Sprachverständlichkeit bei Parkinson-Dysarthrie diskutiert (Cross-Language-Studie zu akustischen Prädiktoren, PMC5831618)",
+        "typical_values": (
+            "Kein publizierter Zahlenwert für unsere wort-basierte Variante gefunden — die "
+            "Original-Literatur nutzt nPVI meist auf Silbenebene (unsere Anpassung ist bewusst "
+            "abgewandelt, siehe Beschreibung). Gruppenunterschiede zwischen Parkinson-"
+            "Dysarthrie und Gesunden wurden in Studien gefunden, aber keine konkrete "
+            "Vergleichszahl in dieser Recherche identifiziert."
+        ),
     },
     "mean_pause_duration_s": {
         "label": "Ø Pausendauer",
@@ -316,7 +349,15 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": "Kein Normwert — verlängerte Pausen können auf Wortfindungsstörungen ODER verkürzte Atemreserve hindeuten, ohne weiteren Kontext nicht unterscheidbar.",
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "Pausenmuster (Duration of Pause Intervals) ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5",
+        "literature": "Pausenmuster (Duration of Pause Intervals) ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5; konkrete Vergleichswerte bei „Pause characteristics of sentence production in Parkinson's disease“ (PLOS One 2025, PMC13105342), 32 PD vs. 39 Kontrollen, Lesetext-Aufgabe",
+        "typical_values": (
+            "Parkinson (Vorlesen, PLOS One 2025): mittlere Pausendauer 0,396s vs. 0,345s bei "
+            "gesunden Kontrollen (bei komplexeren Sätzen 0,408s vs. 0,353s) — statistisch "
+            "signifikant, aber der ABSOLUTE Unterschied ist eher moderat, keine dramatische "
+            "Verlängerung. Einzelne Werte in dieser Größenordnung sind also nicht automatisch "
+            "auffällig, erst deutlich längere Pausen weichen klar vom hier berichteten "
+            "Kontrollgruppen-Mittelwert ab."
+        ),
     },
     "max_pause_duration_s": {
         "label": "Max. Pausendauer",
@@ -390,7 +431,15 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "Pausenzahl ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5",
+        "literature": "Pausenzahl ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5; Parkinson-Studien berichten zusätzlich häufigere Pausen an syntaktisch UNPASSENDEN Stellen (nicht nur mehr Pausen insgesamt), u.a. „Pause characteristics of sentence production in Parkinson's disease“ (PLOS One 2025)",
+        "typical_values": (
+            "Kein publizierter Absolutwert (hängt stark von Textlänge/-komplexität ab), aber "
+            "eine wichtige QUALITATIVE Zusatzinformation: bei Parkinson wurde nicht nur eine "
+            "höhere Pausenzahl, sondern auch eine Verschiebung DER PAUSENPOSITIONEN hin zu "
+            "syntaktisch ungewöhnlichen Stellen berichtet — ein möglicher Hinweis auf "
+            "Sprachplanungs-/kognitive Anteile neben rein motorischer Verlangsamung, den die "
+            "reine Anzahl allein nicht zeigt."
+        ),
     },
     "f0_mean_hz": {
         "label": "F0 (Mittelwert)",
@@ -482,7 +531,14 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Formant-Streuung als VSA-Proxy — echte Vokalraum-Flächenmaße sind laut Literatur uneinheitlich validiert (siehe docs/literatur_review.md Punkt 2 der Einschränkungen), unsere zeitaufgelöste Variante ist eigene Anpassung",
+        "literature": "Formant-Streuung als VSA-Proxy — echte Vokalraum-Flächenmaße sind laut Literatur uneinheitlich validiert (siehe docs/literatur_review.md Punkt 2 der Einschränkungen), unsere zeitaufgelöste Variante ist eigene Anpassung; verwandtes Konzept F1-Range (F1RR) bei Parkinson reduziert, siehe „Vowel articulation in Parkinson's disease“ (PubMed 20434876)",
+        "typical_values": (
+            "Kein publizierter Hz-Wert für UNSERE zeitaufgelöste IQR-Variante (eigene "
+            "Anpassung, siehe Kontext) — verwandte, aber nicht identische Formant-Range-Maße "
+            "(F1RR) zeigen in der Parkinson-Literatur reduzierte Werte, interpretiert als "
+            "reduzierte Kieferöffnungs-Bewegung. Nicht 1:1 übertragbar auf diese Kennzahl, "
+            "deshalb keine eigene Zahl übernommen."
+        ),
     },
     "f2_iqr_hz": {
         "label": "Formant-Streuung F2",
@@ -496,7 +552,14 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Formant-Streuung als VSA-Proxy — echte Vokalraum-Flächenmaße sind laut Literatur uneinheitlich validiert (siehe docs/literatur_review.md Punkt 2 der Einschränkungen), unsere zeitaufgelöste Variante ist eigene Anpassung",
+        "literature": "Formant-Streuung als VSA-Proxy — echte Vokalraum-Flächenmaße sind laut Literatur uneinheitlich validiert (siehe docs/literatur_review.md Punkt 2 der Einschränkungen), unsere zeitaufgelöste Variante ist eigene Anpassung; verwandtes Konzept F2-Range (F2RR) bei Parkinson reduziert, siehe „Vowel articulation in Parkinson's disease“ (PubMed 20434876)",
+        "typical_values": (
+            "Kein publizierter Hz-Wert für UNSERE zeitaufgelöste IQR-Variante (eigene "
+            "Anpassung, siehe Kontext) — verwandte, aber nicht identische Formant-Range-Maße "
+            "(F2RR) zeigen in der Parkinson-Literatur reduzierte Werte, interpretiert als "
+            "reduzierte Lippen-/Zungenbewegung. Nicht 1:1 übertragbar auf diese Kennzahl, "
+            "deshalb keine eigene Zahl übernommen."
+        ),
     },
     "n_phrases": {
         "label": "Intonationskontur (Phrasen)",
@@ -516,7 +579,14 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": "Kein etablierter Normbereich, sinkt allein durch Textlänge — nur im Eigenvergleich über Sitzungen sinnvoll.",
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "TTR ist ein etabliertes linguistisches Diversitätsmaß, aber ohne krankheitsspezifischen Cutoff — nur im Eigenvergleich sinnvoll",
+        "literature": "TTR ist ein etabliertes linguistisches Diversitätsmaß, aber ohne krankheitsspezifischen Cutoff — nur im Eigenvergleich sinnvoll; „Lexical diversity in Parkinson's disease“ (Journal of Clinical Movement Disorders, 2015), 12 PD vs. 12 Kontrollen",
+        "typical_values": (
+            "Ehrliche Gegenposition zur naheliegenden Annahme: eine Studie mit 12 Parkinson-"
+            "Patient:innen vs. 12 Kontrollen fand KEINEN signifikanten Unterschied bei TTR/"
+            "voc-D-Diversitätsmaßen — lexikalische Diversität scheint bei Parkinson (anders "
+            "als z.B. bei Aphasie) nicht generell reduziert zu sein. Kein Grund, hier "
+            "automatisch eine Auffälligkeit zu erwarten."
+        ),
     },
     "mtld": {
         "label": "Lexikalische Diversität (MTLD)",
@@ -527,6 +597,13 @@ PARAMETER_INFO: dict[str, dict] = {
         "age_caveat": None,
         "evidence": "gut etabliert",
         "literature": "MTLD (McCarthy & Jarvis 2010) ist ein etabliertes, textlängen-robusteres Diversitätsmaß, aber für deutlich längere Texte entwickelt als unsere Aufnahmen",
+        "typical_values": (
+            "Kein spezifischer Parkinson-/Dysarthrie-Vergleichswert in dieser Recherche "
+            "gefunden (MTLD selbst wird v.a. in der Aphasie-Diagnostik neben TTR/MATTR/HD-D "
+            "genutzt). Analog zur TTR-Nachbarschaft (siehe dort) ist NICHT automatisch von "
+            "einer Auffälligkeit bei Dysarthrie auszugehen — betrifft eher sprachlich-"
+            "kognitive als motorische Störungen."
+        ),
     },
     # --- P7/Audit 2026-08-15 (docs/backlog.md "Audit-Parameter einbauen") ---
     "jitter_rap_pct": {
@@ -545,6 +622,14 @@ PARAMETER_INFO: dict[str, dict] = {
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
         "literature": "RAP <0,68% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten",
+        "typical_values": (
+            "Gesunde/klinisch unauffällige Stimmen: <0,68% (MDVP-Normwert, siehe Kontext-"
+            "Vorbehalt zu Praat-vs-MDVP). Kein separat für RAP publizierter Parkinson-"
+            "Vergleichswert in dieser Recherche gefunden — RAP/PPQ5/APQ-Untermaße werden in "
+            "Studien meist gemeinsam mit dem lokalen Jitter/Shimmer als Merkmalsbündel für "
+            "Klassifikationsmodelle genutzt, seltener einzeln mit einer eigenen typischen "
+            "Patientenzahl berichtet."
+        ),
     },
     "jitter_ppq5_pct": {
         "label": "Jitter (PPQ5)",
@@ -560,6 +645,13 @@ PARAMETER_INFO: dict[str, dict] = {
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
         "literature": "PPQ5 <0,84% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten",
+        "typical_values": (
+            "Gesunde/klinisch unauffällige Stimmen: <0,84% (MDVP-Normwert, siehe Kontext-"
+            "Vorbehalt zu Praat-vs-MDVP). Wie bei RAP kein separat publizierter Parkinson-"
+            "Einzelwert für PPQ5 in dieser Recherche gefunden — wird meist als Teil eines "
+            "Merkmalsbündels mit lokalem Jitter berichtet, nicht isoliert mit eigenem "
+            "Vergleichswert."
+        ),
     },
     "shimmer_apq11_pct": {
         "label": "Shimmer (APQ11)",
@@ -573,7 +665,15 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "APQ11 <3,07% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten",
+        "literature": "APQ11 <3,07% — klassischer MDVP-Normwert (Kay Elemetrics/PENTAX-Konvention), MDVP-vs-Praat-Vorbehalt beachten; ein Parkinson-Kohorten-Mittelwert bei einer KI-gestützten Sprachanalyse-Studie 2026 (ResearchGate, nicht peer-reviewed begutachtet zum Zeitpunkt der Recherche)",
+        "typical_values": (
+            "Gesunde/klinisch unauffällige Stimmen: <3,07% (MDVP-Normwert, siehe Kontext-"
+            "Vorbehalt zu Praat-vs-MDVP). EINE Studie (Vorab-Veröffentlichung, nicht als "
+            "abschließend peer-reviewed geprüft) berichtete einen Parkinson-Kohorten-"
+            "Mittelwert von ~2,75% APQ11 — bewusst mit Vorbehalt genannt, da nur eine einzelne "
+            "Quelle und unterhalb des klassischen MDVP-Normwerts liegend (nicht eindeutig "
+            "„auffällig“ in diesem Fall)."
+        ),
     },
     "mpt_s": {
         "label": "Maximum Phonation Time (MPT)",

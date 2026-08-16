@@ -787,9 +787,9 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
     Sitzungsdaten durch, beide Formate valide (Excel via `openpyxl.load_workbook()` prüfbar,
     PDF mit korrektem `%PDF`-Header), AppTest-Smoke-Test der Startseite ohne Exceptions,
     HTTP 200 auf `/_stcore/health`.
-- [ ] **P15 — Referenzwerte im Glossar: typische Werte Gesunde/Dysarthrie/psychomotorische
-      Verlangsamung + echte Primärliteratur** (Nutzer-Feedback 2026-08-16, TEIL 1 UMGESETZT
-      2026-08-16, Rest offen) — das Glossar (`build_glossary_entries()`/`render_glossary()`)
+- [x] **P15 — Referenzwerte im Glossar: typische Werte Gesunde/Dysarthrie/psychomotorische
+      Verlangsamung + echte Primärliteratur** ✅ VOLLSTÄNDIG UMGESETZT (2026-08-16,
+      Nutzer-Feedback 2026-08-16) — das Glossar (`build_glossary_entries()`/`render_glossary()`)
       soll pro Parameter, auch wenn kein harter Ampel-Cutoff existiert, eine QUANTITATIVE
       Einordnung liefern: typische Werte/Schwankungsbreite bei Gesunden, UND — soweit in der
       Literatur beschrieben — typische Werte/Richtung bei Dysarthrie bzw. bei psychomotorisch
@@ -816,10 +816,21 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
   - Verifiziert: Regression über alle 40 `PARAMETER_INFO`-Einträge (`interpret()` liefert
     überall das neue Feld, auch `None` wo nicht vorhanden), AppTest über alle 7 Seiten sauber,
     Excel-/PDF-Export mit neuem Feld getestet.
-  - **Noch offen (Teil 2)**: die restlichen ~13 Parameter mit "gut etabliert"/"in der
-    Forschung diskutiert"-Einstufung, die noch keine `typical_values` haben (u.a. RAP/PPQ5/
-    APQ11, Artikulationsrate, Pausen-Kennwerte, TTR/MTLD, Rhythmus/nPVI, F1/F2-Streuung) —
-    gleiches Vorgehen fortsetzen, priorisiert nach klinischer Relevanz.
+  - **Teil 2 fertig (2026-08-16, gleicher Tag)**: verbleibende 13 Parameter recherchiert —
+    RAP/PPQ5/APQ11, Artikulationsrate, Ø Pausendauer, Pausen (Anzahl), TTR, MTLD, Rhythmus
+    (nPVI), Formant-Streuung F1/F2, DDK-Regelmäßigkeit (CV), Monoloudness. **22 von 40
+    Parametern** haben jetzt `typical_values` (alle mit Evidenz "gut etabliert"/"in der
+    Forschung diskutiert" — die übrigen 18 sind bewusst "eigene Heuristik"/"deskriptiv" ohne
+    Literaturvergleichswert, dafür gibt es keinen sinnvollen zu recherchieren). Bemerkenswerte
+    Funde: Ø Pausendauer bei Parkinson real nur moderat länger (0,396s vs. 0,345s bei
+    Kontrollen, PLOS One 2025) — kein dramatischer Unterschied, wie man intuitiv erwarten
+    könnte; TTR zeigte in einer Studie KEINEN signifikanten Unterschied Parkinson vs.
+    Kontrollen (ehrliche Gegenposition zur naheliegenden Annahme, lexikalische Diversität ist
+    primär ein sprachlich-kognitives, kein primär motorisches Maß). Bei mehreren Parametern
+    (F1/F2-Streuung, RAP/PPQ5, nPVI) ehrlich dokumentiert, dass kein Wert für UNSERE exakte
+    Kennzahl-Variante gefunden wurde, nur für verwandte Maße — keine erfundene Übertragung.
+    Regression über alle 40 Parameter + AppTest über alle 7 Seiten erneut sauber, server-
+    deployt und verifiziert.
 - [ ] **P16 — Interne Entwicklungs-Referenzen aus nutzersichtbaren Texten entfernen**
       (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) — `PARAMETER_INFO`-Texte (`context`/
       `literature`) enthalten an vielen Stellen interne Entwicklungs-Markierungen wie
