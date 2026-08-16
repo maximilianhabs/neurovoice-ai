@@ -32,7 +32,14 @@ from core.audio import (
 )
 from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
-from core.plots import intensity_figure, radar_figure, spectrogram_figure, waveform_figure
+from core.plots import (
+    intensity_figure,
+    pause_timeline_figure,
+    radar_figure,
+    spectrogram_figure,
+    waveform_figure,
+    word_duration_histogram_figure,
+)
 from core.reference_ranges import speech_rate_zones
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
@@ -269,6 +276,22 @@ else:
                     )
                 else:
                     st.caption("Noch zu wenige Werte für ein aussagekräftiges Profil.")
+
+            st.markdown("**Sprechfluss-Zeitstrahl**")
+            st.pyplot(pause_timeline_figure(transcript["words"], duration_s), width="stretch")
+            st.caption(
+                "Blaue Segmente = Sprechen, grün = kurze Pause (250–500ms, meist normale "
+                "Atem-/Wortgrenzen), orange = längere Pause (≥500ms, eher auffällige "
+                "Zögerung/Wortsuche) — macht sichtbar, WO im Text Pausen liegen und ob sie "
+                "gleichmäßig verteilt oder geklumpt sind."
+            )
+
+            with st.expander("Verteilung der Wortdauern (Histogramm)"):
+                st.pyplot(word_duration_histogram_figure(transcript["words"]), width="stretch")
+                st.caption(
+                    "Zeigt die Streuung der einzelnen Wortdauern — ein Mittelwert allein kann "
+                    "z.B. viele kurze Wörter mit wenigen sehr langen Ausreißern verdecken."
+                )
 
             with st.expander("Wort-Zeitstempel (Detailtabelle)"):
                 words_df = pd.DataFrame(transcript["words"])

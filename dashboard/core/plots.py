@@ -12,8 +12,10 @@ from core.design_tokens import (
     INFO,
     PLOT_GRID,
     PLOT_TRACK,
+    SUCCESS,
     TEXT_PRIMARY,
     TEXT_SECONDARY,
+    WARNING,
 )
 
 
@@ -174,6 +176,83 @@ def vowel_space_figure(vowels: dict[str, tuple[float, float]]):
     ax.invert_xaxis()
     ax.invert_yaxis()
     ax.grid(color=PLOT_GRID, alpha=0.5)
+    fig.tight_layout()
+    return fig
+
+
+def word_duration_histogram_figure(words: list[dict]):
+    """Histogramm der einzelnen Wortdauern (V1, docs/konzept_visualisierungen.md 3.4) --
+    macht die Streuung der Wortdauern sichtbar, die die reine `mean_word_duration_s`-Kennzahl
+    verdeckt (z.B. viele kurze Woerter + wenige sehr lange Ausreisser vs. gleichmaessig
+    mittellange Woerter koennen denselben Mittelwert ergeben, sehen aber im Histogramm sehr
+    unterschiedlich aus). `words`: Liste von {"word", "start", "end", "score"} aus der
+    WhisperX-Transkription."""
+    durations = [
+        w["end"] - w["start"] for w in words
+        if w.get("start") is not None and w.get("end") is not None and w["end"] > w["start"]
+    ]
+    fig, ax = plt.subplots(figsize=(8, 3))
+    if durations:
+        n_bins = min(20, max(5, len(durations) // 2))
+        ax.hist(durations, bins=n_bins, color=ACCENT, alpha=0.85, edgecolor="white")
+        ax.axvline(float(np.mean(durations)), color=TEXT_PRIMARY, linewidth=1.5, linestyle="--", label="Ø")
+        ax.legend(loc="upper right", fontsize=8)
+    else:
+        ax.text(0.5, 0.5, "Keine Wort-Zeitstempel verfügbar", ha="center", va="center", color=TEXT_SECONDARY, transform=ax.transAxes)
+    ax.set_xlabel("Wortdauer (s)")
+    ax.set_ylabel("Anzahl Wörter")
+    ax.set_title("Verteilung der Wortdauern")
+    ax.grid(color=PLOT_GRID, alpha=0.5, axis="y")
+    fig.tight_layout()
+    return fig
+
+
+def pause_timeline_figure(words: list[dict], total_duration_s: float | None = None):
+    """Sprechfluss-Zeitstrahl (docs/konzept_visualisierungen.md 3.2) -- zeigt Sprech- und
+    Pausensegmente als horizontalen Balken statt der bisherigen isolierten Pausen-Kacheln
+    (Anzahl/Ø-/Max-/Mikro-/Makro-Dauer). Macht auf einen Blick sichtbar, WO im Text Pausen
+    liegen, ob sie gleichmaessig verteilt oder geklumpt sind -- Information, die reine
+    Kennzahlen nicht transportieren. Nutzt DIESELBEN Schwellenwerte wie
+    core.speech_metrics.compute_speech_metrics() (0,25s/0,5s), damit Bild und Zahlen nie
+    auseinanderlaufen."""
+    from core.speech_metrics import DEFAULT_PAUSE_THRESHOLD_S, MACRO_PAUSE_THRESHOLD_S
+
+    timed_words = [w for w in words if w.get("start") is not None and w.get("end") is not None]
+    timed_words.sort(key=lambda w: w["start"])
+
+    fig, ax = plt.subplots(figsize=(10, 1.6))
+    if not timed_words:
+        ax.text(0.5, 0.5, "Keine Wort-Zeitstempel verfügbar", ha="center", va="center", color=TEXT_SECONDARY, transform=ax.transAxes)
+        ax.axis("off")
+        fig.tight_layout()
+        return fig
+
+    speech_spans = [(w["start"], w["end"] - w["start"]) for w in timed_words]
+    ax.broken_barh(speech_spans, (0.3, 0.6), facecolors=ACCENT, label="Sprechsegment")
+
+    for prev, cur in zip(timed_words, timed_words[1:]):
+        gap = cur["start"] - prev["end"]
+        if gap < DEFAULT_PAUSE_THRESHOLD_S:
+            continue
+        color = WARNING if gap >= MACRO_PAUSE_THRESHOLD_S else SUCCESS
+        ax.broken_barh([(prev["end"], gap)], (0.3, 0.6), facecolors=color, alpha=0.85)
+
+    end_time = total_duration_s if total_duration_s else timed_words[-1]["end"]
+    ax.set_xlim(0, end_time)
+    ax.set_ylim(0, 1)
+    ax.set_yticks([])
+    ax.set_xlabel("Zeit (s)")
+    ax.set_title("Sprechfluss-Zeitstrahl")
+    ax.grid(color=PLOT_GRID, alpha=0.5, axis="x")
+
+    from matplotlib.patches import Patch
+    legend_handles = [
+        Patch(facecolor=ACCENT, label="Sprechsegment"),
+        Patch(facecolor=SUCCESS, label="Mikropause (250–500ms)"),
+        Patch(facecolor=WARNING, label="Makropause (≥500ms)"),
+    ]
+    ax.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, -0.35), ncol=3, fontsize=7.5, frameon=False)
+
     fig.tight_layout()
     return fig
 
