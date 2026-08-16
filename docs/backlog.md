@@ -988,6 +988,28 @@ P12 (Referenzwerte) angegangen — der verbleibende Rückstand ist NICHT fehlend
 sondern fehlende SICHTBARKEIT der bereits recherchierten Werte direkt auf der Kachel (siehe
 Bucket I) sowie die in Bucket H aufgelisteten, noch nicht auf Kacheln umgestellten Parameter.
 
+## Road to Public — Konzept (2026-08-16, NICHT umgesetzt)
+
+Vollständiges Konzept liegt als [`ROAD_TO_PUBLIC.md`](../ROAD_TO_PUBLIC.md) im Repo-Root
+(analog zum bereits abgeschlossenen Fahrplan bei `anonymisator` und `edf-analyzer`) — Repo
+bleibt **privat**, nichts davon wurde umgesetzt. Kurzfassung der wichtigsten Funde:
+- README ist seit dem allerersten Commit (21.07.) nicht mehr aktualisiert — beschreibt einen
+  Stand, der mit der heutigen App kaum noch etwas zu tun hat. Größter Einzelpunkt.
+- `LICENSE`/`CITATION.cff`/`SECURITY.md` fehlen komplett (anders als bei beiden
+  Schwesterprojekten zu deren jeweiligem Public-Zeitpunkt).
+- Reale Tailscale-IP/Hostname in `docs/backlog.md`/`docs/bugtracker.md`/
+  `dashboard/docker-compose.yml` — braucht eine Nutzer-Entscheidung (bereinigen vs. bewusst
+  akzeptieren, wie beim EDF-Analyzer).
+- Kein Auth-Layer vorhanden (anders als EDF-Analyzer) — kein Sicherheitsleck für die
+  Repo-Veröffentlichung selbst, aber muss in `SECURITY.md` explizit stehen, gerade weil die App
+  seit P10 echte Proband:innen-IDs+Alter sammelt.
+- **Lizenzfrage anders als bei den Geschwistern**: `praat-parselmouth` ist eine harte,
+  überall genutzte GPL-3.0-Abhängigkeit (nicht optional wie `py-ecg-detectors` beim
+  EDF-Analyzer) — spricht eher für GPL-3.0 statt Apache-2.0 für NeuroVoice AI selbst, reine
+  Einordnung, keine Rechtsberatung, Entscheidung liegt beim Nutzer.
+- Volle Commit-Historie bereits sauber geprüft (83 Commits) — keine Audio-/Session-/
+  Proband:innen-Dateien jemals committet, `.gitignore` hat von Anfang an funktioniert.
+
 ## Sammelblock: Visualisierungsideen (2026-08-16, NICHT umgesetzt)
 
 Eigener Sammelort für kreative Darstellungs-Ideen, die noch nicht ausgereift/priorisiert genug
