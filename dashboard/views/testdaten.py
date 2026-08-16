@@ -307,7 +307,7 @@ ordered_tiles = [rate_tile] + [
 gcols = st.columns(len(ordered_tiles))
 for col, tile in zip(gcols, ordered_tiles):
     with col:
-        kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
+        kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
 
 # --- Radar-Profil ---
 radar_axes, radar_values = [], []

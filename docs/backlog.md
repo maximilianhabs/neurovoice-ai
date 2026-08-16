@@ -947,42 +947,33 @@ reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück
     Fremden selbst gehostet werden soll) — deutlich höhere Priorität als ursprünglich
     eingeordnet, da kein reines Komfort-Thema.
 
-### Bucket H — Fehlende Kacheln in Vokalisation + DDK (derselbe Rest wie Bucket C, übersehen)
+### Bucket H — Fehlende Kacheln in Vokalisation + DDK ✅ UMGESETZT (2026-08-16)
 
-- [ ] **H1 — Vokalisation: F0 (Mittel), Voice Breaks, Formanten F1/F2/F3 noch als rohe
-      `st.metric()`-Zeile statt Kachel.** Exakt derselbe Rückstand wie Bucket C (Vorlesen/
-      Spontansprache), der bei `views/vokalisation.py` übersehen wurde (Zeilen um `c1`/`c2`/
-      `c3`). Braucht ZUERST neue `PARAMETER_INFO`-Einträge (aktuell NICHT vorhanden):
-      `f0_mean_hz` (reiner F0-Mittelwert, nicht zu verwechseln mit `f0_sd_hz`/Monopitch),
-      `voice_breaks_count`, `voice_breaks_degree_pct`, `f3_mean_hz` (F1/F2 existieren schon).
-      Dann Umbau auf `build_tiles()`/`kpi_tile()` analog zu Bucket C.
-- [ ] **H2 — DDK: Zyklen-Regelmäßigkeit (CV) und Ø Zyklus-Intervall noch keine Kacheln.**
-      `cycle_interval_cv` hat schon einen `PARAMETER_INFO`-Eintrag (aus P12, aber ohne Zone —
-      siehe dort), ist aber NICHT in `views/ddk.py`s `tile_keys`-Liste enthalten. Ø Zyklus-
-      Intervall (`mean_cycle_interval_s`) hat NOCH KEINEN `PARAMETER_INFO`-Eintrag — braucht
-      eigene Beschreibung (ist im Kern der Kehrwert der DDK-Rate, evtl. reicht ein Verweis
-      ohne eigene Zone, da inhaltlich redundant zu `ddk_rate_hz`).
+- [x] **H1 — Vokalisation: F0 (Mittel), Voice Breaks, Formanten F1/F2/F3 jetzt Kacheln.** Neue
+      `PARAMETER_INFO`-Einträge `f0_mean_hz`, `voice_breaks_count`, `voice_breaks_degree_pct`,
+      `f3_mean_hz` ergänzt (F1/F2 gab es schon). `voice_breaks_degree_pct` bekommt eine neue,
+      bewusst pragmatische `voice_breaks_zones()` (Praat-Dokumentation nennt 0% als
+      Normativwert für gesunde gehaltene Vokale, aber keinen graduierten Cutoff — Zonen-
+      Grenzen deshalb als "eigene Heuristik" gekennzeichnet, nicht als zitierbare Einzelquelle
+      wie bei P12). `views/vokalisation.py`: alte `c1/c2/c3`-`st.metric()`-Zeile entfernt,
+      zweite Kachel-Reihe ergänzt.
+- [x] **H2 — DDK: Zyklen-Regelmäßigkeit (CV) und Ø Zyklus-Intervall jetzt Kacheln.** Neuer
+      `PARAMETER_INFO`-Eintrag `mean_cycle_interval_s` (bewusst OHNE eigene Zone — inhaltlich
+      redundant zur DDK-Rate, um nicht zweimal dieselbe Information unterschiedlich zu
+      bewerten). `cycle_interval_cv` (schon vorhanden, ohne Zone) + `mean_cycle_interval_s` in
+      `views/ddk.py`s `tile_keys` ergänzt, `st.metric()`-Zeile entfernt, "Zyklen erkannt"
+      bleibt als einfache Caption (reiner Datenqualitäts-Indikator, kein klinischer Parameter).
 
-### Bucket I — Kacheln zeigen Normbereich/Einheit nicht direkt sichtbar genug
+### Bucket I — Kacheln zeigen Normbereich/Einheit nicht direkt sichtbar genug ✅ UMGESETZT (2026-08-16)
 
-- [ ] **I1 — Nutzer-Kernkritik**: "in den Kacheln... wenig Erklärungen, wenig Standardbereiche,
-      keine Einheiten oder normale Range, um physiologisch/pathophysiologisch/pathologisch
-      abzugrenzen" — konkretes Beispiel DDK-Rate: Kachel zeigt "auffällig", aber NICHT direkt
-      sichtbar, WELCHER Bereich als normal gilt oder wie der Wert berechnet wird. Das ist ein
-      echter Design-Rückstand: `kpi_tile()` zeigt aktuell Wert+Status-Label
-      ("im Normbereich"/"grenzwertig"/"auffällig"), aber NICHT die konkrete Zahlen-Range
-      (z.B. "5-8Hz") — die steht bisher nur in der separaten "Alle Werte im Detail"-Tabelle
-      (Spalte "Normbereich") bzw. im Glossar-Kontext-Text, beides hinter einem Klick versteckt.
-      **Gerade jetzt nach der P12-Recherche besonders ärgerlich** — die Ranges EXISTIEREN
-      jetzt (DDK-Rate, MPT, RAP/PPQ5/APQ11, CPPS), sind aber auf der Kachel selbst nicht
-      sichtbar.
-  - **Lösungsvorschlag (noch nicht entschieden)**: `kpi_tile()`/`core/interpretation.py::
-    build_tiles()` um die Range direkt im `sub_text` ergänzen, z.B. statt nur "auffällig" →
-    "auffällig (Norm: 5-8Hz)". Muss kompakt bleiben, damit die Kachel nicht überladen wirkt —
-    ggf. Range nur bei Parametern MIT `zones_func` anzeigen (bei "kein Normwert"-Parametern
-    ergibt eine Range ohnehin keinen Sinn).
-  - Betrifft ALLE Kacheln app-weit, nicht nur DDK — systematische Änderung an `build_tiles()`/
-    `kpi_tile()`, wirkt sich automatisch auf alle 4 Module aus.
+- [x] **I1 — Normbereich jetzt direkt auf der Kachel sichtbar.** `core/interpretation.py::
+      build_tiles()` liefert jetzt zusätzlich `range_text` (nur gesetzt, wenn ein echter
+      `zones_func` existiert — bei "kein Normwert"-Parametern bewusst leer). Neuer
+      `range_text`-Parameter in `core/shared.py::kpi_tile()`, eigene neutral eingefärbte Zeile
+      "Norm: 5-8Hz" unterhalb des Status-Labels (nicht in der Status-Farbe, da Fakt statt
+      Bewertung). Wirkt sich automatisch auf alle Kacheln app-weit aus, kein Modul-für-Modul-
+      Umbau nötig. Verifiziert: Kacheln MIT Zone (Jitter/Shimmer/HNR/CPPS/DDK-Rate/Sprechrate)
+      zeigen die Range korrekt, Kacheln OHNE Zone bleiben ohne Range-Zeile.
 
 ### Bucket J — Weitere Einzelpunkte
 
@@ -999,13 +990,12 @@ reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück
       damit bestätigt. Mögliche Alternativen zu prüfen: horizontale Balken-Vergleichsreihe
       statt Polygon, Sparkline-Zeile, oder ganz auf das Radar verzichten und nur bei den
       Kacheln bleiben.
-- [ ] **J3 — Transkriptions-Modell (WhisperX + Versionsnummer) nicht sichtbar genug.** Aktuell
-      nur im Testdaten-Modus als "KI-Transkription (WhisperX, Modell large-v3)" gekennzeichnet
-      (`views/testdaten.py`) — in den 4 Guide-Modulen (`views/vorlesen.py`/
-      `views/spontansprache.py`) fehlt dieser Hinweis beim eigentlichen Transkript-Ergebnis
-      komplett (WhisperX wird nur in Fehlermeldungen/Captions erwähnt, nicht prominent beim
-      Ergebnis selbst). `core/transcription.py::DEFAULT_MODEL = "large-v3"` ist schon zentral
-      definiert — nur die Anzeige fehlt an den 2 Guide-Modul-Stellen.
+- [x] **J3 — Transkriptions-Modell jetzt sichtbar** ✅ UMGESETZT (2026-08-16) — kleine
+      Eyebrow-Zeile "Transkription: WhisperX (Modell large-v3)" direkt über dem Transkript-Text
+      in `views/vorlesen.py` + `views/spontansprache.py` ergänzt (liest
+      `core.transcription.DEFAULT_MODEL` zentral aus, keine hartkodierte Versionsnummer).
+      Verifiziert: Hinweis erscheint korrekt bei einem echten, aus dem Cache geladenen
+      Transkript.
 
 **Bereits (teilweise) vorhanden, zur Klarstellung**: die allgemeine Forderung "mehr Kontext/
 Literatur bei den Werten" ist strukturell bereits durch P11 (Kompakte Übersicht + Glossar) und

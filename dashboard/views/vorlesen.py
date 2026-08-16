@@ -221,16 +221,17 @@ else:
         cols = st.columns(3)
         for col, tile in zip(cols, row):
             with col:
-                kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
+                kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
 
     # --- Transkript-basierte Kennwerte + der transkribierte Text selbst ---
     st.divider()
     st.subheader("Transkription, Sprechrate & Pausen")
 
     try:
-        import core.transcription  # noqa: F401
+        import core.transcription
 
         transcription_available = True
+        TRANSCRIPTION_MODEL = core.transcription.DEFAULT_MODEL
     except ImportError:
         transcription_available = False
 
@@ -269,7 +270,11 @@ else:
                 else:
                     words_html.append(w["word"])
             st.markdown(
-                f'<div class="dw-card"><div style="font-size:1.2rem;line-height:1.7;">'
+                f'<div class="dw-card">'
+                f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.02em;'
+                f'color:var(--dw-text-secondary);font-weight:600;margin-bottom:8px;">'
+                f'Transkription: WhisperX (Modell {TRANSCRIPTION_MODEL})</div>'
+                f'<div style="font-size:1.2rem;line-height:1.7;">'
                 f'{" ".join(words_html)}</div></div>',
                 unsafe_allow_html=True,
             )
@@ -305,7 +310,7 @@ else:
                     cols = st.columns(3)
                     for col, t in zip(cols, row):
                         with col:
-                            kpi_tile(t["label"], t["value_text"], t["sub_text"], t["zone"], t["description"])
+                            kpi_tile(t["label"], t["value_text"], t["sub_text"], t["zone"], t["description"], t.get("range_text"))
 
             _tile_group(
                 "Sprechrate", ["n_words", "net_speech_rate_wpm", "articulation_rate_wpm",

@@ -180,7 +180,6 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 st.pyplot(spectrogram_figure(sound), width="stretch")
                 st.caption(SPECTROGRAM_LEGEND_CAPTION)
 
-            phon, dyn, cpp, form = take["phonation"], take["dynamics"], take["cpp"], take["formants"]
             flat = flatten_take(take)
 
             tile_keys = ["jitter_local_pct", "shimmer_local_pct", "hnr_mean_db", "cpps_db"]
@@ -188,19 +187,19 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             tile_cols = st.columns(len(tiles)) if tiles else []
             for col, tile in zip(tile_cols, tiles):
                 with col:
-                    kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
+                    kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
 
-            c1, c2, c3 = st.columns(3)
-            c1.metric("F0 (Mittel)", f"{_fmt(phon['f0_mean_hz'], 0)} Hz")
-            c2.metric(
-                "Voice Breaks",
-                f"{dyn['voice_breaks_count'] if dyn['voice_breaks_count'] is not None else '–'} · "
-                f"{_fmt(dyn['voice_breaks_degree_pct'], 1)}%",
-            )
-            c3.metric(
-                "Formanten F1/F2/F3",
-                f"{_fmt(form['f1_mean_hz'], 0)}/{_fmt(form['f2_mean_hz'], 0)}/{_fmt(form['f3_mean_hz'], 0)} Hz",
-            )
+            # Bucket H (docs/backlog.md, Nutzer-Feedback 2026-08-15): F0-Mittel/Voice-Breaks/
+            # Formanten waren hier noch als rohe st.metric()-Zeile stehengeblieben, obwohl
+            # Vorlesen/Spontansprache schon auf Kacheln umgestellt wurden.
+            more_keys = ["f0_mean_hz", "voice_breaks_degree_pct", "f1_mean_hz", "f2_mean_hz", "f3_mean_hz"]
+            more_tiles = build_tiles({k: flat[k] for k in more_keys if k in flat})
+            more_rows = [more_tiles[i:i + 3] for i in range(0, len(more_tiles), 3)]
+            for row in more_rows:
+                cols = st.columns(3)
+                for col, tile in zip(cols, row):
+                    with col:
+                        kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
 
             with st.expander("Alle Werte im Detail"):
                 rows = build_rows(flat)

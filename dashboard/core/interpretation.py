@@ -25,6 +25,7 @@ from core.reference_ranges import (
     shimmer_zones,
     speech_rate_zones,
     verdict_for_value,
+    voice_breaks_zones,
     zone_for_value,
 )
 
@@ -179,6 +180,20 @@ PARAMETER_INFO: dict[str, dict] = {
         "evidence": "in der Forschung diskutiert",
         "literature": "Alternating and sequential motion rates in older adults (Pierce et al.); Oral-DDK-Rate gesunder junger Erwachsener (Speech Language and Hearing 2022); DDK bei zerebellärer Ataxie (Colorado-Dissertation)",
     },
+    "mean_cycle_interval_s": {
+        "label": "Ø Zyklus-Intervall",
+        "unit": "s",
+        "description": "Mittlerer zeitlicher Abstand zwischen den erkannten Silbenzyklen — der Kehrwert der DDK-Rate.",
+        "zones_func": None,
+        "context": (
+            "Inhaltlich redundant zur DDK-Rate (1/Rate) — bewusst OHNE eigene Ampel, um nicht "
+            "zweimal dieselbe Information unterschiedlich zu bewerten. Nur als ergänzende "
+            "Zeitangabe gedacht, siehe DDK-Rate für die eingeordnete Version."
+        ),
+        "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": "Kehrwert der DDK-Rate, siehe dort für Quellen",
+    },
     "cycle_interval_cv": {
         "label": "DDK-Regelmäßigkeit (CV)",
         "unit": "",
@@ -321,6 +336,53 @@ PARAMETER_INFO: dict[str, dict] = {
         "evidence": "gut etabliert",
         "literature": "Pausenzahl ist Standard-Sprechfluss-Marker — siehe docs/literatur_review.md Abschnitt 5",
     },
+    "f0_mean_hz": {
+        "label": "F0 (Mittelwert)",
+        "unit": "Hz",
+        "description": "Mittlere Grundfrequenz der Stimme über die Aufnahme — die wahrgenommene Tonhöhe.",
+        "zones_func": None,
+        "context": (
+            "Rein deskriptiv, stark geschlechts-/altersabhängig (grob 100-146Hz bei "
+            "männlichen, 188-221Hz bei weiblichen Stimmen in Sprechsprache) — kein "
+            "Krankheits-Marker per se, aber Grundlage für andere Kennwerte (z.B. Monopitch = "
+            "Streuung um diesen Mittelwert). Bewusst OHNE Ampel: ein „normaler“ vs. "
+            "„auffälliger“ F0-Mittelwert ergibt ohne bekanntes Geschlecht keinen Sinn."
+        ),
+        "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": "Average Speaking Frequencies: F0 Norms by Age, Sex, and Hormonal Status — Voice Science",
+    },
+    "voice_breaks_count": {
+        "label": "Voice Breaks (Anzahl)",
+        "unit": "",
+        "description": "Anzahl der Stellen, an denen die Stimmgebung kurz unterbrochen ist (Praats Standard-„Voice report“).",
+        "zones_func": None,
+        "context": (
+            "Nur bei gehaltenem Vokal aussagekräftig — bei Fließsprache durch normale "
+            "Wortpausen/stimmlose Konsonanten (s, f, ch) ohnehin erwartbar hoch, keine "
+            "Auffälligkeit. Siehe „Voice Breaks (Anteil)“ für die eingeordnete Version."
+        ),
+        "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": "Praat-Dokumentation „Voice 1. Voice breaks“ (fon.hum.uva.nl)",
+    },
+    "voice_breaks_degree_pct": {
+        "label": "Voice Breaks (Anteil)",
+        "unit": "%",
+        "description": "Anteil der Aufnahme, in dem die Stimmgebung unterbrochen ist (Praats Standard-„Voice report“).",
+        "zones_func": voice_breaks_zones,
+        "context": (
+            "Nur bei gehaltenem Vokal aussagekräftig — bei Fließsprache durch normale "
+            "Wortpausen/stimmlose Konsonanten ohnehin erwartbar hoch, keine Auffälligkeit. "
+            "Normbereich hier bewusst großzügig/pragmatisch gewählt (Praat-Dokumentation nennt "
+            "0% als Normativwert für gesunde gehaltene Vokale, aber keinen graduierten "
+            "Cutoff) — erhöhter Anteil kann auf Stimmlippenpathologie oder stimmliche "
+            "Ermüdung hindeuten."
+        ),
+        "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "Praat-Dokumentation „Voice 1. Voice breaks“ (fon.hum.uva.nl) — Normativwert 0% für gesunde gehaltene Vokale, Zonen-Grenzen pragmatisch, kein publizierter graduierter Cutoff",
+    },
     "f1_mean_hz": {
         "label": "Formant F1",
         "unit": "Hz",
@@ -340,6 +402,16 @@ PARAMETER_INFO: dict[str, dict] = {
         "age_caveat": None,
         "evidence": "deskriptiv, kein Krankheits-Marker",
         "literature": "Formant-Rohwert — Zuordnung F2↔Zungenposition ist etabliert (siehe docs/literatur_review.md Abschnitt 2), aber ohne bekannte Vokal-Identität hier nur informativ",
+    },
+    "f3_mean_hz": {
+        "label": "Formant F3",
+        "unit": "Hz",
+        "description": "Dritte Vokaltrakt-Resonanz — trägt zur Klangfarbe/Schärfe bei, weniger eindeutig einer einzelnen Artikulationsdimension zuordenbar als F1/F2.",
+        "zones_func": None,
+        "context": "Kein Normwert ohne bekannte Vokal-Identität — Formanten sind hier nur als Rohwerte informativ.",
+        "age_caveat": None,
+        "evidence": "deskriptiv, kein Krankheits-Marker",
+        "literature": "Formant-Rohwert, siehe docs/literatur_review.md Abschnitt 2 — ohne bekannte Vokal-Identität hier nur informativ",
     },
     "f1_iqr_hz": {
         "label": "Formant-Streuung F1",
@@ -602,12 +674,18 @@ def build_tiles(flat: dict) -> list[dict]:
         if info is None:
             continue
         value_text = f"{info['value']:.2f} {info['unit']}".strip() if info["value"] is not None else "–"
+        # Bucket I (docs/backlog.md, Nutzer-Feedback 2026-08-15): Normbereich soll DIREKT auf
+        # der Kachel sichtbar sein, nicht nur in der versteckten Detailtabelle -- gerade nach
+        # der P12-Recherche waren die Ranges sonst "unsichtbar erforscht". Nur anzeigen, wenn
+        # ein echter Normbereich existiert (nicht bei "kein etablierter Normbereich").
+        range_text = info["range"] if info["range"] != "kein etablierter Normbereich" else None
         tiles.append({
             "label": info["label"],
             "value_text": value_text,
             "sub_text": info["status"],
             "zone": info["zone"],
             "description": info["description"],
+            "range_text": range_text,
         })
     return tiles
 

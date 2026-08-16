@@ -158,18 +158,19 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             articulation = take["articulation"]
             flat = flatten_take(take)
 
-            tile_keys = ["ddk_rate_hz", "mean_burst_sharpness_db_s"]
+            # Bucket H (docs/backlog.md, Nutzer-Feedback 2026-08-15): Zyklen-Regelmäßigkeit
+            # (CV) und Ø Zyklus-Intervall waren hier noch als rohe st.metric()-Zeile
+            # stehengeblieben, obwohl sie schon PARAMETER_INFO-Einträge haben.
+            tile_keys = ["ddk_rate_hz", "mean_burst_sharpness_db_s", "cycle_interval_cv", "mean_cycle_interval_s"]
             tiles = build_tiles({k: flat[k] for k in tile_keys if k in flat})
-            tile_cols = st.columns(len(tiles)) if tiles else []
-            for col, tile in zip(tile_cols, tiles):
-                with col:
-                    kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"])
+            tile_rows = [tiles[i:i + 3] for i in range(0, len(tiles), 3)]
+            for row in tile_rows:
+                cols = st.columns(3)
+                for col, tile in zip(cols, row):
+                    with col:
+                        kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
 
-            mean_interval_ms = ddk["mean_cycle_interval_s"] * 1000 if ddk["mean_cycle_interval_s"] is not None else None
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Zyklen erkannt", ddk["n_cycles"] if ddk["n_cycles"] >= 3 else "–")
-            c2.metric("Regelmäßigkeit (CV)", _fmt(ddk["cycle_interval_cv"], 2))
-            c3.metric("Ø Zyklus-Intervall", f"{_fmt(mean_interval_ms, 0)} ms")
+            st.caption(f"Zyklen erkannt: {ddk['n_cycles'] if ddk['n_cycles'] >= 3 else '–'}")
             if ddk["n_cycles"] < 3:
                 st.caption("Zu wenige erkannte Zyklen für eine belastbare Rate/Regelmäßigkeit.")
             else:

@@ -139,6 +139,17 @@ def cpps_zones():
     return lo, hi, [(0, 9.33 / 20, CRITICAL), (9.33 / 20, 14.45 / 20, WARNING), (14.45 / 20, 1, GOOD)]
 
 
+def voice_breaks_zones():
+    """Referenz (Bucket H, docs/backlog.md, Nutzer-Feedback 2026-08-15): Praat-Dokumentation
+    nennt den Normativwert fuer unstimmhafte Frames bei gehaltenem Vokal als 0% -- gesunde
+    Stimmen sollten die Stimmgebung praktisch luekenlos halten koennen. KEIN publizierter
+    graduierter Cutoff mit Sensitivitaet/Spezifitaet gefunden -- Grenzen hier bewusst PRAGMATISCH
+    und grosszuegig gewaehlt (nicht wie RAP/PPQ5/APQ11 aus einer zitierbaren Einzelquelle),
+    NUR bei gehaltenem Vokal aussagekraeftig (siehe PARAMETER_INFO-Kontext)."""
+    lo, hi = 0, 30
+    return lo, hi, [(0, 2 / 30, GOOD), (2 / 30, 10 / 30, WARNING), (10 / 30, 1, CRITICAL)]
+
+
 def clipping_zones():
     """Faustregel, NICHT literaturbasiert (anders als Jitter/HNR/etc.) -- reine technische
     Heuristik, siehe docs/backlog.md "Konzept: Design-Bereinigung", Baustein B."""

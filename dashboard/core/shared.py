@@ -209,7 +209,7 @@ def apply_global_style() -> None:
         border-top: 3px solid var(--dw-tile-accent, var(--dw-border));
         border-radius: var(--dw-radius-md);
         padding: 12px 14px;
-        min-height: 122px;
+        min-height: 138px;
         display: flex;
         flex-direction: column;
         gap: 2px;
@@ -231,6 +231,11 @@ def apply_global_style() -> None:
     .dw-tile-sub {{
         font-size: 12.5px;
         font-weight: 600;
+    }}
+    .dw-tile-range {{
+        font-size: 11px;
+        color: var(--dw-text-secondary);
+        font-weight: 500;
     }}
     .dw-tile-desc {{
         font-size: 11.5px;
@@ -530,20 +535,28 @@ _TILE_ZONE_COLORS = {
 }
 
 
-def kpi_tile(label: str, value_text: str, sub_text: str = "", zone: str = "neutral", description: str | None = None) -> None:
+def kpi_tile(
+    label: str, value_text: str, sub_text: str = "", zone: str = "neutral",
+    description: str | None = None, range_text: str | None = None,
+) -> None:
     """Nuechterne Kennwert-Kachel statt Tacho-Gauge (Design-Bereinigung 2026-08-15, siehe
     docs/backlog.md "Konzept: Design-Bereinigung"/[[project_edf_ui_redesign]]). `zone` faerbt
     NUR den oberen Rand + das Status-Wort, nicht die ganze Kachel -- bewusst gedaempft.
     Rendert direkt via st.markdown (Seiteneffekt, wie st.metric()), kein Rueckgabewert.
+
+    `range_text` (Bucket I, docs/backlog.md, Nutzer-Feedback 2026-08-15): der konkrete
+    Normbereich (z.B. "5-8Hz"), NEUTRAL eingefaerbt (nicht in der Status-Farbe) -- Fakt statt
+    Bewertung, direkt auf der Kachel sichtbar statt nur in der versteckten Detailtabelle.
     """
     color = _TILE_ZONE_COLORS.get(zone, TEXT_SECONDARY)
     sub_html = f'<div class="dw-tile-sub" style="color:{color}">{sub_text}</div>' if sub_text else ""
+    range_html = f'<div class="dw-tile-range">Norm: {range_text}</div>' if range_text else ""
     desc_html = f'<div class="dw-tile-desc">{description}</div>' if description else ""
     st.markdown(
         f'<div class="dw-tile" style="--dw-tile-accent:{color}">'
         f'<div class="dw-tile-label">{label}</div>'
         f'<div class="dw-tile-value">{value_text}</div>'
-        f'{sub_html}{desc_html}'
+        f'{sub_html}{range_html}{desc_html}'
         f'</div>',
         unsafe_allow_html=True,
     )
