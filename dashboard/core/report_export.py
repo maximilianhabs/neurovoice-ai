@@ -109,6 +109,7 @@ def build_excel_report(data: dict) -> bytes:
                     "Parameter": entry["label"],
                     "Was es misst": entry["description"],
                     "Kontext (deskriptiv)": entry["context"],
+                    "Referenzwerte (Literatur)": entry.get("typical_values") or "–",
                     "Evidenz": entry["evidence"],
                     "Quelle": entry["literature"] or "–",
                 }
@@ -216,6 +217,8 @@ def build_pdf_report(data: dict) -> bytes:
             pdf.set_font("Helvetica", "", 9)
             pdf.multi_cell(0, 5, _pdf_safe(f"Was es misst: {entry['description']}"), new_x="LMARGIN", new_y="NEXT")
             pdf.multi_cell(0, 5, _pdf_safe(f"Kontext: {entry['context']}"), new_x="LMARGIN", new_y="NEXT")
+            if entry.get("typical_values"):
+                pdf.multi_cell(0, 5, _pdf_safe(f"Referenzwerte: {entry['typical_values']}"), new_x="LMARGIN", new_y="NEXT")
             if entry["literature"]:
                 pdf.set_font("Helvetica", "I", 8)
                 pdf.multi_cell(0, 5, _pdf_safe(f"Quelle: {entry['literature']}"), new_x="LMARGIN", new_y="NEXT")

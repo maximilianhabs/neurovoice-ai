@@ -788,17 +788,38 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
     PDF mit korrektem `%PDF`-Header), AppTest-Smoke-Test der Startseite ohne Exceptions,
     HTTP 200 auf `/_stcore/health`.
 - [ ] **P15 — Referenzwerte im Glossar: typische Werte Gesunde/Dysarthrie/psychomotorische
-      Verlangsamung + echte Primärliteratur** (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) —
-      das Glossar (`build_glossary_entries()`/`render_glossary()`) soll pro Parameter, auch
-      wenn kein harter Ampel-Cutoff existiert, eine QUANTITATIVE Einordnung liefern: typische
-      Werte/Schwankungsbreite bei Gesunden, UND — soweit in der Literatur beschrieben —
-      typische Werte/Richtung bei Dysarthrie bzw. bei psychomotorisch verlangsamtem Sprechen.
-      Rein deskriptiv bleiben (kein Cutoff-Anspruch), aber konkrete Zahlen statt nur Prosatext.
-      Zusätzlich: für viele Parameter fehlen echte Primärquellen (Publikationen mit Autor:innen/
-      Jahr/Journal) — aktuell oft nur Sekundärquellen-Zusammenfassungen
-      ("voicescience.org-Zusammenfassung", "zusammenfassende Sekundärquellen" etc.) referenziert.
-      Braucht gezielte Literaturrecherche je Parameter, dann `PARAMETER_INFO["literature"]`
-      entsprechend ergänzen/präzisieren. Größerer Rechercheaufwand, kein kleiner Schritt.
+      Verlangsamung + echte Primärliteratur** (Nutzer-Feedback 2026-08-16, TEIL 1 UMGESETZT
+      2026-08-16, Rest offen) — das Glossar (`build_glossary_entries()`/`render_glossary()`)
+      soll pro Parameter, auch wenn kein harter Ampel-Cutoff existiert, eine QUANTITATIVE
+      Einordnung liefern: typische Werte/Schwankungsbreite bei Gesunden, UND — soweit in der
+      Literatur beschrieben — typische Werte/Richtung bei Dysarthrie bzw. bei psychomotorisch
+      verlangsamtem Sprechen. Rein deskriptiv bleiben (kein Cutoff-Anspruch), aber konkrete
+      Zahlen statt nur Prosatext. Zusätzlich: für viele Parameter fehlten echte Primärquellen
+      (Publikationen mit Autor:innen/Jahr/Journal) — vorher oft nur Sekundärquellen-
+      Zusammenfassungen referenziert. Größerer Rechercheaufwand, deshalb in Teilen umgesetzt:
+  - **Stand 2026-08-16**: neues Feld `PARAMETER_INFO["typical_values"]`, durchgereicht via
+    `interpret()`/`build_glossary_entries()`, angezeigt in `render_glossary()` UND in beiden
+    Report-Formaten (`core/report_export.py`, Excel-Spalte + PDF-Absatz) — eine
+    Datenquelle für alle drei Darstellungen.
+  - **9 Parameter mit echter, primärquellen-basierter Recherche fertig** (die klinisch
+    zentralsten, direkt zu Dysarthrie UND psychomotorischer Verlangsamung passend): Jitter,
+    Shimmer, HNR, CPPS, MPT, DDK-Rate, Sprechrate, F0-Streuung (Monopitch), Vokalraum-Fläche
+    (VSA). Konkrete Beispiele: DDK-Rate Gesunde 6,4/6,1/5,7 Silben/s vs. ataktische Dysarthrie
+    3,8/3,9/3,4 Silben/s (Kent et al. 1979); VSA Gesunde ~310.517Hz² vs. Parkinson-Dysarthrie
+    ~247.867Hz² (zwei unabhängige Studien, vorher hatte P12 explizit "keine Zahl gefunden"
+    dokumentiert); Sprechrate bewusst OHNE einzelne Zahl dargestellt, da die Richtung bei
+    Parkinson nicht einheitlich ist (manche Studien zeigen paradoxe Beschleunigung/
+    "Festination", nicht nur Verlangsamung) — echte Literatur-Uneinigkeit transparent gemacht
+    statt eine erfundene Konsens-Zahl zu behaupten (z.B. bei MPT: zwei Quellen mit
+    unterschiedlichen Normwerten nebeneinander gezeigt, 25-35s Iowa-Sekundärquelle vs.
+    21,4s malaysische Primärstudie).
+  - Verifiziert: Regression über alle 40 `PARAMETER_INFO`-Einträge (`interpret()` liefert
+    überall das neue Feld, auch `None` wo nicht vorhanden), AppTest über alle 7 Seiten sauber,
+    Excel-/PDF-Export mit neuem Feld getestet.
+  - **Noch offen (Teil 2)**: die restlichen ~13 Parameter mit "gut etabliert"/"in der
+    Forschung diskutiert"-Einstufung, die noch keine `typical_values` haben (u.a. RAP/PPQ5/
+    APQ11, Artikulationsrate, Pausen-Kennwerte, TTR/MTLD, Rhythmus/nPVI, F1/F2-Streuung) —
+    gleiches Vorgehen fortsetzen, priorisiert nach klinischer Relevanz.
 - [ ] **P16 — Interne Entwicklungs-Referenzen aus nutzersichtbaren Texten entfernen**
       (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) — `PARAMETER_INFO`-Texte (`context`/
       `literature`) enthalten an vielen Stellen interne Entwicklungs-Markierungen wie

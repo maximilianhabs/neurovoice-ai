@@ -549,11 +549,16 @@ def render_glossary(entries: list[dict]) -> None:
     """Rendert das ausfuehrliche Evidenz-Glossar (P11, docs/backlog.md "Kompakte Uebersicht +
     ausfuehrliches Evidenz-Glossar trennen") -- ein Block je Parameter mit Erklaerung, Kontext,
     Evidenz-Einordnung (gut etabliert / in der Forschung diskutiert / eigene Heuristik /
-    deskriptiv) und Literaturverweis. Ergaenzt core.interpretation.build_glossary_entries().
-    Bewusst als eigene, geraeumigere Darstellung statt einer weiteren Tabellenspalte -- analog
-    zu den ausfuehrlichen Parameter-Erklaerungen beim EDF-Analyzer (z.B. views/ecg_hrv.py)."""
+    deskriptiv), Referenzwerten (P15) und Literaturverweis. Ergaenzt
+    core.interpretation.build_glossary_entries(). Bewusst als eigene, geraeumigere Darstellung
+    statt einer weiteren Tabellenspalte -- analog zu den ausfuehrlichen Parameter-Erklaerungen
+    beim EDF-Analyzer (z.B. views/ecg_hrv.py)."""
     for entry in entries:
         color = _EVIDENCE_COLORS.get(entry["evidence"], TEXT_SECONDARY)
+        typical_html = (
+            f'<div class="dw-glossary-desc"><b>Referenzwerte (Literatur):</b> {entry["typical_values"]}</div>'
+            if entry.get("typical_values") else ""
+        )
         lit_html = f'<div class="dw-glossary-lit">Quelle: {entry["literature"]}</div>' if entry["literature"] else ""
         age_html = f'<div class="dw-glossary-lit">{entry["age_caveat"]}</div>' if entry.get("age_caveat") else ""
         st.markdown(
@@ -563,7 +568,7 @@ def render_glossary(entries: list[dict]) -> None:
             f'</div>'
             f'<div class="dw-glossary-desc"><b>Was es misst:</b> {entry["description"]}</div>'
             f'<div class="dw-glossary-desc"><b>Kontext (deskriptiv):</b> {entry["context"]}</div>'
-            f'{lit_html}{age_html}'
+            f'{typical_html}{lit_html}{age_html}'
             f'</div>',
             unsafe_allow_html=True,
         )

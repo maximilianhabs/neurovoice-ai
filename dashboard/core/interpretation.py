@@ -58,6 +58,15 @@ PARAMETER_INFO: dict[str, dict] = {
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
         "literature": "Monopitch als eines der robustesten PD-Merkmale — (Dys)Prosody in Parkinson's Disease; ASHA Perspectives. F0SD-Grobbereich 12-40Hz: voicescience.org-Zusammenfassung normativer Datensätze",
+        "typical_values": (
+            "Richtung gut belegt, konkrete Hz-Zahl bewusst nicht behauptet: Gesunde zeigen in "
+            "Vergleichsstudien eine SIGNIFIKANT HÖHERE F0-Variabilität als Parkinson-"
+            "Patient:innen (Skodda et al. 2011, Journal of Voice, F0-Variabilität in "
+            "Fließsprache ON/OFF-Levodopa vs. Kontrollen; Sci Rep 2020, 10:12237, Parkinson-"
+            "Dysarthrie-Kohorte). Bei ataktischer Dysarthrie eher unauffällig/erhöht statt "
+            "reduziert (Gegenrichtung zu Parkinson) — kein einheitliches Bild über alle "
+            "Dysarthrie-Typen."
+        ),
     },
     "jitter_local_pct": {
         "label": "Jitter (local)",
@@ -71,7 +80,15 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "Klassisches Stimmklinik-Maß — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md",
+        "literature": "Klassischer Praat-Normwert 1,04% (Boersma & Weenink, Praat-Dokumentation „Voice report“); Erhöhung bei Parkinson-Dysarthrie u.a. bei Rusz et al. 2011, J Acoust Soc Am 129(1), und Sci Rep 2020, 10:12237",
+        "typical_values": (
+            "Gesunde/klinisch unauffällige Stimmen: <1,04% (Praats etablierter "
+            "Normalitäts-Schwellenwert). Bei Dysarthrie (u.a. Parkinson) in mehreren Studien "
+            "im Mittel erhöht — konkrete Zahlenspannen variieren stark je nach Studie, "
+            "Sprachaufgabe und Analyse-Software (Praat vs. MDVP liefern systematisch "
+            "unterschiedliche absolute Werte, siehe Kontext oben), deshalb hier keine einzelne "
+            "„typische“ Patientenzahl behauptet."
+        ),
     },
     "shimmer_local_pct": {
         "label": "Shimmer (local)",
@@ -84,7 +101,13 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "Klassisches Stimmklinik-Maß — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md",
+        "literature": "Klassischer Praat-Normwert 3,81% (Boersma & Weenink, Praat-Dokumentation „Voice report“); allgemeine Spanne 3-7% je nach Population/Aufnahmequalität, siehe „Reliable Jitter and Shimmer Measurements in Voice Clinics“ (Journal of Voice)",
+        "typical_values": (
+            "Gesunde/klinisch unauffällige Stimmen: <3,81% (Praats etablierter "
+            "Normalitäts-Schwellenwert), teils auch 3-7% als allgemeine Spanne berichtet. Bei "
+            "Dysarthrie im Mittel erhöht, wie bei Jitter keine einzelne verlässliche "
+            "„typische“ Patientenzahl über alle Studien/Methoden hinweg."
+        ),
     },
     "hnr_mean_db": {
         "label": "HNR",
@@ -98,7 +121,13 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
         "evidence": "gut etabliert",
-        "literature": "Klassisches Stimmklinik-Maß — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md",
+        "literature": "Erniedrigt bei Dysarthrie/Dysphonie allgemein — Vocal Acoustic Analysis: Jitter, Shimmer and HNR Parameters, siehe docs/literatur_review.md; für Parkinson-Dysarthrie u.a. Rusz et al. 2011, J Acoust Soc Am 129(1); Sci Rep 2020, 10:12237",
+        "typical_values": (
+            "Kein einzelner publizierter „typischer“ Patientenwert gefunden — Studien "
+            "bestätigen konsistent NIEDRIGERE HNR-Werte bei Dysarthrie/Dysphonie (u.a. "
+            "Parkinson) im Vergleich zu Gesunden, ohne einheitliche absolute Vergleichszahl "
+            "über verschiedene Studien/Aufnahmebedingungen hinweg."
+        ),
     },
     "cpps_db": {
         "label": "CPPS",
@@ -117,7 +146,13 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Cepstral Peak Prominence Values for Clinical Voice Evaluation (ASHA/PMC, Praat-Cutoffs 14,45dB Vokal / 9,33dB Fließsprache)",
+        "literature": "Cepstral Peak Prominence Values for Clinical Voice Evaluation (ASHA/PMC, Praat-Cutoffs 14,45dB Vokal / 9,33dB Fließsprache); für Parkinson-Dysarthrie zusätzlich „Analysis of Smooth Cepstral Peak Prominence in Hypokinetic Dysarthria Associated With Parkinson's Disease“ (De Gruyter, 2024)",
+        "typical_values": (
+            "Kein einzelner publizierter Patientenwert als „typisch“ behauptet — mehrere "
+            "Studien bestätigen konsistent NIEDRIGERE CPPS-Werte bei Parkinson-Dysarthrie im "
+            "Vergleich zu Gesunden, sowohl bei gehaltenem Vokal als auch bei Fließsprache "
+            "(Fließsprache zeigte in einer Studie die stärkere Trennschärfe zwischen Gruppen)."
+        ),
     },
     "net_speech_rate_wpm": {
         "label": "Sprechrate",
@@ -131,7 +166,18 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "Sprechrate ist Standard-Sprechfluss-Marker, aber unspezifisch für einzelne Dysarthrie-Typen — siehe docs/literatur_review.md Abschnitt 5",
+        "literature": "Sprechrate ist Standard-Sprechfluss-Marker, aber unspezifisch für einzelne Dysarthrie-Typen — siehe docs/literatur_review.md Abschnitt 5; zu Depression/psychomotorischer Verlangsamung u.a. Sanchez et al., Depression und Sprechrate; zu Parkinson u.a. De Letter et al., „Speech rate in Parkinson's disease: A controlled study“ (Neurología, 2016), 39 PD vs. 45 Kontrollen",
+        "typical_values": (
+            "Uneinheitliches Bild, bewusst kein einzelner Zahlenwert behauptet: bei "
+            "Depression/psychomotorischer Verlangsamung im Mittel nur GERING reduziert (Studien "
+            "berichten einen Unterschied in der Größenordnung von ~5 WPM gegenüber Nicht-"
+            "Depressiven — deutlich subtiler, als man intuitiv erwarten würde). Bei Parkinson "
+            "in kontrollierten Studien meist reduzierte Sprech-/Artikulationsrate, ABER "
+            "einzelne Studien berichten auch eine paradox ERHÖHTE Vorlese-Geschwindigkeit bei "
+            "einem Teil der Betroffenen („Festination“ der Sprache, analog zum Gangbild) — "
+            "Richtung ist also nicht bei allen Patient:innen gleich, ein einzelner „typischer“ "
+            "WPM-Wert wäre irreführend."
+        ),
     },
     "mean_burst_sharpness_db_s": {
         "label": "Artikulationsschärfe",
@@ -179,7 +225,16 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Alternating and sequential motion rates in older adults (Pierce et al.); Oral-DDK-Rate gesunder junger Erwachsener (Speech Language and Hearing 2022); DDK bei zerebellärer Ataxie (Colorado-Dissertation)",
+        "literature": "Alternating and sequential motion rates in older adults (Pierce et al.); Oral-DDK-Rate gesunder junger Erwachsener (Speech Language and Hearing 2022); DDK bei zerebellärer Ataxie (Colorado-Dissertation); Einzellaut-Normwerte + Ataxie-Vergleich zusätzlich bei Kent et al. 1979, „Diadochokinetic syllable rate and regularity in normal and in spastic and ataxic dysarthric subjects“, Journal of Speech and Hearing Disorders 47(3)",
+        "typical_values": (
+            "Gesunde Erwachsene (Einzellaute): /p/ 6,4 Silben/s, /t/ 6,1 Silben/s, /k/ 5,7 "
+            "Silben/s (Kent et al. 1979); englischsprachiger Normwert kombiniert ~6,23 "
+            "Silben/s (SD 0,81), untere Grenze ~5,4 Silben/s. Bei ataktischer Dysarthrie "
+            "DEUTLICH reduziert: /p/ 3,8, /t/ 3,9, /k/ 3,4 Silben/s (dieselbe Quelle) — die "
+            "Silbendauer selbst war bei Ataxie mit 166ms gegenüber 80ms bei Gesunden etwa "
+            "doppelt so lang. Bei Parkinson ebenfalls reduzierte DDK-Raten berichtet, "
+            "konkrete Zahlen variieren je Studie."
+        ),
     },
     "mean_cycle_interval_s": {
         "label": "Ø Zyklus-Intervall",
@@ -536,7 +591,16 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
-        "literature": "MPT-Normwerte 25-35s (M)/15-25s (F), <10s reduziert — Iowa Head and Neck Protocols, VoiceDoctor.net, zusammenfassende Sekundärquellen",
+        "literature": "MPT-Normwerte 25-35s (M)/15-25s (F), <10s reduziert — Iowa Head and Neck Protocols, VoiceDoctor.net, zusammenfassende Sekundärquellen. Abweichende Primärstudie: Maximum Phonation Time Normative Values Among Malaysians (Journal of Voice/ScienceDirect) und „Maximum Phonation Time: Variability and Reliability“ (Journal of Voice)",
+        "typical_values": (
+            "Literatur ist sich NICHT einig auf eine einzelne Zahl — bewusst als Beispiel für "
+            "echte Bandbreite dargestellt statt einer einzelnen Pseudo-Präzisions-Zahl: die "
+            "oft zitierte Iowa-Sekundärquelle nennt 25-35s (Männer)/15-25s (Frauen), eine "
+            "malaysische Normativ-Studie dagegen deutlich niedriger 21,41±6,85s (Männer)/"
+            "18,05±5,06s (Frauen) für den Vokal /a/. Bei Dysphonie/motorischen Störungen im "
+            "Mittel reduziert — eine Studie berichtete Patient:innen im Schnitt 6,6s kürzer "
+            "als gesunde Kontrollen."
+        ),
     },
     "tremor_freq_hz": {
         "label": "F0-Tremor-Frequenz",
@@ -569,7 +633,17 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
         "age_caveat": None,
         "evidence": "in der Forschung diskutiert",
-        "literature": "Klassische VSA-Dreiecksformel, aber laut Literatur uneinheitlich validiert (hohe Sprecher-zu-Sprecher-Varianz, methodenabhängig) — siehe docs/literatur_review.md Punkt 2 der Einschränkungen; keine publizierte Hz²-Schwelle in der Recherche gefunden",
+        "literature": "Klassische VSA-Dreiecksformel, aber laut Literatur uneinheitlich validiert (hohe Sprecher-zu-Sprecher-Varianz, methodenabhängig) — siehe docs/literatur_review.md Punkt 2 der Einschränkungen; kein publizierter Hz²-Cutoff, aber konkrete Vergleichswerte bei „Acoustic analysis of the voice in patients with Parkinson's disease and hypokinetic dysarthria“ und „Vowel Articulation in Parkinson's Disease“ (ScienceDirect)",
+        "typical_values": (
+            "Kein Cutoff, aber echte publizierte Vergleichswerte (nachträglich gefunden, "
+            "2026-08-16) — Ergänzung zur ursprünglichen Recherche, die keine Zahlen fand: eine "
+            "Studie berichtet 310.517±111.523 Hz² bei Gesunden vs. 247.867±68.934 Hz² bei "
+            "Parkinson-Dysarthrie (p=0,012); eine zweite Studie 363.679 Hz² (Gesunde) vs. "
+            "306.501 Hz² (Parkinson-Dysarthrie). Beide zeigen dieselbe Richtung (kleinere "
+            "Fläche bei Dysarthrie, „Vokal-Zentralisierung“), die ABSOLUTEN Zahlen "
+            "unterscheiden sich aber deutlich zwischen den Studien — passt zur bekannten "
+            "hohen Methodenabhängigkeit, deshalb weiterhin bewusst ohne Ampel/Cutoff."
+        ),
     },
 }
 
@@ -593,6 +667,7 @@ def interpret(param_key: str, value: float | None) -> dict | None:
         "age_caveat": info["age_caveat"],
         "evidence": info["evidence"],
         "literature": info["literature"],
+        "typical_values": info.get("typical_values"),
     }
 
     if info["zones_func"] is not None:
@@ -650,9 +725,10 @@ def build_rows(flat: dict) -> list[dict]:
 
 def build_glossary_entries(flat: dict) -> list[dict]:
     """Baut die ausfuehrlichen Glossar-Eintraege (P11) fuer alle im Take vorhandenen Parameter:
-    Label, "Was es misst", Kontext (deskriptiv), Evidenz-Einordnung, Literaturverweis. Getrennt
-    von build_rows() (kompakte Uebersicht), damit die kompakte Tabelle nicht wieder mit langen
-    Texten ueberladen wird (Nutzer-Feedback 2026-08-15 zur vorherigen Tabellen-Version)."""
+    Label, "Was es misst", Kontext (deskriptiv), Evidenz-Einordnung, Literaturverweis,
+    Referenzwerte (P15, docs/backlog.md "Referenzwerte im Glossar"). Getrennt von build_rows()
+    (kompakte Uebersicht), damit die kompakte Tabelle nicht wieder mit langen Texten
+    ueberladen wird (Nutzer-Feedback 2026-08-15 zur vorherigen Tabellen-Version)."""
     entries = []
     for param_key in PARAMETER_INFO:
         if param_key not in flat:
@@ -667,6 +743,7 @@ def build_glossary_entries(flat: dict) -> list[dict]:
             "evidence": info["evidence"],
             "literature": info["literature"],
             "age_caveat": info["age_caveat"],
+            "typical_values": info["typical_values"],
         })
     return entries
 
