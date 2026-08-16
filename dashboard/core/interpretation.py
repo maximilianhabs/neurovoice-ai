@@ -49,8 +49,8 @@ PARAMETER_INFO: dict[str, dict] = {
             "Reduzierte Tonhöhenvariabilität ist ein klassisches Merkmal hypokinetischer "
             "Dysarthrie (Parkinson) — zusammen mit reduzierter Lautstärke und kurzen "
             "„Sprechschüben“. Bei ataktischer Dysarthrie eher unauffällig oder erhöht. "
-            "**P12-Recherche 2026-08-15**: normative Datensätze für Fließsprache berichten "
-            "SD-Werte grob im Bereich 12-40Hz (starke Streuung je nach Studie/Sprecher:in) — "
+            "Normative Datensätze für Fließsprache berichten SD-Werte grob im Bereich 12-40Hz "
+            "(starke Streuung je nach Studie/Sprecher:in) — "
             "bei gehaltenem Vokal ist die SD naturgemäß VIEL kleiner (Zielton wird bewusst "
             "gehalten). Bewusst KEINE Ampel: kein einzelner, klar zitierbarer Cutoff mit "
             "Sensitivität/Spezifität gefunden, nur eine grobe Sekundärquellen-Orientierung."
@@ -137,8 +137,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": (
             "Robusteres Äquivalent zu Jitter/Shimmer/HNR bei Fließsprache. In der ALS- und "
             "Parkinson-Literatur als digitaler Sprach-Biomarker diskutiert — erniedrigter "
-            "Wert = auffälligere Stimmqualität. **P12-Nachtrag**: Normbereich (14,45dB-Cutoff, "
-            "Praat) stammt aus Untersuchungen an GEHALTENEN VOKALEN — bei Fließsprache "
+            "Wert = auffälligere Stimmqualität. Der Normbereich (14,45dB-Cutoff, Praat) "
+            "stammt aus Untersuchungen an GEHALTENEN VOKALEN — bei Fließsprache "
             "(Vorlesen/Spontansprache/DDK) liegt der literaturbasierte Cutoff niedriger "
             "(~9,33dB, dieselbe Quelle). Ein Wert zwischen 9-14dB bei einer Lesetext-/"
             "Spontansprache-Aufnahme ist NICHT zwingend auffällig, auch wenn die Ampel hier "
@@ -200,10 +200,10 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": (
             "Reduzierte Lautstärke-Variabilität passt zusammen mit Monopitch zum klassischen "
-            "Bild hypokinetischer Dysarthrie (Parkinson). **P12-Recherche 2026-08-15**: gezielt "
-            "nach einem publizierten Intensitäts-SD-Normbereich gesucht — nur allgemeine "
-            "Sprachlautstärke-Pegel (60-65dB in 1m Abstand) gefunden, KEIN spezifischer "
-            "SD-über-eine-Äußerung-Cutoff. Bewusst weiterhin ohne Ampel."
+            "Bild hypokinetischer Dysarthrie (Parkinson). Für einen publizierten Intensitäts-"
+            "SD-Normbereich wurden nur allgemeine Sprachlautstärke-Pegel (60-65dB in 1m "
+            "Abstand) gefunden, kein spezifischer SD-über-eine-Äußerung-Cutoff. Bewusst "
+            "weiterhin ohne Ampel."
         ),
         "age_caveat": None,
         "evidence": "gut etabliert",
@@ -224,8 +224,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "description": "Silbenzyklen pro Sekunde beim \"pa-ta-ka\"-Sprechen — wie schnell die Silbenfolge wiederholt werden kann.",
         "zones_func": ddk_rate_zones,
         "context": (
-            "Reine Verlangsamung eher bei hypokinetischer/spastischer Dysarthrie. **P12**: "
-            "Normbereich 5-8Hz aus Literaturwerten gesunder Erwachsener (5-7 Silben/s "
+            "Reine Verlangsamung eher bei hypokinetischer/spastischer Dysarthrie. Normbereich "
+            "5-8Hz aus Literaturwerten gesunder Erwachsener (5-7 Silben/s "
             "Einzellaute, 6,57±0,84 Silben/s kombiniert „pa-ta-ka“) — bei zerebellärer Ataxie "
             "in einer Studie im Mittel nur 3,2 Silben/s vs. 5,61 Silben/s bei Kontrollen. "
             "WICHTIG: unser eigener Erkennungsalgorithmus (Burst-basiert) ist NICHT gegen "
@@ -267,8 +267,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "context": (
             "Unregelmäßige, „stolpernde“ Silbenfolgen (hoher CV) gelten als möglicher Hinweis "
             "auf ataktische Dysarthrie (zerebelläre Störung) — reine Verlangsamung ohne "
-            "Unregelmäßigkeit spricht eher für hypokinetisch/spastisch. **P12-Recherche "
-            "2026-08-15**: CV wird in der Ataxie-Literatur als sinnvolles Maß bestätigt "
+            "Unregelmäßigkeit spricht eher für hypokinetisch/spastisch. CV wird in der "
+            "Ataxie-Literatur als sinnvolles Maß bestätigt "
             "(qualitativ signifikant unterschiedlich bei Ataxie), aber KEIN konkreter "
             "Zahlen-Cutoff gefunden — bewusst weiterhin ohne Ampel, um keine erfundene "
             "Schwelle vorzutäuschen."
@@ -613,7 +613,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": rap_zones,
         "context": (
             "Wie Jitter (local) ein unspezifischer Dysphonie-Marker, nur bei gehaltenem Vokal "
-            "zuverlässig interpretierbar. **P12**: Normbereich <0,68% aus der klassischen "
+            "zuverlässig interpretierbar. Normbereich <0,68% aus der klassischen "
             "MDVP-Konvention übernommen — MDVP und Praat liefern für dieselbe Aufnahme "
             "systematisch unterschiedliche absolute Werte (dokumentierter Algorithmus-"
             "Unterschied), die Schwelle ist also eine Orientierung, NICHT gegen unsere eigene "
@@ -638,7 +638,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": ppq5_zones,
         "context": (
             "Wie Jitter (local)/RAP ein unspezifischer Dysphonie-Marker, nur bei gehaltenem "
-            "Vokal zuverlässig interpretierbar. **P12**: Normbereich <0,84% aus der "
+            "Vokal zuverlässig interpretierbar. Normbereich <0,84% aus der "
             "klassischen MDVP-Konvention — gleicher MDVP-vs-Praat-Vorbehalt wie bei RAP "
             "(Orientierung, nicht gegen unsere Pipeline nachvalidiert)."
         ),
@@ -660,7 +660,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": apq11_zones,
         "context": (
             "Wie Shimmer (local) ein unspezifischer Dysphonie-Marker, nur bei gehaltenem Vokal "
-            "zuverlässig interpretierbar. **P12**: Normbereich <3,07% aus der klassischen "
+            "zuverlässig interpretierbar. Normbereich <3,07% aus der klassischen "
             "MDVP-Konvention — gleicher MDVP-vs-Praat-Vorbehalt wie bei RAP/PPQ5."
         ),
         "age_caveat": AGE_CAVEAT_JITTER_SHIMMER_HNR_F0,
@@ -685,7 +685,7 @@ PARAMETER_INFO: dict[str, dict] = {
             "bei ALS/bulbären Erkrankungen. Nur aussagekräftig, wenn gezielt „so lange wie "
             "möglich halten“ instruiert wurde — bei kurzen Standard-Vokalaufnahmen ist der Wert "
             "nur die aufgenommene Dauer, nicht die tatsächliche maximale Phonationsdauer. "
-            "**P12**: Normbereich ≥15s (konservative untere/weibliche Literaturgrenze, da hier "
+            "Normbereich ≥15s (konservative untere/weibliche Literaturgrenze, da hier "
             "kein Geschlecht erfasst wird) — gesunde Erwachsene erreichen typischerweise "
             "25-35s (Männer)/15-25s (Frauen), <10s gilt allgemein als reduziert."
         ),
@@ -724,9 +724,8 @@ PARAMETER_INFO: dict[str, dict] = {
         "zones_func": None,
         "context": (
             "Kleinere Fläche = stärker zentralisierter Vokalraum, gilt in der Literatur als "
-            "möglicher Hinweis auf Artikulationsundeutlichkeit/Dysarthrie. **P12-Recherche "
-            "2026-08-15**: gezielt nach einer publizierten Hz²-Normschwelle gesucht — keine "
-            "gefunden. VSA ist extrem methodenabhängig (Vokalset, Messzeitpunkt in der "
+            "möglicher Hinweis auf Artikulationsundeutlichkeit/Dysarthrie. Eine publizierte "
+            "Hz²-Normschwelle wurde nicht gefunden. VSA ist extrem methodenabhängig (Vokalset, Messzeitpunkt in der "
             "Vokaldauer, Anzahl Wiederholungen), Studien berichten Rohwerte, aber keinen "
             "allgemein akzeptierten Cutoff. Braucht alle 3 Vokal-Teilaufgaben mit mindestens "
             "einem Versuch, bleibt bewusst ohne Ampel."
@@ -735,8 +734,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "evidence": "in der Forschung diskutiert",
         "literature": "Klassische VSA-Dreiecksformel, aber laut Literatur uneinheitlich validiert (hohe Sprecher-zu-Sprecher-Varianz, methodenabhängig) — siehe docs/literatur_review.md Punkt 2 der Einschränkungen; kein publizierter Hz²-Cutoff, aber konkrete Vergleichswerte bei „Acoustic analysis of the voice in patients with Parkinson's disease and hypokinetic dysarthria“ und „Vowel Articulation in Parkinson's Disease“ (ScienceDirect)",
         "typical_values": (
-            "Kein Cutoff, aber echte publizierte Vergleichswerte (nachträglich gefunden, "
-            "2026-08-16) — Ergänzung zur ursprünglichen Recherche, die keine Zahlen fand: eine "
+            "Kein Cutoff, aber echte publizierte Vergleichswerte: eine "
             "Studie berichtet 310.517±111.523 Hz² bei Gesunden vs. 247.867±68.934 Hz² bei "
             "Parkinson-Dysarthrie (p=0,012); eine zweite Studie 363.679 Hz² (Gesunde) vs. "
             "306.501 Hz² (Parkinson-Dysarthrie). Beide zeigen dieselbe Richtung (kleinere "

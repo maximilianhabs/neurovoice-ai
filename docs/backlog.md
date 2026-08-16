@@ -831,19 +831,21 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
     Kennzahl-Variante gefunden wurde, nur für verwandte Maße — keine erfundene Übertragung.
     Regression über alle 40 Parameter + AppTest über alle 7 Seiten erneut sauber, server-
     deployt und verifiziert.
-- [ ] **P16 — Interne Entwicklungs-Referenzen aus nutzersichtbaren Texten entfernen**
-      (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) — `PARAMETER_INFO`-Texte (`context`/
-      `literature`) enthalten an vielen Stellen interne Entwicklungs-Markierungen wie
-      "**P12-Recherche 2026-08-15**", "**P12**", "**P12-Nachtrag**", die nur für die eigene
-      Nachvollziehbarkeit während der Entwicklung gedacht waren — für Nutzer:innen der
-      finalen/öffentlichen App sind Backlog-Kürzel und interne Datumsangaben irrelevant und
-      wirken unprofessionell/verwirrend. Vor einer öffentlichen Veröffentlichung (siehe
-      `ROAD_TO_PUBLIC.md`) MUSS das bereinigt sein — der fachliche Inhalt (was die Recherche
-      ergeben hat) bleibt, nur die Entwicklungs-Meta-Markierung fällt weg. Betrifft mehrere
-      Einträge in `core/interpretation.py::PARAMETER_INFO` und die Docstrings/Kommentare in
-      `core/reference_ranges.py` (dort aber unkritischer, da reiner Code-Kommentar, nicht auf
-      der Oberfläche sichtbar) — bei Umsetzung `PARAMETER_INFO` komplett durchgehen, nicht nur
-      Stichproben.
+- [x] **P16 — Interne Entwicklungs-Referenzen aus nutzersichtbaren Texten entfernen**
+      ✅ UMGESETZT (2026-08-16, Nutzer-Feedback 2026-08-16) — `PARAMETER_INFO`-Texte
+      (`context`/`literature`/`typical_values`) enthielten an vielen Stellen interne
+      Entwicklungs-Markierungen wie "**P12-Recherche 2026-08-15**", "**P12**",
+      "**P12-Nachtrag**", die nur für die eigene Nachvollziehbarkeit während der Entwicklung
+      gedacht waren. Alle 10 Fundstellen in `PARAMETER_INFO` bereinigt (komplett durchgegangen,
+      nicht nur Stichproben) — der fachliche Inhalt (was die Recherche ergeben hat) bleibt
+      vollständig erhalten, nur die Entwicklungs-Meta-Markierung fällt weg. Auch die bei P15
+      neu hinzugekommene interne Datierung im `vsa_hz2`-Eintrag ("nachträglich gefunden,
+      2026-08-16") entfernt. Docstrings/Kommentare in `core/reference_ranges.py`/
+      `core/interpretation.py` selbst bewusst NICHT angefasst — das sind reine
+      Code-Kommentare, nicht auf der Oberfläche sichtbar, kein P16-Ziel.
+      Verifiziert: Regression über alle 40 Parameter bestätigt keine `**P`-Marker mehr in
+      `context`/`literature`/`typical_values`, projektweite Suche in `views/`+`core/` findet
+      keine weiteren Fundstellen, AppTest über alle 7 Seiten sauber.
 
 ## Konzept: Modul-Detailseiten Nachbesserung — Sammel-Feedback nach P10-Testlauf (2026-08-15)
 
