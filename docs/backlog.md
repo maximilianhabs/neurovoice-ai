@@ -858,41 +858,26 @@ Beim ersten Live-Testen von P10-P12 gemeldet, hier gesammelt:
       Spontansprache unverändert gelassen (kein fester Text zum Vorsprechen, Instruktion IST
       der Inhalt). Verifiziert: beide CSS-Klassen korrekt im HTML vorhanden.
 
-- [ ] **Konzept: dezenter Audio-Piep bei Aufnahmestart** (Nutzer-Idee 2026-08-15, NICHT
-      umgesetzt, nur Konzept) — zusätzlich zum bestehenden visuellen Hinweis (roter Rahmen-Tint
-      bei laufender Aufnahme, siehe `core/shared.py::apply_global_style()`) soll ein kurzer,
-      dezenter Ton ("Blip") signalisieren, dass die Aufnahme jetzt läuft — sonst leicht zu
-      übersehen.
-  - **Technischer Ansatz**: `st.audio_input()` liefert wie bei P8 keinen Live-Callback beim
-    Start der Aufnahme. Eine reine CSS-Lösung kann keinen Ton abspielen — anders als bei P8
-    (Farbverlauf) ist hier eine kleine JS-Komponente unumgänglich.
-  - **Empfohlener Mechanismus**: `st.components.v1.html()` (nicht `st.markdown(unsafe_allow_html=True)`,
-    da `<script>`-Tags dort unzuverlässig ausgeführt werden, siehe P8-Erfahrung) mit einem
-    `MutationObserver`, der denselben Zustandswechsel beobachtet wie der bestehende CSS-Trick
-    (Erscheinen des Stop-Buttons mit `aria-label*="Stop"` im DOM, sobald `st.audio_input()` zu
-    nehmen beginnt) und bei diesem Übergang einen kurzen Ton über die Web Audio API abspielt
-    (`OscillatorNode`, z.B. 800Hz Sinuston, ~80-120ms, sanftes Fade-out) — **kein Audio-Datei-
-    Asset nötig**, passt zum bestehenden Prinzip "kein CDN/lokales Hosting" (der Ton wird
-    clientseitig synthetisch erzeugt, nicht als Datei geladen).
-  - **Lautstärke/Charakter**: bewusst SEHR leise/kurz (Nutzer-Vorgabe "nicht zu laut, ganz
-    dezent, einfach ein kleines Blip") — Gain-Node mit niedrigem Pegel (~0.1-0.15), kurze
-    Attack/Release-Hüllkurve, damit es nicht wie ein Alarm wirkt.
-  - **Offene Fragen für die Umsetzung**:
-    - Muss der `MutationObserver` pro Seite neu eingerichtet werden (jeder Modul-Seitenaufruf
-      ist ein neuer Streamlit-Script-Run) — vermutlich ja, daher als kleine wiederverwendbare
-      `core/shared.py`-Funktion analog zu `recording_duration_feedback_style()` (P8) bauen,
-      an denselben Aufrufstellen (`st.audio_input()`-Nutzung in allen 4 Modulen +
-      `testdaten.py`) ergänzen.
-    - `st.components.v1.html()` rendert in einem iframe — Zugriff auf das Eltern-DOM
-      (wo der Stop-Button tatsächlich erscheint) braucht `window.parent.document`, nicht
-      `document` — browserseitige Cross-Origin-Beschränkungen innerhalb Streamlits eigenem
-      iframe-Setup vorher prüfen (sollte funktionieren, da gleiche Origin, aber nicht blind
-      annehmen).
-    - Autoplay-Policies mancher Browser blockieren Sound ohne vorherige Nutzer-Interaktion —
-      da der Ton erst NACH einem Klick auf den Mikrofon-Button ausgelöst wird (echte
-      Nutzer-Geste), sollte das unproblematisch sein, aber beim ersten echten Test gegenprüfen.
-    - Wie bei P8: NICHT visuell/auditiv im Sandbox-Browser vorab testbar (kein
-      Mikrofonzugriff) — müsste beim ersten echten Test durch den Nutzer bestätigt werden.
+- [x] **Audio-Piep bei Aufnahmestart** ✅ UMGESETZT (2026-08-16) — zusätzlich zum bestehenden
+      visuellen Hinweis (roter Rahmen-Tint) signalisiert jetzt ein kurzer, leiser Ton, dass
+      die Aufnahme läuft. Neue `core/shared.py::recording_start_blip()`: `MutationObserver`
+      auf `window.parent.document`, der das Erscheinen eines Stop-Buttons
+      (`aria-label*="Stop"`) erkennt und dabei einen 880Hz-Sinuston (~120ms, sanfte Gain-
+      Hüllkurve, Pegel 0,12) über die Web Audio API abspielt — synthetisch erzeugt, kein
+      Audio-Datei-Asset. Einmal pro Seite aufgerufen (nicht pro Tab), Guard-Flag auf `document`
+      verhindert doppelte Observer bei Streamlit-Reruns, `WeakSet` verhindert Mehrfach-Piepser
+      für denselben Button. Eingebaut in alle 4 Guide-Module + `testdaten.py`.
+  - **Abweichung vom ursprünglichen Konzept**: `st.components.v1.html()` war zur Umsetzungszeit
+    bereits als "wird nach 2026-06-01 entfernt" markiert (Streamlit-Deprecation-Warnung beim
+    Testen entdeckt) — auf die empfohlene Nachfolge-API `st.iframe()` mit HTML-String
+    umgestellt (unterstützt laut Doku explizit JavaScript-Ausführung + Same-Origin-Zugriff,
+    verhält sich für diesen Zweck identisch).
+  - **NICHT auditiv/visuell im Sandbox-Browser verifizierbar** — der Sandbox-Browser kann die
+    Tailscale-Origin gar nicht erreichen (`ERR_BLOCKED_BY_CLIENT`), unabhängig vom fehlenden
+    Mikrofonzugriff. Verifiziert wurde nur: `AppTest`-Regression über alle 7 Seiten ohne
+    Exception, keine Deprecation-Warnung mehr im Server-Log, HTTP 200 nach Deploy. **Bitte
+    beim nächsten echten Test bestätigen** — insbesondere Lautstärke/Charakter des Tons und
+    Autoplay-Verhalten in Safari (dort strenger als Chrome/Firefox).
 
 - [ ] **Konzept: Zukunfts-Parameter — Geschlecht/Alter/Nervosität aus der Stimme** (Nutzer-
       Interesse 2026-08-15, "perspektivisch entwickeln", NICHT priorisiert/terminiert) —

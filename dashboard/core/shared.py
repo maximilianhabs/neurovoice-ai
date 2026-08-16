@@ -351,6 +351,89 @@ def instruction_text_scale_control(key: str = "default") -> None:
         )
 
 
+def recording_start_blip() -> None:
+    """Dezenter Audio-Piep beim Start einer Mikrofonaufnahme (Nutzer-Idee 2026-08-15, docs/
+    backlog.md "Konzept: dezenter Audio-Piep bei Aufnahmestart") -- zusaetzlich zum
+    bestehenden visuellen Hinweis (roter Rahmen-Tint, siehe apply_global_style()) als
+    auditiver Cue, dass die Aufnahme jetzt laeuft.
+
+    `st.audio_input()` liefert keinen Live-Callback beim Aufnahmestart (wie schon bei P8) --
+    eine reine CSS-Loesung kann keinen Ton abspielen, hier ist eine kleine JS-Komponente
+    unumgaenglich. Nutzt `st.iframe()` mit einem HTML-String (nicht `st.markdown
+    (unsafe_allow_html=True)`, da <script>-Tags dort unzuverlaessig ausgefuehrt werden;
+    `st.components.v1.html()` urspruenglich verwendet, aber zur Deploy-Zeit als "wird nach
+    2026-06-01 entfernt" markiert -- auf die empfohlene Nachfolge-API umgestellt) mit einem
+    MutationObserver auf dem ELTERN-Dokument (`window.parent.document`, da die Komponente
+    selbst in einem eigenen iframe rendert -- `st.iframe()` erlaubt laut Doku explizit
+    JavaScript-Ausfuehrung + Same-Origin-Zugriff auf die Streamlit-App), der denselben
+    Zustandswechsel beobachtet wie der bestehende CSS-Trick in apply_global_style()
+    (Erscheinen eines Stop-Buttons mit `aria-label*="Stop"`) und dabei einen kurzen, leisen
+    Sinuston ueber die Web Audio API abspielt -- kein Audio-Datei-Asset noetig, synthetisch
+    erzeugt (passt zum Datenschutz-Prinzip "kein CDN/lokales Hosting").
+
+    Nur EINMAL pro Seite aufrufen (nicht pro Tab/Teilaufgabe) -- der Observer beobachtet das
+    gesamte Dokument, erkennt also jeden Stop-Button, der auf der Seite erscheint, unabhaengig
+    davon, in welchem Tab/welcher Teilaufgabe die Aufnahme laeuft. Ein Guard-Flag auf
+    `document` verhindert doppelte Observer bei Streamlit-Reruns (die Komponente wird bei
+    jedem Rerun neu gerendert, das Eltern-Dokument selbst laedt aber nicht neu).
+
+    NICHT auditiv im Sandbox-Browser vorab testbar (kein Mikrofonzugriff) -- bitte beim
+    naechsten echten Test durch den Nutzer bestaetigen, insbesondere Autoplay-Verhalten in
+    Safari (dort strenger als Chrome/Firefox bzgl. AudioContext ohne direkten Klick-Kontext).
+    """
+    st.iframe(
+        """
+        <script>
+        (function() {
+            var doc;
+            try {
+                doc = window.parent.document;
+            } catch (e) {
+                return;
+            }
+            if (doc.__nvBlipInstalled) { return; }
+            doc.__nvBlipInstalled = true;
+
+            var seen = new WeakSet();
+
+            function playBlip() {
+                try {
+                    var Ctx = window.parent.AudioContext || window.parent.webkitAudioContext;
+                    var ctx = new Ctx();
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.012);
+                    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.11);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.13);
+                    osc.onended = function() { ctx.close(); };
+                } catch (e) { /* Autoplay-Policy o.ae. -- bewusst still ignoriert */ }
+            }
+
+            function scan() {
+                var buttons = doc.querySelectorAll('button[aria-label*="Stop" i]');
+                for (var i = 0; i < buttons.length; i++) {
+                    if (!seen.has(buttons[i])) {
+                        seen.add(buttons[i]);
+                        playBlip();
+                    }
+                }
+            }
+
+            var observer = new MutationObserver(scan);
+            observer.observe(doc.body, {childList: true, subtree: true, attributes: true});
+        })();
+        </script>
+        """,
+        height=1, width=1,
+    )
+
+
 def recording_duration_feedback_style(green_s: float, orange_s: float, red_s: float, key: str = "default") -> None:
     """P8 (docs/backlog.md, Nutzer-Idee 2026-08-15): faerbt den Aufnahme-Rahmen waehrend einer
     laufenden Mikrofonaufnahme zeitabhaengig gruen -> orange -> rot ein, als Signal "kann/sollte

@@ -38,11 +38,14 @@ from core.shared import (
     instruction_text_scale_control,
     kpi_tile,
     recording_duration_feedback_style,
+    recording_start_blip,
     render_interpretation_table,
     transcribe_with_progress,
 )
 from core.session_store import get_session_id
 from core.subject_store import bind_subject_to_session, generate_subject_id
+
+recording_start_blip()
 
 # P10 (docs/backlog.md): auch der Testdaten-/Entwicklermodus bekommt automatisch eine ID
 # zugewiesen (Nutzer-Entscheidung "Pflicht, kein Ueberspringen") -- ohne manuellen Schritt,

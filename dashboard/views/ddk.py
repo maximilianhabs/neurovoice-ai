@@ -27,12 +27,14 @@ from core.shared import (
     kpi_tile,
     quality_tiles,
     recording_duration_feedback_style,
+    recording_start_blip,
     render_glossary,
     render_interpretation_table,
 )
 from core.subject_store import require_subject_or_stop
 
 require_subject_or_stop()
+recording_start_blip()
 
 # Ziel-Dauern je Teilaufgabe fuer P8 (Live-Aufnahmedauer-Farbfeedback) -- ddkgemischt zielt auf
 # ca. 10s, ddkeinzeln auf ca. 15s (3x ~5s nacheinander pa/ta/ka).

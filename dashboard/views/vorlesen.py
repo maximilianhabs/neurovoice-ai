@@ -40,6 +40,7 @@ from core.shared import (
     kpi_tile,
     quality_tiles,
     recording_duration_feedback_style,
+    recording_start_blip,
     render_glossary,
     render_interpretation_table,
     transcribe_with_progress,
@@ -47,6 +48,7 @@ from core.shared import (
 from core.subject_store import require_subject_or_stop
 
 require_subject_or_stop()
+recording_start_blip()
 
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 MODULE = "vorlesen"
