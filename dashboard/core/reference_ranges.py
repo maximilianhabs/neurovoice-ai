@@ -192,6 +192,19 @@ def _fmt_num(v: float) -> str:
     return s if s else "0"
 
 
+def good_zone_bounds(lo: float, hi: float, zones: list[tuple[float, float, str]]) -> tuple[float | None, float | None]:
+    """Liefert die absoluten (abs_lo, abs_hi)-Grenzen der GOOD-Zone(n) -- die numerische
+    Grundlage fuer good_range_text() (Anzeigetext) UND core/plots.py::perturbation_bundle_figure()
+    (Referenzlinie im Diagramm), damit beide garantiert denselben Cutoff verwenden. `None, None`
+    wenn keine GOOD-Zone existiert."""
+    good_segments = [(f0, f1) for f0, f1, color in zones if color == GOOD]
+    if not good_segments:
+        return None, None
+    f0 = min(seg[0] for seg in good_segments)
+    f1 = max(seg[1] for seg in good_segments)
+    return lo + f0 * (hi - lo), lo + f1 * (hi - lo)
+
+
 def good_range_text(lo: float, hi: float, zones: list[tuple[float, float, str]], unit: str) -> str | None:
     """Baut den "Normbereich"-Anzeigetext aus den tatsaechlichen GOOD-Zonengrenzen -- NICHT aus
     lo/hi (das ist nur die Gauge-Achse, siehe Docstring oben in diesem Modul). Bugfix
@@ -201,13 +214,13 @@ def good_range_text(lo: float, hi: float, zones: list[tuple[float, float, str]],
     innerhalb des angezeigten Bereichs lag. Diese Funktion liest die GOOD-Zone(n) direkt aus
     denselben zones-Tupeln, die auch verdict_for_value()/zone_for_value() auswerten, damit
     Text und Bewertung nie wieder auseinanderlaufen koennen."""
-    good_segments = [(f0, f1) for f0, f1, color in zones if color == GOOD]
-    if not good_segments:
+    abs_lo, abs_hi = good_zone_bounds(lo, hi, zones)
+    if abs_lo is None:
         return None
-    f0 = min(seg[0] for seg in good_segments)
-    f1 = max(seg[1] for seg in good_segments)
-    abs_lo = lo + f0 * (hi - lo)
-    abs_hi = lo + f1 * (hi - lo)
+    # f0/f1 nochmal aus den Bounds zurueckrechnen, um touches_left/right zu bestimmen (ohne
+    # good_zone_bounds() erneut die rohen Fraktionen exponieren zu muessen).
+    f0 = (abs_lo - lo) / (hi - lo) if hi != lo else 0
+    f1 = (abs_hi - lo) / (hi - lo) if hi != lo else 1
     unit_suffix = f" {unit}" if unit else ""
     touches_left = f0 <= 1e-9
     touches_right = f1 >= 1 - 1e-9

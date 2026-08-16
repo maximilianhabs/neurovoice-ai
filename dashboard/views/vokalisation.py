@@ -35,10 +35,11 @@ from core.audio import (
     save_uploaded_wav,
     vowel_space_area,
 )
-from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
+from core.interpretation import PARAMETER_INFO, build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take, selected_take
 from core.subject_store import require_subject_or_stop
-from core.plots import intensity_figure, spectrogram_figure, vowel_space_figure, waveform_figure
+from core.plots import intensity_figure, perturbation_bundle_figure, spectrogram_figure, vowel_space_figure, waveform_figure
+from core.reference_ranges import good_zone_bounds
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
     instruction_text_scale_control,
@@ -190,6 +191,33 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             for col, tile in zip(tile_cols, tiles):
                 with col:
                     kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
+
+            # Gebuendelte Perturbations-Ansicht (docs/konzept_visualisierungen.md 3.5): alle 5
+            # Jitter-/Shimmer-Untermasse zusammen statt isolierter Kacheln -- RAP/PPQ5/APQ11
+            # hatten bisher GAR KEINE Kachel, nur die Detailtabelle.
+            perturbation_keys = [
+                "jitter_local_pct", "jitter_rap_pct", "jitter_ppq5_pct",
+                "shimmer_local_pct", "shimmer_apq11_pct",
+            ]
+            perturbation_entries = []
+            for key in perturbation_keys:
+                if key not in flat or flat[key] is None:
+                    continue
+                info = PARAMETER_INFO[key]
+                if info["zones_func"] is None:
+                    continue
+                lo, hi, zones = info["zones_func"]()
+                _, cutoff = good_zone_bounds(lo, hi, zones)  # alle 5 Masse: "gut" = unterhalb des Cutoffs
+                perturbation_entries.append({"label": info["label"], "value": flat[key], "cutoff": cutoff})
+            if len(perturbation_entries) >= 2:
+                with st.expander("Perturbationsmaße im Vergleich (Jitter/Shimmer-Familie)"):
+                    st.pyplot(perturbation_bundle_figure(perturbation_entries), width="stretch")
+                    st.caption(
+                        "Alle vorhandenen Jitter-/Shimmer-Untermaße normalisiert als Vielfaches "
+                        "ihres jeweiligen Normwert-Cutoffs (gestrichelte Linie = 1,0). Zeigt, ob "
+                        "ALLE Perturbationsmaße gemeinsam erhöht sind (konsistentes Muster) oder "
+                        "nur eines heraussticht (möglicher Messartefakt)."
+                    )
 
             # Bucket H (docs/backlog.md, Nutzer-Feedback 2026-08-15): F0-Mittel/Voice-Breaks/
             # Formanten waren hier noch als rohe st.metric()-Zeile stehengeblieben, obwohl

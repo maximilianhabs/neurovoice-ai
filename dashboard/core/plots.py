@@ -303,6 +303,41 @@ def ddk_rhythm_figure(cycle_times: list[float], duration_s: float | None = None)
     return fig
 
 
+def perturbation_bundle_figure(entries: list[dict]):
+    """Gebuendelte Perturbations-Ansicht (docs/konzept_visualisierungen.md 3.5) -- zeigt
+    Jitter (local/RAP/PPQ5) und Shimmer (local/APQ11) als EIN gruppiertes Balkendiagramm statt
+    5 isolierter Kacheln, jeweils normalisiert als Vielfaches des eigenen Normwert-Cutoffs
+    (core/reference_ranges.py::good_zone_bounds() -- dieselbe Quelle wie die Kachel-Ampel,
+    kann also nie von den Zahlen abweichen). Macht sofort sichtbar, ob ALLE Perturbationsmaße
+    gemeinsam erhoeht sind (konsistentes Muster) oder nur eines heraussticht.
+
+    `entries`: [{"label": str, "value": float|None, "cutoff": float|None}, ...] -- Werte OHNE
+    gueltigen Cutoff (z.B. kein zones_func) werden uebersprungen.
+    """
+    usable = [e for e in entries if e["value"] is not None and e.get("cutoff")]
+    fig, ax = plt.subplots(figsize=(7, 3))
+    if not usable:
+        ax.text(0.5, 0.5, "Keine Perturbationswerte mit Normwert verfügbar", ha="center", va="center", color=TEXT_SECONDARY, transform=ax.transAxes)
+        ax.axis("off")
+        fig.tight_layout()
+        return fig
+
+    labels = [e["label"] for e in usable]
+    ratios = [e["value"] / e["cutoff"] for e in usable]
+    colors = [WARNING if r > 1 else SUCCESS for r in ratios]
+    x = np.arange(len(labels))
+    ax.bar(x, ratios, color=colors, width=0.6)
+    ax.axhline(1.0, color=TEXT_PRIMARY, linewidth=1.2, linestyle="--", label="Normwert-Cutoff")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=8.5)
+    ax.set_ylabel("Vielfaches des Cutoffs")
+    ax.set_title("Perturbationsmaße im Vergleich")
+    ax.legend(loc="upper right", fontsize=8)
+    ax.grid(color=PLOT_GRID, alpha=0.5, axis="y")
+    fig.tight_layout()
+    return fig
+
+
 def radar_figure(labels: list[str], values: list[float]):
     """Radar-/Spinnennetz-Profil ueber mehrere normalisierte (0-1) Werte, siehe Normwert-Konzept."""
     n = len(labels)
