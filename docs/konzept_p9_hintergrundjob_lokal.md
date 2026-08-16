@@ -104,8 +104,16 @@ Variante ist rein additiv, kein Breaking Change für den Beelink-Produktivbetrie
 
 ## Offene Fragen / Risiken, die vor der Umsetzung geklärt werden sollten
 
-1. **Apple Silicon (arm64) — inzwischen verifiziert, mit einem echten Fund.** Nativer
-   arm64-Testbuild auf einem M-Series-Mac (2026-08-16) zeigte: `praat-parselmouth` hat KEIN
+1. **Apple Silicon (arm64) — ✅ VOLLSTÄNDIG VERIFIZIERT (2026-08-16), finaler Build
+   erfolgreich.** Nach beiden Fixes unten lief ein kompletter, cache-freier Neubau
+   (`--no-cache-dir`) in **ca. 21 Minuten** erfolgreich durch. Im fertigen Image bestätigt:
+   `torch 2.8.0+cpu` (kein CUDA), `whisperx` importierbar, `parselmouth 0.4.7` funktionsfähig,
+   `core.job_queue` funktionsfähig. Nachfolgende Builds nutzen den Docker-Layer-Cache und
+   sind deutlich schneller (Sekunden statt Minuten), solange sich Dockerfile/requirements.txt
+   nicht ändern.
+
+   Unterwegs zwei echte Funde gemacht, beide behoben: der native
+   arm64-Testbuild auf einem M-Series-Mac (2026-08-16) zeigte zunächst: `praat-parselmouth` hat KEIN
    vorgebautes Wheel für `linux/arm64` (nur für `linux/amd64` und macOS) — pip versucht,
    es aus dem Quellcode zu bauen, was im schlanken Basis-Image (`python:3.11-slim-bookworm`,
    kein Compiler) fehlschlug. **Fix**: `build-essential`/`cmake` im Dockerfile ergänzt, damit

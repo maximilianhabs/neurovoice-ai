@@ -75,24 +75,50 @@ docker compose -f docker-compose.local.yml up -d --build
 
 Danach im Browser: **http://localhost:8501**
 
-### Systemanforderungen (Disclaimer)
+### Systemanforderungen im Detail (Disclaimer)
 
-- Docker Desktop installiert und gestartet (Mac oder Windows)
-- **Empfohlen: mind. 8 GB RAM für Docker Desktop freigegeben** — die Spracherkennung
-  (WhisperX, Modell „large-v3") braucht das; mit weniger RAM kann der Hintergrund-Worker-
-  Container abstürzen (`OOMKilled`)
-- **Mind. ~10 GB freier Speicherplatz** (Python-Abhängigkeiten + Sprachmodell)
-- **Internetzugang beim allerersten Start** — lädt einmalig ein ca. 3 GB großes
-  Spracherkennungsmodell herunter (danach lokal zwischengespeichert, kein erneuter Download
-  bei künftigen Starts)
-- Mikrofonzugriff im Browser (Chrome/Safari/Edge) für eigene Aufnahmen
-- Moderne Rechner der letzten Jahre erfüllen das in der Regel problemlos — auf älterer/
-  schwächerer Hardware kann besonders die Transkription spürbar länger dauern
-
-Zwei Container starten gemeinsam: das eigentliche Dashboard (Web-Oberfläche) und ein
-getrennter Hintergrund-Worker, der die Spracherkennung übernimmt, damit die Oberfläche
+Zwei Container starten gemeinsam: das Dashboard (Web-Oberfläche) und ein getrennter
+Hintergrund-Worker, der die Spracherkennung (WhisperX) übernimmt, damit die Oberfläche
 währenddessen nicht blockiert (siehe
-[docs/konzept_p9_hintergrundjob_lokal.md](docs/konzept_p9_hintergrundjob_lokal.md)).
+[docs/konzept_p9_hintergrundjob_lokal.md](docs/konzept_p9_hintergrundjob_lokal.md)). Beide
+laufen bei jeder Plattform als Linux-Container — Docker macht den Host-Betriebssystem-
+Unterschied für den Container selbst irrelevant, nur die CPU-Architektur (arm64 vs. amd64)
+bestimmt, welche Pakete heruntergeladen werden.
+
+**Allgemein, unabhängig von der Plattform:**
+- Internetzugang beim allerersten Start — danach läuft alles komplett offline/lokal weiter
+- Mikrofonzugriff im Browser (Chrome/Safari/Edge) für eigene Aufnahmen
+- Empfohlen: mind. 8 GB RAM für Docker Desktop/den Docker-Daemon freigegeben — WhisperX
+  („large-v3") braucht das; mit weniger RAM kann der Worker-Container abstürzen (`OOMKilled`,
+  siehe [docs/bugtracker.md](docs/bugtracker.md) INFRA-BEFUND-09, dort auf dem Server
+  aufgetreten)
+
+**Downloadgrößen (einmalig, danach zwischengespeichert):**
+
+| Bestandteil | Größe | Wann |
+|---|---|---|
+| Python-Abhängigkeiten (Torch CPU, WhisperX-Ökosystem, Streamlit, Parselmouth, …) | ca. 1,5–2 GB Download | Beim Bauen des Docker-Images |
+| WhisperX-Sprachmodell „large-v3" | ca. 3 GB | Beim ersten tatsächlichen Transkriptions-Lauf (nicht beim Bauen selbst) |
+| Fertiges Docker-Image (beide Container zusammen) | ca. 4,7 GB auf der Platte | Nach dem Bauen |
+
+**Empfohlener freier Speicherplatz insgesamt: mind. 15–20 GB** — das deckt Docker-Image,
+Sprachmodell UND den temporären Bau-Zwischenspeicher ab (Docker legt beim Bauen selbst
+vorübergehend mehr an, als am Ende übrig bleibt; mit `docker builder prune` danach wieder
+freigebbar).
+
+**Pro Plattform — empirisch gemessen, Stand 2026-08-16 (kompletter Neubau ohne
+Docker-Cache):**
+
+| Plattform | Muss Parselmouth kompiliert werden? | Gemessene Bauzeit (einmalig) |
+|---|---|---|
+| **Apple Silicon (M1–M5), primäres Zielsystem** | **Ja** — für `linux/arm64` gibt es kein fertiges Parselmouth-Paket, wird beim Bauen aus dem C/C++-Quellcode übersetzt (Praats eigener Code, das dauert den Großteil der Zeit) | **ca. 21 Minuten** (davon allein ca. 15 Min. für die Parselmouth-Kompilierung) |
+| **Windows (Docker Desktop, WSL2-Backend)** | Nein — fertiges Paket vorhanden (dieselbe `linux/amd64`-Architektur wie unser Produktivserver) | Nicht separat gemessen, aber strukturell identisch zum Server-Rebuild — deutlich schneller als arm64, im niedrigen einstelligen Minutenbereich zu erwarten |
+| **Intel-Mac (Docker Desktop)** | Nein — ebenfalls `linux/amd64`, wie Windows oben | Wie Windows oben |
+| **Linux (Ubuntu o.ä.) via Docker** | Nein, sofern `amd64` (die meisten PCs/Server) | Wie Windows oben — das ist auch die auf unserem eigenen Produktivserver (Ubuntu, Intel N150) tatsächlich genutzte und geprüfte Variante |
+| **Linux nativ, OHNE Docker** | Nein auf amd64 (analog zu oben) | Nicht separat getestet — dieses Projekt nutzt bisher ausschließlich Docker, auch auf dem eigenen Ubuntu-Server; ein nativer Lauf ohne Container sollte technisch funktionieren (dieselben `apt`/`pip`-Pakete), ist aber nicht verifiziert |
+
+**Nachfolgende Starts sind schnell** (Sekunden statt Minuten) — Docker nutzt seinen
+Layer-Cache, sofern sich der Code zwischen zwei Starts nicht ändert.
 
 Alle Daten (Aufnahmen, abgeleitete Ergebnisse, das heruntergeladene Sprachmodell) liegen in
 Docker-eigenen, persistenten Volumes — sie überstehen ein `docker compose down`/`up`, werden
@@ -100,3 +126,23 @@ aber NICHT automatisch irgendwohin gesichert. Wer direkten Dateizugriff auf eine
 Host-Ordner statt eines Docker-Volumes möchte, kann `NEUROVOICE_HOST_DATA_DIR`/
 `NEUROVOICE_HOST_DERIVED_DIR` per `.env`-Datei setzen (siehe Kommentare in
 `dashboard/docker-compose.local.yml`).
+
+### Verwendete Kernbibliotheken (Lizenzen)
+
+NeuroVoice AI baut auf mehreren externen Open-Source-Projekten auf — hier die wichtigsten,
+mit Lizenz laut deren eigenen Angaben (keine Rechtsberatung, nur Orientierung; die
+Gesamt-Lizenzfrage für dieses Repo selbst ist noch offen, siehe
+[ROAD_TO_PUBLIC.md](ROAD_TO_PUBLIC.md)):
+
+| Bibliothek | Zweck im Projekt | Lizenz |
+|---|---|---|
+| [Praat](https://www.fon.hum.uva.nl/praat/) / [Parselmouth](https://parselmouth.readthedocs.io/) | Akustische Kernanalyse (Jitter/Shimmer/HNR/Formanten/…) | GPL-3.0-or-later |
+| [WhisperX](https://github.com/m-bain/whisperX) | Spracherkennung/Transkription mit Wort-Zeitstempeln | BSD-2-Clause |
+| [PyTorch](https://pytorch.org/) | Numerisches Backend für WhisperX | BSD-3-Clause |
+| [Streamlit](https://streamlit.io/) | Web-Oberfläche | Apache-2.0 |
+| [pandas](https://pandas.pydata.org/) / [NumPy](https://numpy.org/) / [SciPy](https://scipy.org/) | Datenverarbeitung | BSD-3-Clause |
+| [Matplotlib](https://matplotlib.org/) | Visualisierungen | Matplotlib-Lizenz (BSD-artig) |
+| [soundfile](https://python-soundfile.readthedocs.io/) | Audio-Ein-/Ausgabe | BSD-3-Clause |
+| [openpyxl](https://openpyxl.readthedocs.io/) | Excel-Report-Export | MIT |
+| [fpdf2](https://py-pdf.github.io/fpdf2/) | PDF-Report-Export | LGPL-3.0-only |
+| [ffmpeg](https://ffmpeg.org/) | Audio-Konvertierung | je nach Debian-Build LGPL/GPL-Mix, siehe Projektseite |

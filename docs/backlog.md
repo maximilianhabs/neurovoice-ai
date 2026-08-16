@@ -310,16 +310,24 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       abgeholt, echte WhisperX-Transkription gelaufen, Ergebnis zurückgeschrieben) —
       bestätigt, dass die Job-Queue-Architektur nicht nur simuliert, sondern im echten
       Mehr-Container-Deployment funktioniert.
-      **Zweites Ziel (lokale Docker-Nutzung Mac/Windows, primär Apple Silicon)**: Code fertig
-      (`docker-compose.local.yml`, README-Abschnitt "Lokal starten"), aber die
-      **Apple-Silicon(arm64)-Verifikation läuft noch** — echter, empirisch bestätigter Fund
-      dabei: `praat-parselmouth` hat kein arm64-Wheel (Fix: `build-essential`/`cmake` im
-      Dockerfile, kompiliert jetzt aus dem Quellcode) UND ein zweiter, deutlich wichtigerer
-      Fund: ein normales `pip install torch` OHNE das PyTorch-CPU-Index-Repository zog auf
-      arm64 versehentlich die komplette CUDA/NVIDIA-Toolkit-Kette mit (mehrere hundert MB
-      nutzlose GPU-Pakete) — behoben, indem das CPU-Index-Repository jetzt architektur-
-      unabhängig IMMER genutzt wird. Finaler arm64-Build lief zum Zeitpunkt dieses Eintrags
-      noch (Parselmouth-Kompilierung dauert mehrere Minuten), Ergebnis wird nachgetragen.
+      **Zweites Ziel (lokale Docker-Nutzung Mac/Windows, primär Apple Silicon) — ✅ ARM64
+      VERIFIZIERT (2026-08-16)**: nativer Build auf einem M-Series-Mac erfolgreich
+      abgeschlossen (kompletter Neubau ohne Cache, ca. 21 Minuten), `torch 2.8.0+cpu` (kein
+      CUDA), `whisperx`, `parselmouth 0.4.7` (aus dem Quellcode kompiliert) und
+      `core.job_queue` alle im fertigen Image funktionsfähig bestätigt. Zwei echte Funde
+      dabei, beide behoben: (1) `praat-parselmouth` hat kein arm64-Wheel — Fix:
+      `build-essential`/`cmake` im Dockerfile, kompiliert jetzt aus dem Quellcode (dauert
+      allein ca. 15 Min., der größte Zeitanteil). (2) Wichtiger: ein normales `pip install
+      torch` OHNE das PyTorch-CPU-Index-Repository zog auf arm64 versehentlich die komplette
+      CUDA/NVIDIA-Toolkit-Kette mit (mehrere hundert MB nutzlose GPU-Pakete, war der
+      eigentliche Haupttreiber des "ungewöhnlich langsamen Builds", nicht nur die
+      Parselmouth-Kompilierung) — behoben, indem das CPU-Index-Repository jetzt
+      architektur-unabhängig IMMER genutzt wird. Details siehe
+      `docs/konzept_p9_hintergrundjob_lokal.md`. README um ausführliche
+      Systemanforderungen/Downloadgrößen-Tabelle je Plattform (Apple Silicon/Windows/Intel-
+      Mac/Linux) sowie eine Übersicht der verwendeten Kernbibliotheken mit Lizenzen ergänzt.
+      Docker-Build-Cache nach Abschluss bereinigt (~14GB durch die vorherigen
+      Fehlversuche angesammelt, entfernt).
   - [x] **Geschätzte Fortschrittsleiste** ✅ UMGESETZT (2026-08-15, Nutzer-Wunsch) —
         `core/shared.py::transcribe_with_progress()`: Transkription läuft in einem
         Hintergrund-Thread, Hauptthread pollt alle 0,5s und aktualisiert eine `st.progress()`-
