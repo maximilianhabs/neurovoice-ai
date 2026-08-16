@@ -15,7 +15,8 @@ kein Genauigkeitsnachweis fuer den eigentlichen Anwendungsfall.
 
 from __future__ import annotations
 
-import whisperx
+import json
+import os
 
 DEFAULT_MODEL = "large-v3"
 DEFAULT_LANGUAGE = "de"
@@ -45,6 +46,9 @@ def transcribe(
     Fehler beim Laden/Laufen des Modells soll sichtbar durchschlagen, nicht stumm ein
     leeres Transkript liefern.
     """
+    import whisperx  # lazy (P9-Umbau): Cache-Helfer unten sollen auch OHNE installiertes
+    # whisperx importierbar sein (core/job_queue.py-Worker prueft z.B. nur den Job-Status).
+
     model = whisperx.load_model(model_name, device, compute_type=compute_type, language=language)
     audio = whisperx.load_audio(audio_path)
     result = model.transcribe(audio, language=language)
@@ -69,3 +73,27 @@ def transcribe(
         "words": words,
         "language": language,
     }
+
+
+# --- Transkript-Cache (P9-Umbau, docs/konzept_p9_hintergrundjob_lokal.md) -- vorher als
+# fast identischer Code dreimal dupliziert in views/vorlesen.py/spontansprache.py/
+# testdaten.py; jetzt zentral, damit views/*.py UND worker.py garantiert denselben Pfad
+# lesen/schreiben (der Worker laeuft in einem eigenen Prozess, muss also exakt dieselbe
+# Pfad-Formel wie die Streamlit-Seite verwenden).
+
+
+def transcript_cache_path(recording_path: str) -> str:
+    return os.path.splitext(recording_path)[0] + ".transcript.json"
+
+
+def load_cached_transcript(recording_path: str) -> dict | None:
+    cache_path = transcript_cache_path(recording_path)
+    if os.path.exists(cache_path):
+        with open(cache_path, encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+def save_transcript_cache(recording_path: str, transcript: dict) -> None:
+    with open(transcript_cache_path(recording_path), "w", encoding="utf-8") as f:
+        json.dump(transcript, f, ensure_ascii=False, indent=2)

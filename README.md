@@ -58,3 +58,45 @@ kein Zwischenschritt über SMB/eigene Web-App.
 - `data/raw/` — finale Ablage nach Konvertierung + Umbenennung
 - `scripts/` — Konvertierungs-/Verifikations-Skripte
 - `dashboard/` — Streamlit-Analyse-Dashboard (siehe docs/dashboard_konzept.md)
+
+## Lokal starten (Mac/Windows, per Docker)
+
+Das komplette Analyse-Dashboard lässt sich vollständig lokal betreiben — keine Cloud, kein
+externer Server nötig, alle Daten bleiben auf dem eigenen Rechner. Primär entwickelt und
+getestet für **Apple Silicon (M1–M5)**, läuft aber auch unter Windows (Docker Desktop mit
+WSL2-Backend) und auf Intel-Macs — der Host-Betriebssystem-Unterschied ist für den Container
+selbst irrelevant, Docker startet überall denselben Linux-Container, nur die
+CPU-Architektur (arm64 vs. amd64) wird beim Bauen automatisch passend berücksichtigt.
+
+```bash
+cd dashboard
+docker compose -f docker-compose.local.yml up -d --build
+```
+
+Danach im Browser: **http://localhost:8501**
+
+### Systemanforderungen (Disclaimer)
+
+- Docker Desktop installiert und gestartet (Mac oder Windows)
+- **Empfohlen: mind. 8 GB RAM für Docker Desktop freigegeben** — die Spracherkennung
+  (WhisperX, Modell „large-v3") braucht das; mit weniger RAM kann der Hintergrund-Worker-
+  Container abstürzen (`OOMKilled`)
+- **Mind. ~10 GB freier Speicherplatz** (Python-Abhängigkeiten + Sprachmodell)
+- **Internetzugang beim allerersten Start** — lädt einmalig ein ca. 3 GB großes
+  Spracherkennungsmodell herunter (danach lokal zwischengespeichert, kein erneuter Download
+  bei künftigen Starts)
+- Mikrofonzugriff im Browser (Chrome/Safari/Edge) für eigene Aufnahmen
+- Moderne Rechner der letzten Jahre erfüllen das in der Regel problemlos — auf älterer/
+  schwächerer Hardware kann besonders die Transkription spürbar länger dauern
+
+Zwei Container starten gemeinsam: das eigentliche Dashboard (Web-Oberfläche) und ein
+getrennter Hintergrund-Worker, der die Spracherkennung übernimmt, damit die Oberfläche
+währenddessen nicht blockiert (siehe
+[docs/konzept_p9_hintergrundjob_lokal.md](docs/konzept_p9_hintergrundjob_lokal.md)).
+
+Alle Daten (Aufnahmen, abgeleitete Ergebnisse, das heruntergeladene Sprachmodell) liegen in
+Docker-eigenen, persistenten Volumes — sie überstehen ein `docker compose down`/`up`, werden
+aber NICHT automatisch irgendwohin gesichert. Wer direkten Dateizugriff auf einem eigenen
+Host-Ordner statt eines Docker-Volumes möchte, kann `NEUROVOICE_HOST_DATA_DIR`/
+`NEUROVOICE_HOST_DERIVED_DIR` per `.env`-Datei setzen (siehe Kommentare in
+`dashboard/docker-compose.local.yml`).

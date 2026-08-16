@@ -13,7 +13,6 @@ Transkriptions-Schritt (WhisperX, dauert spuerbar auf diesem Server -- siehe
 docs/bugtracker.md zur bekannten Blockier-Problematik waehrend der Transkription).
 """
 
-import json
 import os
 import random
 
@@ -43,7 +42,7 @@ from core.shared import (
     recording_start_blip,
     render_glossary,
     render_interpretation_table,
-    transcribe_with_progress,
+    render_transcription_job,
 )
 from core.subject_store import require_subject_or_stop
 
@@ -91,23 +90,6 @@ def _fmt(value, decimals=1):
     Test deckte auf, dass mehrere zusammengehoerige Werte UNABHAENGIG voneinander None sein
     koennen)."""
     return f"{value:.{decimals}f}" if value is not None else "–"
-
-
-def _transcript_cache_path(recording_path: str) -> str:
-    return os.path.splitext(recording_path)[0] + ".transcript.json"
-
-
-def _load_cached_transcript(recording_path: str) -> dict | None:
-    cache_path = _transcript_cache_path(recording_path)
-    if os.path.exists(cache_path):
-        with open(cache_path, encoding="utf-8") as f:
-            return json.load(f)
-    return None
-
-
-def _save_transcript_cache(recording_path: str, transcript: dict) -> None:
-    with open(_transcript_cache_path(recording_path), "w", encoding="utf-8") as f:
-        json.dump(transcript, f, ensure_ascii=False, indent=2)
 
 
 st.markdown(
@@ -230,6 +212,8 @@ else:
     st.subheader("Transkription, Sprechrate & Pausen")
 
     try:
+        import whisperx  # noqa: F401 -- nur fuer die Verfuegbarkeitspruefung, siehe unten
+
         import core.transcription
 
         transcription_available = True
@@ -240,22 +224,9 @@ else:
     if not transcription_available:
         st.info("Transkription (WhisperX) ist auf diesem Server nicht installiert.")
     else:
-        cached_transcript = _load_cached_transcript(take["recording_path"])
-        transcript = cached_transcript
+        transcript = render_transcription_job(take["recording_path"])
         if transcript is not None:
-            st.caption("Transkript aus dem Cache geladen.")
-        elif st.button(
-            "Transkription starten (dauert je nach Hardware 1-2 Minuten — App reagiert "
-            "währenddessen nicht, das ist normal)",
-            icon=":material/graphic_eq:",
-        ):
-            import soundfile as sf
-
-            duration_s = sf.info(take["recording_path"]).duration
-            transcript = transcribe_with_progress(take["recording_path"], duration_s)
-            _save_transcript_cache(take["recording_path"], transcript)
             take["transcript"] = transcript
-            st.rerun()
 
         if transcript:
             # --- Transkribierter Text mit Konfidenz-Hervorhebung (war im alten Testdaten-Modus

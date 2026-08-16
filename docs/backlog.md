@@ -292,20 +292,34 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       nach Deploy. **NICHT visuell im echten Browser gegengeprueft** (kein Mikrofonzugriff im
       Sandbox-Browser, wie schon beim bestehenden Aufnahme-Hinweis) — bitte beim naechsten
       echten Testen eine Aufnahme laufen lassen und den Farbverlauf pruefen.
-- [ ] **P9 — Transkription als Hintergrund-Job** (Nutzer-Feedback 2026-08-15, siehe
-      docs/bugtracker.md RANDNOTIZ-13) — WhisperX blockiert aktuell die komplette Browser-
-      Sitzung für 1-2 Minuten, fühlt sich wie ein Absturz an. Echte Lösung bräuchte einen
-      Hintergrund-Worker/eine Job-Queue statt des synchronen Aufrufs im Streamlit-Skript —
-      **bewusst kein kleiner Schritt**, größerer Architektur-Umbau. Sofort-Maßnahme (bereits
-      umgesetzt): Button-/Spinner-Text setzt jetzt klare Erwartung ("reagiert währenddessen
-      nicht, das ist normal").
-      **Konzept steht (2026-08-16, NICHT umgesetzt)**: siehe
-      `docs/konzept_p9_hintergrundjob_lokal.md` — datei-basierte Job-Queue + eigener
-      Worker-Container + `st.fragment(run_every=...)`-Polling statt blockierender
-      Thread-Schleife, UND gleichzeitig als zweites Ziel eine lokale Docker-Compose-Variante,
-      damit Nutzer:innen NeuroVoice AI komplett auf dem eigenen Mac/Windows-Rechner betreiben
-      können (kein Tailscale/Server nötig). Offene Frage darin: Apple-Silicon(arm64)-
-      Kompatibilität von whisperx/torch/ctranslate2 noch nicht verifiziert.
+- [x] **P9 — Transkription als Hintergrund-Job** ✅ UMGESETZT + SERVER-VERIFIZIERT
+      (2026-08-16, Nutzer-Feedback 2026-08-15, siehe docs/bugtracker.md RANDNOTIZ-13) —
+      WhisperX blockierte vorher die komplette Browser-Sitzung für 1-2 Minuten. Konzept siehe
+      `docs/konzept_p9_hintergrundjob_lokal.md`: datei-basierte Job-Queue
+      (`core/job_queue.py`) + eigener Worker-Container (`worker.py`) + `st.fragment
+      (run_every="1s")`-Polling (`core/shared.py::render_transcription_job()`) statt
+      blockierender Thread-Schleife. `views/vorlesen.py`/`views/spontansprache.py`
+      umgestellt (`views/testdaten.py` bewusst unverändert, nutzt weiter die alte
+      `transcribe_with_progress()`, siehe dessen Docstring). Server-`docker-compose.yml` um
+      `neurovoice-worker`-Dienst erweitert (geteilte Volumes, eigenes `mem_limit: 7g`, UI
+      jetzt nur noch `2g`).
+      **Verifiziert auf dem echten Produktiv-Server (2026-08-16)**: beide Container laufen
+      (`neurovoice-dashboard` + `neurovoice-worker`), AppTest-Regression über alle 7 Seiten
+      ohne Exceptions, HTTP 200, UND ein ECHTER Cross-Container-Test (Job von der UI
+      übermittelt, vom SEPARATEN Worker-Container über das geteilte `/derived`-Volume
+      abgeholt, echte WhisperX-Transkription gelaufen, Ergebnis zurückgeschrieben) —
+      bestätigt, dass die Job-Queue-Architektur nicht nur simuliert, sondern im echten
+      Mehr-Container-Deployment funktioniert.
+      **Zweites Ziel (lokale Docker-Nutzung Mac/Windows, primär Apple Silicon)**: Code fertig
+      (`docker-compose.local.yml`, README-Abschnitt "Lokal starten"), aber die
+      **Apple-Silicon(arm64)-Verifikation läuft noch** — echter, empirisch bestätigter Fund
+      dabei: `praat-parselmouth` hat kein arm64-Wheel (Fix: `build-essential`/`cmake` im
+      Dockerfile, kompiliert jetzt aus dem Quellcode) UND ein zweiter, deutlich wichtigerer
+      Fund: ein normales `pip install torch` OHNE das PyTorch-CPU-Index-Repository zog auf
+      arm64 versehentlich die komplette CUDA/NVIDIA-Toolkit-Kette mit (mehrere hundert MB
+      nutzlose GPU-Pakete) — behoben, indem das CPU-Index-Repository jetzt architektur-
+      unabhängig IMMER genutzt wird. Finaler arm64-Build lief zum Zeitpunkt dieses Eintrags
+      noch (Parselmouth-Kompilierung dauert mehrere Minuten), Ergebnis wird nachgetragen.
   - [x] **Geschätzte Fortschrittsleiste** ✅ UMGESETZT (2026-08-15, Nutzer-Wunsch) —
         `core/shared.py::transcribe_with_progress()`: Transkription läuft in einem
         Hintergrund-Thread, Hauptthread pollt alle 0,5s und aktualisiert eine `st.progress()`-

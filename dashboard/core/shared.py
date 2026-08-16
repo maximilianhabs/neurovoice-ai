@@ -690,9 +690,11 @@ def transcribe_with_progress(audio_path: str, duration_s: float) -> dict:
     1-2 Minuten Wartezeit). Deckelt bei 90%, bis der Thread tatsaechlich fertig ist -- verhindert
     einen falschen "100%, aber laeuft noch weiter"-Eindruck, da die Schaetzung oft daneben liegt.
 
-    Blockiert die Streamlit-Sitzung weiterhin fuer die volle Dauer (kein echter Hintergrund-Job,
-    siehe docs/bugtracker.md RANDNOTIZ-13/P9 fuer die groessere Lösung) -- zeigt nur einen
-    ehrlicheren Fortschritt waehrend der Wartezeit.
+    Blockiert die Streamlit-Sitzung weiterhin fuer die volle Dauer (kein echter Hintergrund-Job).
+    Seit dem P9-Umbau (docs/konzept_p9_hintergrundjob_lokal.md) nur noch in `views/testdaten.py`
+    verwendet (bewusst unveraendert erhalten, siehe dessen Docstring) -- `views/vorlesen.py`/
+    `views/spontansprache.py` nutzen jetzt `render_transcription_job()` weiter unten (echter
+    Hintergrund-Job ueber `worker.py`, Seite bleibt waehrenddessen bedienbar).
     """
     import threading
     import time
@@ -718,3 +720,68 @@ def transcribe_with_progress(audio_path: str, duration_s: float) -> dict:
     progress.progress(1.0, text="Transkription abgeschlossen")
 
     return result["transcript"]
+
+
+def render_transcription_job(recording_path: str) -> dict | None:
+    """P9 (docs/konzept_p9_hintergrundjob_lokal.md) -- ECHTER Hintergrund-Job statt
+    `transcribe_with_progress()`s blockierender Thread-Schleife: Klick auf "Transkription
+    starten" schreibt nur einen Job-Eintrag (`core/job_queue.py`) und die Skriptausfuehrung
+    kehrt SOFORT zurueck -- die eigentliche Arbeit macht der getrennte `worker.py`-Prozess.
+    Der Fortschritt wird ueber ein `st.fragment(run_every=...)` angezeigt, das NUR sich selbst
+    periodisch neu rendert, nicht die ganze Seite -- man kann waehrenddessen problemlos zu
+    einem anderen Modul wechseln und spaeter zurueckkommen (der Job-Zustand liegt auf Platte,
+    ueberlebt also auch einen Reload, gleiches Prinzip wie `core/session_store.py`).
+
+    Liefert das fertige Transkript (aus dem Cache) sobald verfuegbar, sonst None -- die
+    aufrufende Seite prueft `if transcript:` genau wie vorher.
+    """
+    from core.job_queue import STATUS_DONE, STATUS_ERROR, get_job_status, submit_job
+    from core.transcription import load_cached_transcript
+
+    cached = load_cached_transcript(recording_path)
+    if cached is not None:
+        st.caption("Transkript aus dem Cache geladen.")
+        return cached
+
+    # Ein Job-Key pro Aufnahme (nicht pro Seite) -- verschiedene Takes/Module haben eigene,
+    # unabhaengige Jobs, ein Seitenwechsel verliert den laufenden Job dadurch nicht.
+    job_key = f"_transcription_job_{recording_path}"
+
+    @st.fragment(run_every="1s")
+    def _fragment():
+        job_id = st.session_state.get(job_key)
+
+        if job_id is None:
+            if st.button(
+                "Transkription starten (läuft jetzt im Hintergrund — die Seite bleibt "
+                "bedienbar, du kannst auch zu einem anderen Modul wechseln)",
+                icon=":material/graphic_eq:",
+            ):
+                st.session_state[job_key] = submit_job("transcription", {"audio_path": recording_path})
+                st.rerun()
+            return
+
+        job = get_job_status(job_id)
+        if job is None:
+            st.error("Job nicht gefunden — bitte erneut starten.")
+            del st.session_state[job_key]
+            return
+
+        if job["status"] == STATUS_DONE:
+            st.success("Transkription abgeschlossen.")
+            del st.session_state[job_key]
+            st.rerun()
+        elif job["status"] == STATUS_ERROR:
+            st.error(f"Transkription fehlgeschlagen: {job.get('error_message', 'unbekannter Fehler')}")
+            if st.button("Erneut versuchen", key=f"retry_{job_key}"):
+                del st.session_state[job_key]
+                st.rerun()
+        else:
+            st.progress(
+                job.get("progress", 0) / 100,
+                text=f"Transkribiere im Hintergrund … geschätzt {job.get('progress', 0)}% "
+                     "(Schätzung kann abweichen)",
+            )
+
+    _fragment()
+    return None

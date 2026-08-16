@@ -1,0 +1,52 @@
+# Lokale Variante fuer Mac/Windows via Docker (P9, docs/konzept_p9_hintergrundjob_lokal.md).
+# Primaer fuer Apple Silicon (M1-M5) ausgelegt, funktioniert aber auf jedem Rechner mit Docker
+# Desktop (inkl. Windows via WSL2-Backend) -- der Host-Betriebssystem-Unterschied ist fuer den
+# Container selbst irrelevant, Docker Desktop startet ueberall denselben Linux-Container.
+#
+# Nutzung:
+#   docker compose -f docker-compose.local.yml up -d --build
+#   Danach im Browser: http://localhost:8501
+#
+# Unterschiede zur Server-Variante (docker-compose.yml):
+#   - Port-Bind auf 127.0.0.1 statt einer festen Tailscale-IP (die existiert nur auf dem Server)
+#   - Named Volumes statt fester Host-Pfade (kein manuelles Anlegen von Ordnern noetig) --
+#     optional per .env-Datei ueberschreibbar, siehe .env.local.example
+#   - Kein hartes mem_limit (Docker Desktop verwaltet das ueber die eigene Ressourcen-
+#     Einstellung) -- Empfehlung siehe README "Lokal starten"/Systemanforderungen
+services:
+  neurovoice-dashboard:
+    build: .
+    container_name: neurovoice-dashboard-local
+    restart: unless-stopped
+    environment:
+      NEUROVOICE_DATA_DIR: /data
+      NEUROVOICE_DERIVED_DIR: /derived
+    ports:
+      - "127.0.0.1:8501:8501/tcp"
+    volumes:
+      - ${NEUROVOICE_HOST_DATA_DIR:-neurovoice-local-data}:/data
+      - ${NEUROVOICE_HOST_DERIVED_DIR:-neurovoice-local-derived}:/derived
+    depends_on:
+      - neurovoice-worker
+
+  neurovoice-worker:
+    build: .
+    container_name: neurovoice-worker-local
+    restart: unless-stopped
+    command: ["python", "worker.py"]
+    healthcheck:
+      disable: true
+    environment:
+      NEUROVOICE_DATA_DIR: /data
+      NEUROVOICE_DERIVED_DIR: /derived
+    volumes:
+      - ${NEUROVOICE_HOST_DATA_DIR:-neurovoice-local-data}:/data
+      - ${NEUROVOICE_HOST_DERIVED_DIR:-neurovoice-local-derived}:/derived
+      # Modell-Cache persistent -- WhisperX large-v3 (~3GB) sonst bei jedem Neustart erneut
+      # heruntergeladen. Braucht Internetzugang beim allerersten Start (siehe README).
+      - neurovoice-local-whisperx-models:/root/.cache
+
+volumes:
+  neurovoice-local-data:
+  neurovoice-local-derived:
+  neurovoice-local-whisperx-models:

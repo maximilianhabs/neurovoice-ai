@@ -104,12 +104,37 @@ Variante ist rein additiv, kein Breaking Change für den Beelink-Produktivbetrie
 
 ## Offene Fragen / Risiken, die vor der Umsetzung geklärt werden sollten
 
-1. **Apple Silicon (arm64) noch nicht verifiziert.** `torch`, `whisperx`, `faster-whisper`,
-   `ctranslate2` (WhisperX' Backend) müssten für `linux/arm64` funktionieren, damit das
-   Docker-Image auf einem M-Series-Mac performant läuft (nicht nur per Rosetta-Emulation, was
-   sehr langsam wäre). Muss vor dem Umsetzen geprüft werden (Testbuild mit `--platform
-   linux/arm64` bzw. Multi-Arch-Build) — an dieser Stelle bewusst als offene Frage markiert,
-   nicht als Tatsache behauptet.
+1. **Apple Silicon (arm64) — inzwischen verifiziert, mit einem echten Fund.** Nativer
+   arm64-Testbuild auf einem M-Series-Mac (2026-08-16) zeigte: `praat-parselmouth` hat KEIN
+   vorgebautes Wheel für `linux/arm64` (nur für `linux/amd64` und macOS) — pip versucht,
+   es aus dem Quellcode zu bauen, was im schlanken Basis-Image (`python:3.11-slim-bookworm`,
+   kein Compiler) fehlschlug. **Fix**: `build-essential`/`cmake` im Dockerfile ergänzt, damit
+   arm64 den C++-Code kompilieren kann (amd64 nutzt weiterhin das fertige Wheel, Pakete dort
+   ungenutzt aber harmlos).
+   **Zweiter, wichtigerer Fund unterwegs: CUDA-Fehlgriff bei Torch auf arm64.** Der
+   Build-Dauer-Verdacht ("das dauert ungewöhnlich lange, deutlich länger als der
+   Server-Rebuild") führte zu einer genaueren Prüfung des Torch-Installationsschritts — und
+   DAS war der eigentliche Haupttreiber, nicht (nur) die Parselmouth-Kompilierung: ein
+   normales `pip install torch` OHNE Angabe des PyTorch-CPU-Index-Repositorys zieht auf
+   `linux/arm64` versehentlich die KOMPLETTE CUDA/NVIDIA-Toolkit-Kette mit (`cuda-toolkit`,
+   `nvidia-cudnn`, `nvidia-cublas`, `triton` etc. — mehrere hundert MB voellig nutzloser
+   GPU-Pakete auf einem Mac ohne NVIDIA-GPU). Ursache: das amd64-spezifische
+   `--index-url https://download.pytorch.org/whl/cpu` wurde vorher nur fuer amd64 genutzt (in
+   der (irrigen) Annahme, das normale PyPI-Wheel sei auf arm64 ohnehin schon CPU-only) --
+   empirisch widerlegt: `pip install --dry-run --index-url .../whl/cpu torch` liefert AUCH
+   fuer arm64 ein sauberes `torch-X.Y.Z+cpu`-Wheel ohne jede CUDA-Abhaengigkeit. **Fix**: das
+   CPU-Index-Repository jetzt IMMER nutzen, unabhaengig von der Architektur, kein
+   TARGETARCH-Unterschied mehr noetig (einfacher UND korrekter als vorher).
+   **Build-Dauer-Befund (2026-08-16, fuer die Akte)**: mit dem CUDA-Fix sank der
+   Torch-Download-Anteil von der vollen CUDA-Kette auf ein einzelnes ~155MB-Wheel. Die
+   Parselmouth-Kompilierung selbst bleibt trotzdem der laengste Einzelschritt -- in einem
+   vollstaendig frischen (`--no-cache-dir`, kein Docker-Layer-Cache) Testbuild lief sie
+   ueber 10 Minuten am Stueck (pip meldet alle 60s "still running..." waehrenddessen, kein
+   Fehler/Haenger, nur echte Kompilierzeit fuer Praats umfangreichen C/C++-Code). **Praktische
+   Konsequenz fuers README**: den EINMALIGEN Erstbuild auf Apple Silicon als "kann spuerbar
+   laenger dauern als gewohnt (zweistellige Minutenzahl moeglich, ueberwiegend wegen der
+   einmaligen Parselmouth-Kompilierung aus dem Quellcode), das ist normal, kein Haenger"
+   ankuendigen -- nachfolgende Starts nutzen den Docker-Layer-Cache und sind schnell.
 2. **Windows/Intel-Mac**: unkritischer, da Docker Desktop dort ohnehin dasselbe `linux/amd64`-
    Image wie der Server nutzt — der Host-Betriebssystem-Unterschied ist für den Container selbst
    irrelevant, `praat-parselmouth` bringt für Linux-amd64 bereits vorgebaute Wheels mit (bereits
