@@ -8,6 +8,15 @@ Alle Feature-Familien werden mittelfristig angegangen, aber **skaliert von einfa
 nicht alles auf einmal. Reihenfolge orientiert sich daran, wie gut ein Feature etabliert/validiert
 ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar ist.
 
+## ⚠️ Immer beachten beim Testen (Live-URL)
+
+**Für Browser-Tests mit Mikrofon NIEMALS die rohe Tailscale-IP `100.67.129.76:8501` geben.**
+Browser verweigern `getUserMedia` (Mikrofonzugriff) auf unverschlüsseltem HTTP/IP-Origins.
+Stattdessen immer: **`https://homeserver.tailaecdbb.ts.net`** (HTTPS via `tailscale serve`,
+seit BUG-15/2026-08-15 eingerichtet, dauerhaft aktiv auf dem Server). Die IP-Adresse
+funktioniert weiterhin für alles außer Mikrofon. Siehe auch G1 unten (dieselbe Wurzelursache,
+aber für Fremd-Nutzer ohne unsere Tailscale-Infrastruktur — dort noch ungelöst).
+
 ## Konzept: Modul-basierte, geführte Analyse — Umsetzungsplan (2026-08-15)
 
 Grundlegender Konzeptwechsel (Nutzer-Feedback beim eigenen Testen): weg von einer einzelnen Seite,
@@ -1087,12 +1096,44 @@ reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück
       damit bestätigt. Mögliche Alternativen zu prüfen: horizontale Balken-Vergleichsreihe
       statt Polygon, Sparkline-Zeile, oder ganz auf das Radar verzichten und nur bei den
       Kacheln bleiben.
-- [x] **J3 — Transkriptions-Modell jetzt sichtbar** ✅ UMGESETZT (2026-08-16) — kleine
-      Eyebrow-Zeile "Transkription: WhisperX (Modell large-v3)" direkt über dem Transkript-Text
-      in `views/vorlesen.py` + `views/spontansprache.py` ergänzt (liest
+- [x] **J3 — Transkriptions-Modell jetzt sichtbar** ✅ UMGESETZT (2026-08-16, nachgebessert
+      2026-08-16) — kleine Eyebrow-Zeile "Transkription: WhisperX (Modell large-v3)" direkt über
+      dem Transkript-Text in `views/vorlesen.py` + `views/spontansprache.py` ergänzt (liest
       `core.transcription.DEFAULT_MODEL` zentral aus, keine hartkodierte Versionsnummer).
-      Verifiziert: Hinweis erscheint korrekt bei einem echten, aus dem Cache geladenen
-      Transkript.
+      **Nachbesserung**: stand ursprünglich nur NACH abgeschlossener Transkription — Nutzer-
+      Feedback beim zweiten Testlauf: soll schon VOR dem Start sichtbar sein, damit klar ist,
+      was gleich passiert (und dass es dauert). Jetzt zentral in
+      `core/shared.py::render_transcription_job()` als Caption ganz oben (vor Button/
+      Fortschrittsanzeige/Cache-Treffer) — gilt automatisch für alle Aufrufer.
+- [x] **J4 — Proband:innen-ID/Alter nachträglich editierbar.** Neue `rename_subject()` in
+      `core/subject_store.py` (verschiebt die Index-Datei, kollisionsgeprüft). Sidebar-Badge
+      (`core/shared.py::render_subject_badge()`) bekam zwei Buttons "Bearbeiten"/"Neu", die zur
+      Startseite springen und dort per Flag den passenden Modus zeigen. `views/start.py` neu in
+      3 Zustände: normal/Bearbeiten (Formular mit ID+Alter, Speichern/Abbrechen)/Verwerfen-
+      Bestätigung. Bewusste Einschränkung: ältere, bereits abgeschlossene Sitzungsdateien unter
+      anderen `session_id`s behalten die alte ID im Snapshot — nur Tippfehler-Korrektur, keine
+      volle Historien-Migration.
+- [x] **J5 — Proband:in verwerfen/neu beginnen ohne Server-Reload.** "Neu"-Button (Sidebar) →
+      Bestätigungsdialog auf `views/start.py` → löscht `subject_id`/`subject_age`/
+      `module_results` aus `st.session_state` UND den `session`-Query-Parameter (sonst würde
+      `load_session_snapshot()` beim nächsten Rerun die alte Zuordnung zurückholen) → frische
+      `session_id` wird beim nächsten `get_session_id()`-Aufruf gemintet. Nicht-destruktiv:
+      bereits gespeicherte Aufnahmen/Analysen bleiben auf dem Server, über "Bekannte:r
+      Proband:in fortsetzen" wieder erreichbar.
+- [x] **J6 — Piepton-Zuverlässigkeit gehärtet.** Nutzer-Feedback: Piepton bei Aufnahmestart nur
+      bei Vokalisation zuverlässig, bei Vorlesen/Spontansprache/DDK oft nicht. Code-Vergleich:
+      Aufruf von `recording_start_blip()` ist in allen 5 Views strukturell identisch — kein
+      Page-spezifischer Unterschied gefunden. Als Härtung zusätzlich zum bestehenden
+      `MutationObserver` ein `setInterval`-Poll alle 250ms ergänzt (`core/shared.py`), der
+      dieselbe `scan()`-Funktion aufruft — fängt auch Zustandswechsel ab, die der Observer durch
+      gebündelte Browser-Mutation-Batches verpasst haben könnte. Echte Ursache nicht abschließend
+      bewiesen (Audio nicht headless testbar) — bitte beim nächsten Test auf allen 4 Modul-Seiten
+      erneut prüfen.
+- [x] **J7 — Glossar aus Excel/PDF-Report entfernt.** Nutzer-Feedback: Report soll nur die
+      reinen Werte enthalten, keine Erklärtexte/Literatur. `core/report_export.py`:
+      `collect_report_data()` sammelt kein Glossar mehr, Excel-Sheet "Glossar" entfernt,
+      PDF-Abschnitt "Glossar & Literatur" entfernt. Die Live-Ansicht (`views/gesamtbericht.py`)
+      zeigt das Glossar weiterhin unverändert (baut es unabhängig vom Report selbst auf).
 
 **Bereits (teilweise) vorhanden, zur Klarstellung**: die allgemeine Forderung "mehr Kontext/
 Literatur bei den Werten" ist strukturell bereits durch P11 (Kompakte Übersicht + Glossar) und

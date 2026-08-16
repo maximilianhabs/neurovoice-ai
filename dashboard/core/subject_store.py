@@ -90,6 +90,43 @@ def bind_subject_to_session(session_id: str, subject_id: str, age: int) -> None:
         json.dump(record, f, ensure_ascii=False, indent=2)
 
 
+def rename_subject(old_id: str, new_id: str) -> str:
+    """Aendert die ID einer bestehenden Proband:in nachtraeglich (Nutzer-Feedback 2026-08-16:
+    "Abkuerzung" muss nach dem Anlegen korrigierbar sein, z.B. Tippfehler). Verschiebt die
+    Indexdatei von <old_id>.json auf <new_id>.json, aktualisiert das `subject_id`-Feld darin.
+    Aeltere, bereits abgeschlossene Sitzungsdateien (core/session_store.py) unter anderen
+    session_ids behalten die alte ID im Snapshot -- nur die AKTUELLE Sitzung wird beim naechsten
+    save_session_snapshot()-Aufruf mit der neuen ID ueberschrieben (Tippfehler-Korrektur ist der
+    Hauptfall, keine vollstaendige Historien-Migration).
+
+    Gibt die tatsaechlich verwendete, sanitisierte neue ID zurueck. Wirft ValueError bei leerer
+    ID oder Kollision mit einer ANDEREN bereits existierenden Proband:in."""
+    new_id = new_id.strip()
+    if not new_id:
+        raise ValueError("Neue ID darf nicht leer sein.")
+    if new_id == old_id:
+        return old_id
+
+    old_path = _subject_file(old_id)
+    new_path = _subject_file(new_id)
+    if os.path.exists(new_path):
+        raise ValueError(f"ID „{new_id}“ ist bereits vergeben.")
+
+    if os.path.exists(old_path):
+        with open(old_path, encoding="utf-8") as f:
+            record = json.load(f)
+    else:
+        record = {"subject_id": old_id, "created_at": datetime.now(timezone.utc).isoformat(), "session_ids": []}
+
+    record["subject_id"] = new_id
+    with open(new_path, "w", encoding="utf-8") as f:
+        json.dump(record, f, ensure_ascii=False, indent=2)
+    if os.path.exists(old_path):
+        os.remove(old_path)
+
+    return new_id
+
+
 def require_subject_or_stop() -> None:
     """Blockiert die Seite, wenn noch keine Proband:innen-ID zugeordnet ist (Pflichtschritt,
     Nutzer-Entscheidung 2026-08-15) -- analog zum EDF-Analyzer-Muster `get_edf_or_stop()`. Muss

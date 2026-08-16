@@ -4,13 +4,17 @@ collect_report_data() und die build_*-Funktionen erst nach einem Button-Klick au
 automatisch beim Laden der Seite.
 
 WICHTIG: Beide Formate speisen sich AUSSCHLIESSLICH aus core.interpretation.flatten_take()/
-build_rows()/build_glossary_entries() -- denselben Funktionen, die auch views/gesamtbericht.py
-fuer die Live-Ansicht nutzt. Kein eigener, duplizierter Normbereichs-/Erklaerungstext. Aendert
-sich ein zones_func in core/reference_ranges.py oder kommt ein neuer Parameter zu
-core.interpretation.PARAMETER_INFO dazu, uebernehmen beide Reports das automatisch beim
-naechsten Erzeugen -- kein separater Pflegeaufwand. Grund: beim EDF-Analyzer-Schwesterprojekt
-fanden sich veraltete, von der Live-App abweichende statische Normbereiche in einem Report, der
-eigene Werte hartkodiert hatte (siehe Memory [[project_edf_report_audit]])."""
+build_rows() -- denselben Funktionen, die auch views/gesamtbericht.py fuer die Live-Ansicht
+nutzt. Kein eigener, duplizierter Normbereichs-/Erklaerungstext. Aendert sich ein zones_func in
+core/reference_ranges.py oder kommt ein neuer Parameter zu core.interpretation.PARAMETER_INFO
+dazu, uebernehmen beide Reports das automatisch beim naechsten Erzeugen -- kein separater
+Pflegeaufwand. Grund: beim EDF-Analyzer-Schwesterprojekt fanden sich veraltete, von der Live-App
+abweichende statische Normbereiche in einem Report, der eigene Werte hartkodiert hatte (siehe
+Memory [[project_edf_report_audit]]).
+
+Nutzer-Feedback 2026-08-16: das Glossar (Erklaerungen/Literatur je Parameter, urspruenglich
+Teil von P14/P15) wurde WIEDER ENTFERNT -- der Report soll nur die reinen Werte enthalten, die
+Erklaerungen bleiben der Live-Ansicht (views/gesamtbericht.py) vorbehalten."""
 
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from core.interpretation import build_glossary_entries, build_rows, flatten_take
+from core.interpretation import build_rows, flatten_take
 
 DISCLAIMER = (
     "Diese Übersicht ist rein beschreibend. Ein \"auffälliger\" Wert bedeutet NICHT "
@@ -38,8 +42,6 @@ def collect_report_data(session_id: str) -> dict:
 
     results = st.session_state.get("module_results", {})
     modules_out: dict[str, dict] = {}
-    seen_labels: set[str] = set()
-    glossary_entries: list[dict] = []
 
     for module_name, subtasks in results.items():
         module_takes = {k: v for k, v in subtasks.items() if v}
@@ -59,10 +61,6 @@ def collect_report_data(session_id: str) -> dict:
                 "recorded_at": selected.get("recorded_at", "–"),
                 "rows": rows,
             }
-            for entry in build_glossary_entries(flat):
-                if entry["label"] not in seen_labels:
-                    seen_labels.add(entry["label"])
-                    glossary_entries.append(entry)
         if module_out:
             modules_out[module_name] = module_out
 
@@ -72,13 +70,11 @@ def collect_report_data(session_id: str) -> dict:
         "session_id": session_id,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "modules": modules_out,
-        "glossary": sorted(glossary_entries, key=lambda e: e["label"]),
     }
 
 
 def build_excel_report(data: dict) -> bytes:
-    """Baut die Excel-Arbeitsmappe (Übersicht/Werte/Glossar) aus der gesammelten Report-
-    Datenstruktur."""
+    """Baut die Excel-Arbeitsmappe (Übersicht/Werte) aus der gesammelten Report-Datenstruktur."""
     meta_rows = [
         {"Feld": "Proband:in", "Wert": data["subject_id"] or "–"},
         {"Feld": "Alter", "Wert": data["subject_age"] if data["subject_age"] is not None else "–"},
@@ -103,19 +99,6 @@ def build_excel_report(data: dict) -> bytes:
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         pd.DataFrame(meta_rows).to_excel(writer, sheet_name="Übersicht", index=False)
         pd.DataFrame(value_rows).to_excel(writer, sheet_name="Werte", index=False)
-        if data["glossary"]:
-            glossary_rows = [
-                {
-                    "Parameter": entry["label"],
-                    "Was es misst": entry["description"],
-                    "Kontext (deskriptiv)": entry["context"],
-                    "Referenzwerte (Literatur)": entry.get("typical_values") or "–",
-                    "Evidenz": entry["evidence"],
-                    "Quelle": entry["literature"] or "–",
-                }
-                for entry in data["glossary"]
-            ]
-            pd.DataFrame(glossary_rows).to_excel(writer, sheet_name="Glossar", index=False)
 
         for sheet in writer.sheets.values():
             sheet.column_dimensions["A"].width = 28
@@ -143,8 +126,7 @@ def _pdf_safe(text) -> str:
 
 def build_pdf_report(data: dict) -> bytes:
     """Baut den PDF-Report (Titel/Metadaten/Disclaimer, dann je Modul/Teilaufgabe die
-    Parameter/Wert/Normbereich/Status-Tabelle, am Ende das Glossar) aus der gesammelten Report-
-    Datenstruktur."""
+    Parameter/Wert/Normbereich/Status-Tabelle) aus der gesammelten Report-Datenstruktur."""
     from fpdf import FPDF
 
     pdf = FPDF(format="A4")
@@ -204,24 +186,6 @@ def build_pdf_report(data: dict) -> bytes:
                 pdf.cell(col_widths[2], 6, _pdf_safe(row["Normbereich"]), border=1)
                 pdf.cell(col_widths[3], 6, _pdf_safe(row["Status"]), border=1)
                 pdf.ln()
-            pdf.ln(3)
-
-    if data["glossary"]:
-        pdf.add_page()
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, _pdf_safe("Glossar & Literatur"), new_x="LMARGIN", new_y="NEXT")
-
-        for entry in data["glossary"]:
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(0, 6, _pdf_safe(f"{entry['label']} [{entry['evidence']}]"), new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("Helvetica", "", 9)
-            pdf.multi_cell(0, 5, _pdf_safe(f"Was es misst: {entry['description']}"), new_x="LMARGIN", new_y="NEXT")
-            pdf.multi_cell(0, 5, _pdf_safe(f"Kontext: {entry['context']}"), new_x="LMARGIN", new_y="NEXT")
-            if entry.get("typical_values"):
-                pdf.multi_cell(0, 5, _pdf_safe(f"Referenzwerte: {entry['typical_values']}"), new_x="LMARGIN", new_y="NEXT")
-            if entry["literature"]:
-                pdf.set_font("Helvetica", "I", 8)
-                pdf.multi_cell(0, 5, _pdf_safe(f"Quelle: {entry['literature']}"), new_x="LMARGIN", new_y="NEXT")
             pdf.ln(3)
 
     return bytes(pdf.output())

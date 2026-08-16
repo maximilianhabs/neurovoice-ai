@@ -395,6 +395,18 @@ def recording_start_blip() -> None:
     und im "suspended"-Zustand belassen werden. Jetzt wird EIN AudioContext einmalig erzeugt,
     dauerhaft auf `document` gehalten und bei Bedarf per `resume()` reaktiviert statt neu
     gebaut.
+
+    Haertung 2026-08-16 (Nutzer-Feedback "Piepton nur bei Vokalisation zuverlaessig, bei
+    Vorlesen/Spontansprache/DDK oft nicht"): Aufruf-Code in allen 5 Views ist identisch (gleiche
+    Funktion, gleiche Position -- kein Page-spezifischer Unterschied gefunden). Wahrscheinlichste
+    Ursache: der MutationObserver beobachtet zwar `childList`+`attributes`, aber falls Streamlit
+    einen Button bei bestimmten Rerun-Mustern (z.B. within `st.tabs()`/`st.expander()` mit
+    zusaetzlichen dynamischen Kindelementen wie Lauftext-Countdown im Button) komplett ERSETZT
+    statt nur das Attribut zu patchen, koennte ein einzelnes verpasstes Mutation-Batch (Browser
+    fasst mehrere DOM-Aenderungen pro Tick zusammen) den Trigger auslassen. Als Netz zusaetzlich
+    zum Observer jetzt ein `setInterval`-Poll alle 250ms, der dieselbe `scan()`-Funktion aufruft
+    -- unabhaengig von Mutation-Events, erkennt also auch Zustaende, die der Observer verpasst
+    hat, mit maximal 250ms Verzoegerung (nicht hoerbar als "zu spaet").
     """
     st.iframe(
         """
@@ -456,6 +468,7 @@ def recording_start_blip() -> None:
                 childList: true, subtree: true,
                 attributes: true, attributeFilter: ["aria-label"],
             });
+            setInterval(scan, 250);
         })();
         </script>
         """,
@@ -510,13 +523,19 @@ def render_subject_badge() -> None:
     backlog.md) -- Nutzer-Vorgabe: auf JEDER Seite/jedem Modul sichtbar bleiben, damit klar
     ist, "bei welcher ID man grade ist". Einmal zentral in app.py aufgerufen, VOR pg.run() --
     Sidebar-Inhalt ausserhalb der eigentlichen Seiten-Funktion bleibt ueber Seitenwechsel
-    hinweg bestehen, muss also nicht in jeder View einzeln aufgerufen werden."""
+    hinweg bestehen, muss also nicht in jeder View einzeln aufgerufen werden.
+
+    Nutzer-Feedback 2026-08-16: ID/Alter muss nachtraeglich editierbar sein UND es muss
+    moeglich sein, eine:n Proband:in "zu verwerfen" und neu zu beginnen, OHNE die Seite manuell
+    neu zu laden. Beide Buttons springen zur Startseite (views/start.py) und setzen dort per
+    Flag den jeweiligen Modus -- die eigentliche Logik (Formular/Bestaetigung) lebt bewusst
+    dort, nicht hier, da die Sidebar dafuer zu wenig Platz bietet."""
     subject_id = st.session_state.get("subject_id")
     if not subject_id:
         return
     age = st.session_state.get("subject_age")
     st.sidebar.markdown(
-        f'<div style="padding:10px 12px;margin-bottom:12px;border-radius:var(--dw-radius-md);'
+        f'<div style="padding:10px 12px;margin-bottom:6px;border-radius:var(--dw-radius-md);'
         f'background:var(--dw-bg-subtle);border:1px solid var(--dw-border);">'
         f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.02em;'
         f'color:var(--dw-text-secondary);font-weight:600;">Proband:in</div>'
@@ -525,6 +544,16 @@ def render_subject_badge() -> None:
         f'</div>',
         unsafe_allow_html=True,
     )
+    col_edit, col_new = st.sidebar.columns(2)
+    if col_edit.button("Bearbeiten", key="_sidebar_edit_subject", icon=":material/edit:", use_container_width=True):
+        st.session_state["_subject_edit_mode"] = True
+        st.session_state.pop("_confirm_discard_subject", None)
+        st.switch_page("views/start.py")
+    if col_new.button("Neu", key="_sidebar_new_subject", icon=":material/person_add:", use_container_width=True):
+        st.session_state["_confirm_discard_subject"] = True
+        st.session_state.pop("_subject_edit_mode", None)
+        st.switch_page("views/start.py")
+    st.sidebar.markdown('<div style="margin-bottom:12px;"></div>', unsafe_allow_html=True)
 
 
 def render_interpretation_table(rows: list[dict]) -> None:
@@ -739,9 +768,16 @@ def render_transcription_job(recording_path: str) -> dict | None:
 
     Liefert das fertige Transkript (aus dem Cache) sobald verfuegbar, sonst None -- die
     aufrufende Seite prueft `if transcript:` genau wie vorher.
+
+    Nutzer-Feedback 2026-08-16: welches lokale KI-Modell fuer die Transkription (und darauf
+    aufbauend Sprechrate/Pausen) verwendet wird, stand bisher NUR im fertigen Transkript-Panel
+    -- also erst NACHDEM man schon gewartet hat. Jetzt bereits VOR dem Start sichtbar, direkt
+    ueber dem Button, damit klar ist, was gleich passiert (und dass es dauert).
     """
     from core.job_queue import STATUS_DONE, STATUS_ERROR, get_job_status, submit_job
-    from core.transcription import load_cached_transcript
+    from core.transcription import DEFAULT_MODEL, load_cached_transcript
+
+    st.caption(f"Lokales KI-Modell: WhisperX, Modell „{DEFAULT_MODEL}“ — läuft komplett auf diesem Server, keine Cloud/API.")
 
     cached = load_cached_transcript(recording_path)
     if cached is not None:
