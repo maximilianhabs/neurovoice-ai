@@ -185,3 +185,34 @@ def zone_for_value(value: float, lo: float, hi: float, zones: list[tuple[float, 
     kpi_tile()."""
     color, _ = verdict_for_value(value, lo, hi, zones)
     return _COLOR_TO_ZONE.get(color, "neutral")
+
+
+def _fmt_num(v: float) -> str:
+    s = f"{v:.2f}".rstrip("0").rstrip(".")
+    return s if s else "0"
+
+
+def good_range_text(lo: float, hi: float, zones: list[tuple[float, float, str]], unit: str) -> str | None:
+    """Baut den "Normbereich"-Anzeigetext aus den tatsaechlichen GOOD-Zonengrenzen -- NICHT aus
+    lo/hi (das ist nur die Gauge-Achse, siehe Docstring oben in diesem Modul). Bugfix
+    2026-08-16 (Nutzer-Feedback): vorher zeigte die Normbereich-Spalte lo-hi an (z.B. "0-30%"
+    bei Voice Breaks), waehrend der tatsaechliche Cutoff fuer "im Normbereich" viel enger war
+    (hier: <=2%) -- ein Wert wie 12% wurde dadurch als "auffaellig" gewertet, obwohl er
+    innerhalb des angezeigten Bereichs lag. Diese Funktion liest die GOOD-Zone(n) direkt aus
+    denselben zones-Tupeln, die auch verdict_for_value()/zone_for_value() auswerten, damit
+    Text und Bewertung nie wieder auseinanderlaufen koennen."""
+    good_segments = [(f0, f1) for f0, f1, color in zones if color == GOOD]
+    if not good_segments:
+        return None
+    f0 = min(seg[0] for seg in good_segments)
+    f1 = max(seg[1] for seg in good_segments)
+    abs_lo = lo + f0 * (hi - lo)
+    abs_hi = lo + f1 * (hi - lo)
+    unit_suffix = f" {unit}" if unit else ""
+    touches_left = f0 <= 1e-9
+    touches_right = f1 >= 1 - 1e-9
+    if touches_left and not touches_right:
+        return f"≤{_fmt_num(abs_hi)}{unit_suffix}"
+    if touches_right and not touches_left:
+        return f"≥{_fmt_num(abs_lo)}{unit_suffix}"
+    return f"{_fmt_num(abs_lo)}–{_fmt_num(abs_hi)}{unit_suffix}"

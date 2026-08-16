@@ -380,6 +380,21 @@ def recording_start_blip() -> None:
     NICHT auditiv im Sandbox-Browser vorab testbar (kein Mikrofonzugriff) -- bitte beim
     naechsten echten Test durch den Nutzer bestaetigen, insbesondere Autoplay-Verhalten in
     Safari (dort strenger als Chrome/Firefox bzgl. AudioContext ohne direkten Klick-Kontext).
+
+    Bugfix 2026-08-16 (Nutzer-Feedback "Piepston triggert nur beim ersten Mal"): zwei separate
+    Ursachen behoben. (1) Der alte Code trug jeden gesehenen Button-Knoten in ein WeakSet ein
+    und spielte den Ton NIE WIEDER fuer denselben Knoten -- `st.audio_input()` scheint aber
+    denselben Button-Knoten ueber mehrere Start/Stop-Zyklen hinweg wiederzuverwenden (nur das
+    aria-label wechselt zwischen "Start"/"Stop"), wodurch der Ton nach der allerersten Aufnahme
+    dieses Widgets fuer immer stumm blieb. Jetzt traegt jeder Button-Knoten SELBST ein
+    "scharf/entschaerft"-Flag, das beim Wechsel zurueck auf "Start" zurueckgesetzt wird --
+    dadurch kann jede neue Aufnahme wieder ausloesen. (2) Jeder Ton erzeugte vorher einen
+    KOMPLETT NEUEN `AudioContext` und schloss ihn danach -- wiederholtes Neu-Erzeugen eines
+    AudioContext ohne direkten Klick-Kontext (der MutationObserver-Callback laeuft asynchron
+    NACH dem Klick) kann von Browsern nach dem ersten Mal als "kein Nutzer-Gesture" behandelt
+    und im "suspended"-Zustand belassen werden. Jetzt wird EIN AudioContext einmalig erzeugt,
+    dauerhaft auf `document` gehalten und bei Bedarf per `resume()` reaktiviert statt neu
+    gebaut.
     """
     st.iframe(
         """
@@ -394,12 +409,18 @@ def recording_start_blip() -> None:
             if (doc.__nvBlipInstalled) { return; }
             doc.__nvBlipInstalled = true;
 
-            var seen = new WeakSet();
+            function getCtx() {
+                if (!doc.__nvBlipCtx) {
+                    var Ctx = window.parent.AudioContext || window.parent.webkitAudioContext;
+                    doc.__nvBlipCtx = new Ctx();
+                }
+                return doc.__nvBlipCtx;
+            }
 
             function playBlip() {
                 try {
-                    var Ctx = window.parent.AudioContext || window.parent.webkitAudioContext;
-                    var ctx = new Ctx();
+                    var ctx = getCtx();
+                    if (ctx.state === "suspended") { ctx.resume(); }
                     var osc = ctx.createOscillator();
                     var gain = ctx.createGain();
                     osc.type = "sine";
@@ -411,22 +432,30 @@ def recording_start_blip() -> None:
                     gain.connect(ctx.destination);
                     osc.start();
                     osc.stop(ctx.currentTime + 0.13);
-                    osc.onended = function() { ctx.close(); };
                 } catch (e) { /* Autoplay-Policy o.ae. -- bewusst still ignoriert */ }
             }
 
             function scan() {
-                var buttons = doc.querySelectorAll('button[aria-label*="Stop" i]');
+                var buttons = doc.querySelectorAll('button[aria-label]');
                 for (var i = 0; i < buttons.length; i++) {
-                    if (!seen.has(buttons[i])) {
-                        seen.add(buttons[i]);
-                        playBlip();
+                    var btn = buttons[i];
+                    var isStop = /stop/i.test(btn.getAttribute('aria-label') || '');
+                    if (isStop) {
+                        if (!btn.__nvBlipArmed) {
+                            btn.__nvBlipArmed = true;
+                            playBlip();
+                        }
+                    } else {
+                        btn.__nvBlipArmed = false;
                     }
                 }
             }
 
             var observer = new MutationObserver(scan);
-            observer.observe(doc.body, {childList: true, subtree: true, attributes: true});
+            observer.observe(doc.body, {
+                childList: true, subtree: true,
+                attributes: true, attributeFilter: ["aria-label"],
+            });
         })();
         </script>
         """,

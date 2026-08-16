@@ -11,6 +11,7 @@ Wert eine Erkrankung BEDEUTET. Inhaltliche Basis: docs/literatur_review.md.
 import streamlit as st
 
 from core.interpretation import build_glossary_entries, build_rows, flatten_take
+from core.report_export import build_excel_report, build_pdf_report, collect_report_data
 from core.session_store import get_session_id
 from core.shared import render_glossary, render_interpretation_table
 from core.subject_store import require_subject_or_stop
@@ -93,3 +94,40 @@ else:
         st.divider()
         with st.expander(f"Glossar & Literatur ({len(all_glossary_entries)} Parameter)"):
             render_glossary(sorted(all_glossary_entries, key=lambda e: e["label"]))
+
+    # P14 (docs/backlog.md, Nutzer-Feedback 2026-08-15): Export NUR auf Knopfdruck, nicht
+    # automatisch bei jedem Seitenaufruf -- deshalb zweistufig: "erstellen" schreibt die Bytes
+    # erst nach Klick in st.session_state, "herunterladen" liefert sie aus. Beide Formate
+    # nutzen dieselbe collect_report_data()-Struktur, die wiederum dieselben
+    # core.interpretation-Funktionen wie die Ansicht oben nutzt.
+    st.divider()
+    st.subheader("Export")
+    st.caption(
+        "Excel- und PDF-Report werden erst hier, auf Knopfdruck, erzeugt -- nicht automatisch "
+        "bei jedem Laden dieser Seite."
+    )
+    file_stem = f"neurovoice_report_{subject_id or 'proband'}_{session_id}"
+
+    col_excel, col_pdf = st.columns(2)
+    with col_excel:
+        if st.button("Excel-Report erstellen", icon=":material/grid_on:"):
+            data = collect_report_data(session_id)
+            st.session_state["_excel_report_bytes"] = build_excel_report(data)
+        if "_excel_report_bytes" in st.session_state:
+            st.download_button(
+                "Excel-Report herunterladen",
+                data=st.session_state["_excel_report_bytes"],
+                file_name=f"{file_stem}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+    with col_pdf:
+        if st.button("PDF-Report erstellen", icon=":material/picture_as_pdf:"):
+            data = collect_report_data(session_id)
+            st.session_state["_pdf_report_bytes"] = build_pdf_report(data)
+        if "_pdf_report_bytes" in st.session_state:
+            st.download_button(
+                "PDF-Report herunterladen",
+                data=st.session_state["_pdf_report_bytes"],
+                file_name=f"{file_stem}.pdf",
+                mime="application/pdf",
+            )

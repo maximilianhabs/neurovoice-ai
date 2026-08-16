@@ -529,6 +529,89 @@ mitzuführen.
 
 ---
 
+## BUG-21 — Normbereich-Anzeige zeigte Gauge-Achse statt echter Zonengrenze, Werte weit "im Rahmen" trotzdem als auffällig markiert ✅ BEHOBEN
+
+**Symptom (Nutzer-Feedback 2026-08-16):** Mehrere konkrete Beispiele beim Testen: Voice Breaks
+(Anteil) zeigte Normbereich „0–30 %", ein gemessener Wert von 12 % wurde trotzdem als
+„auffällig" (rot) gewertet. Shimmer (local) zeigte „0–20 %", 5,2 % wurde als „grenzwertig"
+gewertet. CPPS zeigte „0–20 dB", 6,81 dB wurde als „auffällig" (rot) gewertet. DDK-Rate zeigte
+„0–8 Hz", 2,2 Hz wurde als „auffällig" gewertet — in allen vier Fällen erschien der jeweilige
+Wert dem Nutzer weit innerhalb des angezeigten "Normbereichs" zu liegen.
+
+**Root Cause:** `core/interpretation.py::interpret()` berechnete den angezeigten
+"Normbereich"-Text bisher direkt aus `lo`/`hi` der jeweiligen `*_zones()`-Funktion
+(`f"{lo:.0f}–{hi:.0f} {unit}"`) — das ist aber nur die GESAMTE GAUGE-ACHSE (0 bis zum
+Skalenmaximum), nicht die tatsächliche "gut/im Normbereich"-Zone. Die echte GOOD-Zone ist bei
+allen betroffenen Parametern viel enger: Voice Breaks GOOD nur ≤2 %, Shimmer GOOD nur ≤5 %,
+CPPS GOOD nur ≥14,45 dB, DDK-Rate GOOD nur ≥5 Hz (siehe core/reference_ranges.py). Die
+Verdict-Berechnung (`verdict_for_value()`/`zone_for_value()`) nutzte dagegen schon immer die
+korrekten Zonengrenzen — Anzeigetext und tatsächliche Bewertung liefen also strukturell
+auseinander, unabhängig vom konkreten Parameter (alle Parameter mit `zones_func`, deren
+GOOD-Zone nicht die volle Achse abdeckt, waren betroffen).
+
+**Fix:** Neue Funktion `core/reference_ranges.py::good_range_text()` liest die GOOD-Segmente
+direkt aus denselben `zones`-Tupeln, die auch `verdict_for_value()` auswertet, und baut daraus
+den Anzeigetext (`"≤5 %"` / `"≥14.45 dB"` / `"140–220 WPM"` je nachdem, ob die GOOD-Zone eine
+Achsenkante berührt oder eine mittlere Bande ist). `interpret()` nutzt das jetzt statt der
+rohen Achsenwerte — Text und Bewertung können dadurch nicht mehr auseinanderlaufen, weil beide
+aus derselben Datenquelle kommen. Wirkt sich auf ALLE Ansichten aus, die `interpret()`/
+`build_rows()`/`build_tiles()` nutzen (Modul-Seiten + Gesamtbericht + Reports), da es an der
+gemeinsamen Quelle behoben wurde.
+
+**Verifiziert:** Lokales Skript prüft alle vier vom Nutzer genannten Beispiele plus vier
+weitere Parameter — angezeigter Normbereich und Status stimmen jetzt für alle überein (z.B.
+Shimmer 5,2 % → Anzeige „≤5 %", Status „grenzwertig", korrekt konsistent). Regression über
+alle 40 `PARAMETER_INFO`-Einträge mit mehreren Testwerten lief ohne Fehler durch. **Zusätzlich
+2026-08-16 direkt im deployten Produktiv-Container erneut bestätigt** (alle vier Beispiele
+laufen dort identisch konsistent durch).
+
+**Noch offen (siehe docs/backlog.md P15):** Die zugrunde liegenden Zonengrenzen selbst sind
+für einige Parameter weiterhin pragmatische Näherungen/Sekundärquellen statt harter,
+primärliteratur-belegter Cutoffs (im Kontext-Text jeweils dokumentiert) — dieser Fix behebt
+die DARSTELLUNGS-Inkonsistenz, nicht die grundsätzliche Unsicherheit mancher Schwellenwerte.
+
+---
+
+## BUG-22 — Aufnahme-Start-Piepton verstummte nach der ersten Aufnahme dauerhaft ✅ BEHOBEN
+
+**Symptom (Nutzer-Feedback 2026-08-16):** Der dezente Audio-Piep beim Start einer Aufnahme
+(`core/shared.py::recording_start_blip()`, P-Feature vom 2026-08-15) funktionierte laut Nutzer
+nur beim allerersten Test (Vokalisation-Modul), bei allen späteren Aufnahmeversuchen —
+insbesondere im Vorlesen-Modul — blieb er stumm.
+
+**Root Cause (zwei unabhängige Ursachen, beide behoben):**
+1. Der JS-Code trug jeden gesehenen Button-DOM-Knoten dauerhaft in ein `WeakSet` ein und
+   spielte den Ton nie wieder für denselben Knoten. `st.audio_input()` scheint aber denselben
+   Button-Knoten über mehrere Start/Stop-Zyklen hinweg wiederzuverwenden (nur das
+   `aria-label`-Attribut wechselt zwischen "Start"/"Stop") — dadurch war der Ton nach der
+   allerersten Aufnahme dieses Widgets für den Rest der Sitzung stumm.
+2. Für jeden Ton wurde ein komplett neuer `AudioContext` erzeugt und danach geschlossen.
+   Wiederholtes Neu-Erzeugen eines `AudioContext` ohne direkten Klick-Kontext (der
+   MutationObserver-Callback läuft asynchron NACH dem Klick, nicht darin) kann von Browsern ab
+   dem zweiten Mal als "kein Nutzer-Gesture" gewertet und der Context dauerhaft im
+   "suspended"-Zustand belassen werden — eine mögliche zusätzliche/alternative Erklärung für
+   das beobachtete Verhalten.
+
+**Fix:** (1) Jeder Button-Knoten trägt jetzt selbst ein "scharf/entschärft"-Flag, das
+zurückgesetzt wird, sobald das `aria-label` wieder auf "Start" wechselt — dadurch kann jede
+neue Aufnahme wieder auslösen. (2) Ein einziger `AudioContext` wird einmalig erzeugt, dauerhaft
+auf `document` gehalten und bei Bedarf per `ctx.resume()` reaktiviert statt bei jedem Ton neu
+gebaut und geschlossen.
+
+**Wiring-Check:** `recording_start_blip()` wird identisch (ein Aufruf pro Seite, direkt nach
+den Imports) in allen fünf Aufnahme-Seiten aufgerufen — `vokalisation.py`, `vorlesen.py`,
+`spontansprache.py`, `ddk.py`, `testdaten.py`. Kein modul-spezifischer Wiring-Unterschied
+gefunden; das vom Nutzer beschriebene "nur Vokalisation funktioniert"-Muster passt eher zum
+"nur beim ersten Mal insgesamt"-Bug oben (Vokalisation zufällig zuerst getestet) als zu einer
+fehlenden Einbindung im Vorlesen-Modul.
+
+**NICHT auditiv verifizierbar** im Sandbox-Browser (kein Mikrofonzugriff) — Code ist seit
+2026-08-16 auf dem Produktiv-Container deployt, aber bitte beim nächsten echten Test auf dem
+Server bestätigen, dass der Ton jetzt bei jeder Aufnahme (nicht nur der ersten) und in jedem
+Modul zuverlässig kommt.
+
+---
+
 ## Offene Punkte (Zusammenfassung, damit nichts vergessen wird)
 
 | # | Thema | Priorität | Status |

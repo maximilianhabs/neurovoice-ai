@@ -17,6 +17,7 @@ from core.reference_ranges import (
     apq11_zones,
     cpps_zones,
     ddk_rate_zones,
+    good_range_text,
     hnr_zones,
     jitter_zones,
     mpt_zones,
@@ -594,12 +595,20 @@ def interpret(param_key: str, value: float | None) -> dict | None:
         "literature": info["literature"],
     }
 
-    if info["zones_func"] is not None and value is not None:
+    if info["zones_func"] is not None:
         lo, hi, zones = info["zones_func"]()
-        result["range"] = f"{lo:.0f}–{hi:.0f} {info['unit']}".strip()
-        _, status = verdict_for_value(value, lo, hi, zones)
-        result["status"] = status
-        result["zone"] = zone_for_value(value, lo, hi, zones)
+        # Bugfix 2026-08-16 (Nutzer-Feedback): Anzeigetext MUSS aus der tatsaechlichen
+        # GOOD-Zonengrenze kommen, nicht aus lo/hi (das ist nur die Gauge-Achse) -- sonst zeigt
+        # die Spalte z.B. "0-30%" an, waehrend Werte weit unterhalb von 30% schon als
+        # "auffaellig" gewertet werden, weil der echte Cutoff viel enger ist. Siehe
+        # core/reference_ranges.py::good_range_text().
+        range_text = good_range_text(lo, hi, zones, info["unit"])
+        if range_text is not None:
+            result["range"] = range_text
+        if value is not None:
+            _, status = verdict_for_value(value, lo, hi, zones)
+            result["status"] = status
+            result["zone"] = zone_for_value(value, lo, hi, zones)
 
     return result
 

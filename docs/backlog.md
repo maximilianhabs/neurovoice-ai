@@ -299,6 +299,13 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       **bewusst kein kleiner Schritt**, größerer Architektur-Umbau. Sofort-Maßnahme (bereits
       umgesetzt): Button-/Spinner-Text setzt jetzt klare Erwartung ("reagiert währenddessen
       nicht, das ist normal").
+      **Konzept steht (2026-08-16, NICHT umgesetzt)**: siehe
+      `docs/konzept_p9_hintergrundjob_lokal.md` — datei-basierte Job-Queue + eigener
+      Worker-Container + `st.fragment(run_every=...)`-Polling statt blockierender
+      Thread-Schleife, UND gleichzeitig als zweites Ziel eine lokale Docker-Compose-Variante,
+      damit Nutzer:innen NeuroVoice AI komplett auf dem eigenen Mac/Windows-Rechner betreiben
+      können (kein Tailscale/Server nötig). Offene Frage darin: Apple-Silicon(arm64)-
+      Kompatibilität von whisperx/torch/ctranslate2 noch nicht verifiziert.
   - [x] **Geschätzte Fortschrittsleiste** ✅ UMGESETZT (2026-08-15, Nutzer-Wunsch) —
         `core/shared.py::transcribe_with_progress()`: Transkription läuft in einem
         Hintergrund-Thread, Hauptthread pollt alle 0,5s und aktualisiert eine `st.progress()`-
@@ -731,8 +738,8 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
       `core/interpretation.py::PARAMETER_INFO["label"]` UND den Modul-Seiten (DDK-Tab-
       Beschriftungen etc.) durchziehen. Betrifft möglicherweise weitere Parameter über die 4
       genannten hinaus — bei Umsetzung einmal komplett durchgehen, nicht nur die 4 Beispiele.
-- [ ] **P14 — Excel-/PDF-Report-Export im Gesamtbericht** (Nutzer-Feedback 2026-08-15, NICHT
-      umgesetzt, analog EDF-Analyzer) — auf der Gesamtbericht-Seite (`views/gesamtbericht.py`)
+- [x] **P14 — Excel-/PDF-Report-Export im Gesamtbericht** ✅ UMGESETZT (2026-08-16, Nutzer-
+      Feedback 2026-08-15, analog EDF-Analyzer) — auf der Gesamtbericht-Seite (`views/gesamtbericht.py`)
       soll es einen Button geben, der ON DEMAND (nicht automatisch) einen Export erzeugt,
       sowohl als Excel-Tabelle als auch als PDF-Report. Größerer Feature-Aufwand:
   - Excel: vermutlich `openpyxl`/`pandas.to_excel()`, neue Dependency falls nicht schon
@@ -747,6 +754,42 @@ optionales `note`-Argument in `kpi_tile()` nachgerüstet werden.
   - Hängt an P10 (Proband:innen-Erfassung) — ein Report ohne Zuordnung zu einem Subjekt ist
     für die longitudinale Auswertung nur bedingt nützlich, beide Punkte sollten bei der
     Umsetzung zusammen gedacht werden, auch wenn P10 technisch nicht Voraussetzung ist.
+  - **Stand 2026-08-16**: `core/report_export.py` implementiert (Excel via `openpyxl`, PDF via
+    `fpdf2`, beide bauen ausschließlich auf `core/interpretation.py::flatten_take()`/
+    `build_rows()`/`build_glossary_entries()` auf, kein eigener Normwert-Text), zwei
+    On-Demand-Buttons in `views/gesamtbericht.py` ("erstellen" → "herunterladen",
+    zweistufig, damit nichts automatisch bei jedem Seitenaufruf erzeugt wird), Dependencies
+    zu `requirements.txt` hinzugefügt, Docker-Image auf dem Server neu gebaut. **Verifiziert
+    2026-08-16 auf dem Produktiv-Container** (nicht nur lokal): `collect_report_data()` +
+    `build_excel_report()`/`build_pdf_report()` liefen direkt im Container gegen synthetische
+    Sitzungsdaten durch, beide Formate valide (Excel via `openpyxl.load_workbook()` prüfbar,
+    PDF mit korrektem `%PDF`-Header), AppTest-Smoke-Test der Startseite ohne Exceptions,
+    HTTP 200 auf `/_stcore/health`.
+- [ ] **P15 — Referenzwerte im Glossar: typische Werte Gesunde/Dysarthrie/psychomotorische
+      Verlangsamung + echte Primärliteratur** (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) —
+      das Glossar (`build_glossary_entries()`/`render_glossary()`) soll pro Parameter, auch
+      wenn kein harter Ampel-Cutoff existiert, eine QUANTITATIVE Einordnung liefern: typische
+      Werte/Schwankungsbreite bei Gesunden, UND — soweit in der Literatur beschrieben —
+      typische Werte/Richtung bei Dysarthrie bzw. bei psychomotorisch verlangsamtem Sprechen.
+      Rein deskriptiv bleiben (kein Cutoff-Anspruch), aber konkrete Zahlen statt nur Prosatext.
+      Zusätzlich: für viele Parameter fehlen echte Primärquellen (Publikationen mit Autor:innen/
+      Jahr/Journal) — aktuell oft nur Sekundärquellen-Zusammenfassungen
+      ("voicescience.org-Zusammenfassung", "zusammenfassende Sekundärquellen" etc.) referenziert.
+      Braucht gezielte Literaturrecherche je Parameter, dann `PARAMETER_INFO["literature"]`
+      entsprechend ergänzen/präzisieren. Größerer Rechercheaufwand, kein kleiner Schritt.
+- [ ] **P16 — Interne Entwicklungs-Referenzen aus nutzersichtbaren Texten entfernen**
+      (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) — `PARAMETER_INFO`-Texte (`context`/
+      `literature`) enthalten an vielen Stellen interne Entwicklungs-Markierungen wie
+      "**P12-Recherche 2026-08-15**", "**P12**", "**P12-Nachtrag**", die nur für die eigene
+      Nachvollziehbarkeit während der Entwicklung gedacht waren — für Nutzer:innen der
+      finalen/öffentlichen App sind Backlog-Kürzel und interne Datumsangaben irrelevant und
+      wirken unprofessionell/verwirrend. Vor einer öffentlichen Veröffentlichung (siehe
+      `ROAD_TO_PUBLIC.md`) MUSS das bereinigt sein — der fachliche Inhalt (was die Recherche
+      ergeben hat) bleibt, nur die Entwicklungs-Meta-Markierung fällt weg. Betrifft mehrere
+      Einträge in `core/interpretation.py::PARAMETER_INFO` und die Docstrings/Kommentare in
+      `core/reference_ranges.py` (dort aber unkritischer, da reiner Code-Kommentar, nicht auf
+      der Oberfläche sichtbar) — bei Umsetzung `PARAMETER_INFO` komplett durchgehen, nicht nur
+      Stichproben.
 
 ## Konzept: Modul-Detailseiten Nachbesserung — Sammel-Feedback nach P10-Testlauf (2026-08-15)
 
@@ -1491,31 +1534,23 @@ hatten bzw. die bei uns bereits richtig sind.
 ### Echte, neu identifizierte Lücken — priorisiert nach Aufwand
 
 **Prio 1 — kleine Schritte, kein neuer Tech-Stack (nutzen vorhandene Praat-Infrastruktur):**
-- [ ] **RAP, PPQ5, APQ11** — feinere Jitter-/Shimmer-Untermaße. Technisch trivial: nutzen
-      denselben `point_process` (`"To PointProcess (periodic, cc)"`), der in
-      `phonation_features()` schon für Jitter/Shimmer local existiert — nur zusätzliche
-      `praat.call(point_process, "Get jitter (rap)"/"Get jitter (ppq5)", ...)`-Aufrufe nötig.
-- [ ] **Maximum Phonation Time (MPT)** — wie lange kann ein gehaltener Vokal ohne Unterbrechung
-      gehalten werden. Einfach aus stimmhafter Dauer der Vokal-Aufnahmen ableitbar (gleiche
-      Grundlage wie `phonation_dynamics_features()`s Voice-Breaks-Erkennung), kein neues Modell.
-      Braucht Vokal-Task mit klarer Instruktion "so lange wie möglich halten" — aktuelle
-      Vokal-Aufnahmen (vokali/vokalu, 2026-07-24) waren nicht auf maximale Dauer instruiert,
-      neue MPT-spezifische Aufnahme sinnvoll.
-- [ ] **Vokalraum-Fläche (VSA), echte Dreiecksformel** — bereits als offener Punkt vermerkt
-      (siehe Stufe 2 oben), jetzt technisch möglich seit /a/(aus Lesetext)/i//u/ als separate
-      Aufnahmen vorliegen (2026-07-24) — fehlt nur noch die Umsetzung selbst, keine neuen Daten.
-- [ ] **Recording Quality Check** (vereinfachte Vorstufe zum vorgeschlagenen "RQI 0-100"):
-      SNR-Näherung, Clipping-Anteil, Stille-Anteil — aus bereits vorhandenen `basic_stats()`-
-      Rohdaten ableitbar (Peak/RMS dBFS sind schon da), kein neuer Tech-Stack. **Wichtig, aber
-      bewusst nicht als hartes Cutoff-Gate umsetzen** (Prinzip aus
-      [[feedback_signalverarbeitung_kennwerte]]: erst an echten Aufnahmen kalibrieren, bevor
-      etwas als "schlecht" markiert wird) — erst informativ anzeigen, Schwellen später schärfen.
+- [x] **RAP, PPQ5, APQ11** ✅ UMGESETZT (P7, 2026-08-15) — Stand 2026-08-16 beim Aufräumen
+      dieser Liste als stale erkannt: war hier noch als offen markiert, ist aber seit P7 fertig
+      (`jitter_rap_pct`/`jitter_ppq5_pct`/`shimmer_apq11_pct` in `core/audio.py`).
+- [x] **Maximum Phonation Time (MPT)** ✅ UMGESETZT (P7, 2026-08-15) — dito, `mpt_s` in
+      `core/audio.py` existiert bereits, war hier nur nicht mehr synchron.
+- [x] **Vokalraum-Fläche (VSA), echte Dreiecksformel** ✅ UMGESETZT — `vowel_space_area()` in
+      `core/audio.py` existiert bereits (`vsa_hz2` in `PARAMETER_INFO`), war hier nur nicht
+      mehr synchron. Kein Ampel-Cutoff (siehe P12-Recherche zu `vsa_hz2`), aber die Berechnung
+      selbst ist fertig.
+- [x] **Recording Quality Check** ✅ UMGESETZT (P6, 2026-08-15) — SNR/Clipping/Stille-Anteil,
+      bewusst informativ ohne hartes Cutoff-Gate wie hier gefordert. War hier nur nicht mehr
+      synchron.
 
 **Prio 2 — moderater Aufwand, baut auf vorhandenen Daten/Funktionen auf:**
-- [ ] **F0-Tremor-Analyse** (FFT/PSD der F0-Zeitreihe, Tremor-Peak-Frequenz/-Amplitude/-Power)
-      statt nur F0-SD — nutzt dieselbe F0-Zeitreihe wie `phonation_dynamics_features()`, aber
-      neue Analyse (Detrending + Spektralanalyse der Tonhöhenkurve selbst, nicht des Audios).
-      Interessant für Parkinson- vs. essenziellen-Tremor-Differenzierung laut Kritik.
+- [x] **F0-Tremor-Analyse** ✅ UMGESETZT — `f0_tremor_features()` in `core/audio.py`
+      (`tremor_freq_hz` in `PARAMETER_INFO`, rein explorativ/nicht klinisch validiert). War
+      hier nur nicht mehr synchron.
 - [ ] **Formant-Übergangsraten bei definierten Vokalwechseln** (z.B. /a/→/i/, F2-Slope in
       Hz/ms) — Erweiterung von `formant_dynamics_features()`, das bisher nur globale
       Geschwindigkeit über eine ganze Aufnahme misst, nicht gezielt an einem Vokalübergang.
