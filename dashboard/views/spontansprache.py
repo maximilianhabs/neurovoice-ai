@@ -33,6 +33,7 @@ from core.audio import (
 from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
 from core.plots import (
+    articulation_pause_bar_figure,
     intensity_figure,
     pause_timeline_figure,
     radar_figure,
@@ -244,6 +245,19 @@ else:
                                "fluency_score", "mean_word_duration_s"],
                 speech_metrics,
             )
+            if speech_metrics.get("articulation_span_s"):
+                st.pyplot(
+                    articulation_pause_bar_figure(
+                        speech_metrics["articulation_span_s"], speech_metrics.get("total_pause_time_s", 0.0),
+                    ),
+                    width="stretch",
+                )
+                st.caption(
+                    "Wie viel der Sprechspanne (erstes bis letztes Wort) tatsächlich Sprechzeit "
+                    "vs. Pausenzeit ist — macht den Unterschied zwischen Netto- und "
+                    "Artikulationsrate direkt sichtbar, statt zwei Zahlen gedanklich in Bezug "
+                    "setzen zu müssen."
+                )
             _tile_group(
                 "Pausen", ["pause_count", "mean_pause_duration_s", "max_pause_duration_s",
                            "rhythm_npvi", "micro_pause_count", "mean_micro_pause_duration_s",

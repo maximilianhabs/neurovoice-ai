@@ -338,6 +338,41 @@ def perturbation_bundle_figure(entries: list[dict]):
     return fig
 
 
+def articulation_pause_bar_figure(articulation_span_s: float, total_pause_time_s: float):
+    """Sprechrate/Pausenzeit-Balken (docs/konzept_visualisierungen.md 3.6) -- ein gestapelter
+    horizontaler Balken, der die Sprechspanne in "reine Artikulationszeit" (Sprechen) und
+    "Pausenzeit" aufteilt. Macht den Vergleich Netto- vs. Artikulationsrate (bisher zwei
+    separate Kacheln, die man gedanklich selbst in Bezug setzen musste) auf einen Blick
+    verstaendlich: wie viel der Sprechspanne ist tatsaechlich Sprechzeit vs. Pausenzeit.
+    `articulation_span_s`: core.speech_metrics-Feld (erstes bis letztes Wort), enthaelt die
+    Pausenzeit bereits MIT -- Sprechzeit wird daraus als articulation_span_s - total_pause_time_s
+    abgeleitet, damit die Balkenlaenge korrekt der Spanne entspricht."""
+    speaking_time_s = max(0.0, articulation_span_s - total_pause_time_s)
+
+    fig, ax = plt.subplots(figsize=(8, 1.3))
+    if articulation_span_s <= 0:
+        ax.text(0.5, 0.5, "Keine Daten verfügbar", ha="center", va="center", color=TEXT_SECONDARY, transform=ax.transAxes)
+        ax.axis("off")
+        fig.tight_layout()
+        return fig
+
+    ax.barh(0, speaking_time_s, color=ACCENT, label="Artikulationszeit")
+    ax.barh(0, total_pause_time_s, left=speaking_time_s, color=WARNING, label="Pausenzeit")
+
+    speak_pct = speaking_time_s / articulation_span_s * 100
+    if speaking_time_s > 0:
+        ax.text(speaking_time_s / 2, 0, f"{speak_pct:.0f}%", ha="center", va="center", color="white", fontweight="bold", fontsize=10)
+    if total_pause_time_s > 0:
+        ax.text(speaking_time_s + total_pause_time_s / 2, 0, f"{100 - speak_pct:.0f}%", ha="center", va="center", color="white", fontweight="bold", fontsize=10)
+
+    ax.set_xlim(0, articulation_span_s)
+    ax.set_yticks([])
+    ax.set_xlabel("Zeit (s)")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.55), ncol=2, fontsize=8, frameon=False)
+    fig.tight_layout()
+    return fig
+
+
 def radar_figure(labels: list[str], values: list[float]):
     """Radar-/Spinnennetz-Profil ueber mehrere normalisierte (0-1) Werte, siehe Normwert-Konzept."""
     n = len(labels)
