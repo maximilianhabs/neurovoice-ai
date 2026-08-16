@@ -38,7 +38,7 @@ from core.audio import (
 from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take, selected_take
 from core.subject_store import require_subject_or_stop
-from core.plots import intensity_figure, spectrogram_figure, waveform_figure
+from core.plots import intensity_figure, spectrogram_figure, vowel_space_figure, waveform_figure
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
     instruction_text_scale_control,
@@ -222,27 +222,44 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                         delete_take(MODULE, task_key, i)
                         st.rerun()
 
-# --- Vokalraum-Fläche (VSA, P7/Audit): braucht alle 3 Eckvokale mit mind. einem Versuch,
-# rechnet ueber die jeweils AUSGEWAEHLTEN besten Takes -- deshalb erst hier am Modul-Ende,
-# nicht innerhalb der einzelnen Tabs. ---
+# --- Vokalraum-Fläche (VSA, P7/Audit) + Vokaltrapez-Plot (docs/konzept_visualisierungen.md,
+# 3.1): VSA-Zahl braucht weiterhin alle 3 Eckvokale mit mind. einem Versuch, der Plot zeigt
+# aber bereits ab 2 vorhandenen Vokalen etwas -- rechnet ueber die jeweils AUSGEWAEHLTEN
+# besten Takes, deshalb erst hier am Modul-Ende, nicht innerhalb der einzelnen Tabs. ---
 take_a = selected_take(MODULE, "vokal")
 take_i = selected_take(MODULE, "vokali")
 take_u = selected_take(MODULE, "vokalu")
-if take_a and take_i and take_u:
-    vsa = vowel_space_area(
-        take_a["formants"]["f1_mean_hz"], take_a["formants"]["f2_mean_hz"],
-        take_i["formants"]["f1_mean_hz"], take_i["formants"]["f2_mean_hz"],
-        take_u["formants"]["f1_mean_hz"], take_u["formants"]["f2_mean_hz"],
-    )
-    if vsa is not None:
-        st.divider()
-        st.markdown("**Vokalraum-Fläche** — alle 3 Eckvokale vorhanden")
-        vsa_col, _, _ = st.columns(3)
-        with vsa_col:
-            kpi_tile(
-                "Vokalraum-Fläche (VSA)", f"{vsa:,.0f} Hz²".replace(",", "."), "kein Normwert", "neutral",
-                "Fläche des Dreiecks aus F1/F2 der Eckvokale /a/,/i/,/u/ — kleinere Fläche kann auf Zentralisierung hindeuten.",
+vowel_points = {}
+for key, take in (("a", take_a), ("i", take_i), ("u", take_u)):
+    if take is not None:
+        f = take.get("formants", {})
+        vowel_points[key] = (f.get("f1_mean_hz"), f.get("f2_mean_hz"))
+
+if len(vowel_points) >= 2:
+    st.divider()
+    st.markdown("**Vokalraum** — Formant-Positionen der aufgenommenen Eckvokale")
+    plot_col, info_col = st.columns([3, 2])
+    with plot_col:
+        st.pyplot(vowel_space_figure(vowel_points), width="stretch")
+    with info_col:
+        st.caption(
+            "Klassisches „Vokaltrapez“: F2 (vorne/hinten) waagerecht, F1 (offen/geschlossen) "
+            "senkrecht, beide Achsen umgekehrt (Phonetik-Konvention). Ein kleines, "
+            "zentrales Dreieck kann auf einen eingeschränkten Artikulationsraum hindeuten."
+        )
+        if take_a and take_i and take_u:
+            vsa = vowel_space_area(
+                take_a["formants"]["f1_mean_hz"], take_a["formants"]["f2_mean_hz"],
+                take_i["formants"]["f1_mean_hz"], take_i["formants"]["f2_mean_hz"],
+                take_u["formants"]["f1_mean_hz"], take_u["formants"]["f2_mean_hz"],
             )
+            if vsa is not None:
+                kpi_tile(
+                    "Vokalraum-Fläche (VSA)", f"{vsa:,.0f} Hz²".replace(",", "."), "kein Normwert", "neutral",
+                    "Fläche des Dreiecks aus F1/F2 der Eckvokale /a/,/i/,/u/ — kleinere Fläche kann auf Zentralisierung hindeuten.",
+                )
+        else:
+            st.caption("Noch nicht alle 3 Eckvokale vorhanden — die Flächenzahl (VSA) erscheint erst dann.")
 
 done = {k: v for k, v in st.session_state.get("module_results", {}).get(MODULE, {}).items() if v}
 st.divider()

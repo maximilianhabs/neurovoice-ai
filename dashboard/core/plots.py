@@ -133,6 +133,51 @@ def gauge_figure(
     return fig
 
 
+def vowel_space_figure(vowels: dict[str, tuple[float, float]]):
+    """Vokaltrapez (F1/F2-Diagramm) — die klassische phonetische Standarddarstellung fuer
+    Vokale (siehe docs/konzept_visualisierungen.md, Abschnitt 3.1). Macht die bereits
+    berechnete Vokalraum-Flaeche (VSA, core/audio.py::vowel_space_area()) erstmals visuell
+    nachvollziehbar statt nur als abstrakte Hz²-Zahl -- ein kleines/zentralisiertes Dreieck
+    ist auf einen Blick als "eingeschraenkter Artikulationsraum" erkennbar.
+
+    `vowels`: {"a": (f1, f2), "i": (f1, f2), "u": (f1, f2)} -- nur Eintraege mit BEIDEN Werten
+    vorhanden werden geplottet, Funktion braucht nicht zwingend alle 3 (zeigt dann nur Punkte,
+    kein Dreieck).
+
+    Achsen-Konvention (Standard in der Phonetik, z.B. Peterson & Barney 1952): F2 auf der
+    X-Achse UMGEKEHRT (hohe Werte links -> vordere Vokale links), F1 auf der Y-Achse UMGEKEHRT
+    (niedrige Werte oben -> hohe/geschlossene Vokale oben) -- ergibt die vertraute
+    "Vokaltrapez"-Form aus Lehrbuechern.
+    """
+    points = {k: v for k, v in vowels.items() if v[0] is not None and v[1] is not None}
+
+    fig, ax = plt.subplots(figsize=(5, 4.5))
+    if len(points) >= 2:
+        order = [k for k in ("i", "a", "u") if k in points]
+        f2s = [points[k][1] for k in order]
+        f1s = [points[k][0] for k in order]
+        if len(order) == 3:
+            closed_f2 = f2s + [f2s[0]]
+            closed_f1 = f1s + [f1s[0]]
+            ax.plot(closed_f2, closed_f1, color=ACCENT, linewidth=1.5, alpha=0.6)
+            ax.fill(closed_f2, closed_f1, color=ACCENT, alpha=0.12)
+        ax.scatter(f2s, f1s, s=90, color=ACCENT, zorder=3, edgecolors="white", linewidths=1.5)
+        for k in order:
+            f1, f2 = points[k]
+            ax.annotate(
+                f"/{k}/", (f2, f1), textcoords="offset points", xytext=(8, 6),
+                fontsize=13, fontweight="bold", color=TEXT_PRIMARY,
+            )
+    ax.set_xlabel("F2 (Hz) — hinten ← → vorne")
+    ax.set_ylabel("F1 (Hz) — geschlossen ↑ ↓ offen")
+    ax.set_title("Vokalraum (Vokaltrapez)")
+    ax.invert_xaxis()
+    ax.invert_yaxis()
+    ax.grid(color=PLOT_GRID, alpha=0.5)
+    fig.tight_layout()
+    return fig
+
+
 def radar_figure(labels: list[str], values: list[float]):
     """Radar-/Spinnennetz-Profil ueber mehrere normalisierte (0-1) Werte, siehe Normwert-Konzept."""
     n = len(labels)
