@@ -612,6 +612,48 @@ Modul zuverlässig kommt.
 
 ---
 
+## BUG-23 — Docker-Image zog trotz "CPU-only Torch"-Fix noch die komplette NVIDIA/CUDA-Kette mit ✅ BEHOBEN
+
+**Symptom (Nutzer-Auftrag 2026-08-16, "Cleanup-Konzept, unnötige NVIDIA-Pakete löschen"):**
+Nach dem ersten arm64-Fix (Torch über PyTorch-CPU-Index installieren, siehe P9-Eintrag oben)
+zeigte eine Kontrolle des bereits deployten Server-Images (`pip list | grep nvidia`) trotzdem
+13 `nvidia-*-cu12`-Pakete plus `triton` — mehrere GB reine GPU-Bibliotheken auf einem Server
+komplett ohne GPU. Der erste Fix hatte das Problem also nur TEILWEISE behoben.
+
+**Root Cause:** `whisperx` verlangt zusätzlich zu `torch` auch `torchaudio`/`torchvision`.
+Die wurden vom ersten Fix NICHT mit über das CPU-Index-Repository installiert — nur `torch`
+allein. Beim nachfolgenden `pip install -r requirements.txt` löste pip `torchaudio`/
+`torchvision` deshalb ganz normal über den STANDARD-PyPI-Index auf, und deren Standard-Wheels
+für Linux hängen ihrerseits von den `nvidia-*-cu12`-Paketen ab (PyTorch linkt CUDA seit
+einigen Versionen dynamisch über separate pip-Pakete statt es einzubauen) — die komplette
+CUDA-Kette kam so durch die Hintertür zurück, obwohl `torch` selbst korrekt CPU-only
+installiert war.
+
+**Fix:** `torch`, `torchaudio` UND `torchvision` gemeinsam, mit zu whisperx' eigenen
+Anforderungen passenden Versions-Pins (`~=2.8.0`/`~=2.8.0`/`~=0.23.0`), über das
+CPU-Index-Repository installieren (`dashboard/Dockerfile`). Per `pip install --dry-run`
+vorab gegenverifiziert: liefert ausschließlich CPU-Pakete, kein einziges `nvidia-*` mehr.
+
+**Verifiziert (Server, 2026-08-16):** `pip list | grep -iE 'nvidia|cuda'` im neu gebauten
+Image liefert NICHTS mehr. Image-Größe sank von 15,1GB auf 5,22GB. Ein Rest bleibt bewusst
+bestehen: `triton` (722,9MB) — das ist KEIN Nachzieh-Effekt wie oben, sondern eine direkte,
+nicht-optionale Abhängigkeit von `whisperx` selbst (`pip show triton` → `Required-by:
+whisperx`), zieht selbst aber nur reine Python-Pakete nach (kein weiteres CUDA). Bewusst nicht
+weiter entfernt — ein `--no-deps`-Patch um eine fremde Bibliothek herum wäre riskanter als die
+eingesparte Größe wert. AppTest-Smoke-Test + HTTP 200 nach dem Rebuild bestätigt. Zusätzlich
+~42GB an altem, durch die mehreren Fehlversuche angesammeltem Docker-Build-Cache auf dem
+Server bereinigt (`docker builder prune`).
+
+**Lehre für künftige Dependency-Änderungen**: Wenn ein Paket über ein alternatives
+Index-Repository installiert wird, um eine bestimmte Variante zu erzwingen (hier: CPU-only),
+reicht das NICHT automatisch für Pakete, die DAVON ABHÄNGEN — die müssen explizit im selben
+Schritt über dasselbe Repository mitinstalliert werden, sonst kann der nächste `pip install`
+die eigentlich vermiedene Variante durch die Hintertür zurückholen. Verifikations-Routine
+nach jeder Torch/WhisperX-Änderung: `docker exec <container> pip list | grep -i nvidia`
+sollte leer sein.
+
+---
+
 ## Offene Punkte (Zusammenfassung, damit nichts vergessen wird)
 
 | # | Thema | Priorität | Status |

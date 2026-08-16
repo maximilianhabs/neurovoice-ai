@@ -18,15 +18,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY requirements.txt .
-# CPU-only Torch zuerst installieren (kein GPU auf dem Server, und Apple Silicon/Windows-
-# Docker haben in diesem Linux-Container ohnehin keinen GPU-Zugriff -- siehe
-# docs/konzept_p9_hintergrundjob_lokal.md). WICHTIG (Fund 2026-08-16, empirisch verifiziert):
-# das CPU-Wheel-Repository (https://download.pytorch.org/whl/cpu) hat AUCH fuer linux/arm64
-# fertige "+cpu"-Wheels -- ein normales "pip install torch" OHNE dieses Repository zieht auf
-# arm64 dagegen die volle CUDA/NVIDIA-Toolkit-Kette mit (mehrere hundert MB voellig nutzloser
-# GPU-Pakete, massiv langsamerer Build). Deshalb IMMER dieses Repository nutzen, unabhaengig
-# von der Architektur -- kein TARGETARCH-Unterschied noetig.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# CPU-only Torch-Familie zuerst installieren (kein GPU auf dem Server, und Apple Silicon/
+# Windows-Docker haben in diesem Linux-Container ohnehin keinen GPU-Zugriff -- siehe
+# docs/konzept_p9_hintergrundjob_lokal.md). WICHTIG (Fund 2026-08-16, empirisch verifiziert,
+# zweistufig): (1) das CPU-Wheel-Repository (https://download.pytorch.org/whl/cpu) hat AUCH
+# fuer linux/arm64 fertige "+cpu"-Wheels -- ein normales "pip install torch" OHNE dieses
+# Repository zieht auf arm64 die volle CUDA/NVIDIA-Toolkit-Kette mit. (2) Reicht ALLEIN NICHT:
+# `whisperx` verlangt zusaetzlich `torchaudio`/`torchvision` -- wurden die NICHT hier mit
+# ueber die CPU-Quelle vorinstalliert, hat der nachfolgende "pip install -r requirements.txt"
+# sie beim Aufloesen von whisperx ueber den normalen PyPI-Index nachgezogen, DESSEN
+# torchaudio/torchvision-Wheels wiederum von den nvidia-*-cu12-Paketen abhaengen (CUDA dynamisch
+# gelinkt) -- selbst mit CPU-only `torch` schleppte sich so die komplette CUDA-Kette wieder
+# ein (auf dem Server ueber 10GB zusaetzlich, gefunden beim Nachpruefen des deployten Images).
+# Deshalb IMMER alle drei zusammen ueber die CPU-Quelle installieren, unabhaengig von der
+# Architektur -- kein TARGETARCH-Unterschied noetig.
+# Version-Pins bewusst identisch zu whisperx' eigenen Anforderungen (torch~=2.8.0/
+# torchaudio~=2.8.0/torchvision~=0.23.0, siehe dessen setup.cfg) -- verhindert, dass ein
+# spaeteres "pip install torch" (unversioniert) eine neuere CPU-Version zieht, die whisperx'
+# eigener Installationsschritt danach als "nicht passend" verwirft und ueber den normalen
+# Index neu aufloest (womit das CUDA-Problem zurueckkaeme).
+RUN pip install --no-cache-dir "torch~=2.8.0" "torchaudio~=2.8.0" "torchvision~=0.23.0" \
+        --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .

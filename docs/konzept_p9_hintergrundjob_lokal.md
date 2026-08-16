@@ -143,6 +143,49 @@ Variante ist rein additiv, kein Breaking Change für den Beelink-Produktivbetrie
    laenger dauern als gewohnt (zweistellige Minutenzahl moeglich, ueberwiegend wegen der
    einmaligen Parselmouth-Kompilierung aus dem Quellcode), das ist normal, kein Haenger"
    ankuendigen -- nachfolgende Starts nutzen den Docker-Layer-Cache und sind schnell.
+## Konzept: Cleanup — nur installieren, was wirklich gebraucht wird
+
+**Nachtrag 2026-08-16, Nutzer-Auftrag** ("ein Konzept mit Cleanup, das nur behält, was wir
+wirklich brauchen, unnötige z.B. NVIDIA-Pakete löschen"): Beim Nachprüfen des bereits
+deployten Server-Images (`pip list | grep nvidia`) stellte sich heraus, dass der erste
+CUDA-Fix (siehe oben, "Torch selbst pinnen") NICHT ausreichte — 13 `nvidia-*-cu12`-Pakete
+plus `triton` waren trotzdem installiert, mehrere GB reine GPU-Bibliotheken auf einem Server
+ohne GPU.
+
+**Root Cause (zweite Stufe des CUDA-Problems):** `whisperx` verlangt zusätzlich zu `torch`
+auch `torchaudio`/`torchvision`. Die wurden vorher NICHT über das CPU-Index-Repository
+vorinstalliert — nur `torch` allein. Beim nachfolgenden `pip install -r requirements.txt`
+löste pip `torchaudio`/`torchvision` deshalb über den NORMALEN PyPI-Index auf, und deren
+Standard-Wheels für Linux hängen ihrerseits von den `nvidia-*-cu12`-Paketen ab (PyTorch linkt
+CUDA seit einigen Versionen dynamisch über separate pip-Pakete statt es einzubauen) — die
+komplette CUDA-Kette kam so durch die Hintertür zurück, obwohl `torch` selbst korrekt
+CPU-only war.
+
+**Fix**: `torch`, `torchaudio` UND `torchvision` gemeinsam, mit zu whisperx' eigenen
+Anforderungen passenden Versions-Pins, über das CPU-Index-Repository installieren (siehe
+Dockerfile). Per `pip install --dry-run` gegenverifiziert: liefert ausschließlich
+`torch-2.8.0+cpu`/`torchaudio-2.8.0`/`torchvision-0.23.0` plus reine CPU-Abhängigkeiten,
+KEIN einziges `nvidia-*`-Paket mehr.
+
+**Allgemeines Prinzip für künftige Dependency-Änderungen** (damit diese Fehlerklasse nicht
+wiederkehrt): Wenn ein Paket (wie `torch`) über ein alternatives Index-Repository installiert
+wird, um eine bestimmte Variante (hier: CPU-only) zu erzwingen, reicht das NICHT automatisch
+für Pakete, die DAVON ABHÄNGEN (`torchaudio`/`torchvision`) — die müssen explizit im selben
+Schritt über dasselbe Repository mitinstalliert werden, sonst löst der nächste `pip install`
+sie über den Standard-Index auf und kann die eigentlich vermiedene Variante durch die
+Hintertür zurückholen. Als Verifikations-Routine nach JEDER Dependency-Änderung an
+torch/whisperx: `docker exec <container> pip list | grep -i nvidia` sollte leer sein.
+
+**Cleanup-Zustand nach dem Fix** (Docker-Hygiene, allgemein, nicht nur für diesen Fall):
+- Docker-Build-Cache aus fehlgeschlagenen/veralteten Build-Versuchen wird nach jedem
+  bestätigt erfolgreichen Rebuild bereinigt (`docker builder prune -f`) — nicht während eines
+  noch laufenden Builds (kann diesen stören).
+- Nur das jeweils aktuelle, getaggte Image pro Dienst wird behalten — Test-/Zwischen-Tags
+  (wie `neurovoice-arm64-verify2` in dieser Session) werden nach erfolgreicher Verifikation
+  wieder gelöscht, nicht als Altlast liegen gelassen.
+- Images anderer Projekte (`anonymisator`, `edf-analyzer`, etc.) werden dabei NIE angefasst —
+  Cleanup ist immer auf die gerade betroffenen Test-/Zwischenartefakte beschränkt.
+
 2. **Windows/Intel-Mac**: unkritischer, da Docker Desktop dort ohnehin dasselbe `linux/amd64`-
    Image wie der Server nutzt — der Host-Betriebssystem-Unterschied ist für den Container selbst
    irrelevant, `praat-parselmouth` bringt für Linux-amd64 bereits vorgebaute Wheels mit (bereits
