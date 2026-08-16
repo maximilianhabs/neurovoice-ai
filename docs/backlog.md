@@ -1003,6 +1003,28 @@ P12 (Referenzwerte) angegangen — der verbleibende Rückstand ist NICHT fehlend
 sondern fehlende SICHTBARKEIT der bereits recherchierten Werte direkt auf der Kachel (siehe
 Bucket I) sowie die in Bucket H aufgelisteten, noch nicht auf Kacheln umgestellten Parameter.
 
+## Sammelblock: Visualisierungsideen (2026-08-16, NICHT umgesetzt)
+
+Eigener Sammelort für kreative Darstellungs-Ideen, die noch nicht ausgereift/priorisiert genug
+für ein eigenes P-Item sind — bei Bedarf von hier in einen konkreten Bucket überführen.
+Hängt lose mit J2 (Radar-Redesign) zusammen, aber bewusst als eigener, wachsender Block
+gedacht statt an ein einzelnes Item gebunden zu sein.
+
+- [ ] **V1 — Histogramm der Wortdauern** (Nutzer-Idee 2026-08-16): bei Spontansprache UND
+      Vorlesen die einzelnen Wortdauern (aus der Wort-Zeitstempel-Tabelle, `duration_s`-Spalte,
+      seit BUG-19 vorhanden) als Histogramm darstellen, mit Median UND Mittelwert als
+      eingezeichnete Linien/Marker, plus sichtbare Verteilungsform. Idee dahinter: die
+      Streuung/Form der Verteilung (z.B. rechtsschief durch wenige sehr lange Wörter,
+      bimodal durch zwei Sprechweisen) ist informativer als nur der bereits vorhandene
+      Einzelwert "Ø Wortdauer" (siehe C2/mean_word_duration_s). Technisch ähnlich zu den
+      bereits beim EDF-Analyzer etablierten Histogramm-Mustern (RR-Intervall-Histogramm,
+      Amplituden-Histogramm — siehe [[project_edf_ui_redesign]]), dort schon mit Median/
+      Mittelwert-Linien umgesetzt, könnte als Vorlage dienen. Kein neuer Tech-Stack (Plotly/
+      Matplotlib-Histogramme werden im Projekt schon verwendet).
+- [ ] **V2 — Platzhalter für weitere Visualisierungsideen**: dieser Block ist bewusst offen für
+      zukünftige Einträge — bei neuen Ideen hier ergänzen statt einen eigenen Bucket zu eröffnen,
+      solange die Idee noch nicht konkret genug für eine Umsetzungsentscheidung ist.
+
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
 Priorisiert nach Sprache (Deutsch/Englisch deutlich wertvoller als andere Sprachen für unser
