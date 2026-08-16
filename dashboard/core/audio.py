@@ -875,7 +875,7 @@ def ddk_rate_features(path: str) -> dict:
 
     empty = {
         "n_cycles": 0, "duration_s": sound.duration, "ddk_rate_hz": None,
-        "mean_cycle_interval_s": None, "cycle_interval_cv": None,
+        "mean_cycle_interval_s": None, "cycle_interval_cv": None, "cycle_times": [],
     }
     if len(values) < 10:
         return empty
@@ -916,4 +916,9 @@ def ddk_rate_features(path: str) -> dict:
         "ddk_rate_hz": ddk_rate_hz,
         "mean_cycle_interval_s": mean_interval,
         "cycle_interval_cv": cycle_interval_cv,
+        # Rohdaten fuer die DDK-Rhythmus-Spur (docs/konzept_visualisierungen.md 3.3) -- rein
+        # additiv, aendert nichts an der bestehenden, bewusst unangetasteten Erkennung oben.
+        # Kein PARAMETER_INFO-Eintrag dafuer noetig: build_rows()/build_tiles() iterieren nur
+        # ueber bekannte PARAMETER_INFO-Schluessel, ignorieren also diesen zusaetzlichen Key.
+        "cycle_times": cycle_times,
     }

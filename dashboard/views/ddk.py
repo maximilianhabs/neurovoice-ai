@@ -20,7 +20,7 @@ import streamlit as st
 from core.audio import articulation_features, ddk_rate_features, recording_quality_features, save_uploaded_wav
 from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
-from core.plots import intensity_figure, spectrogram_figure, waveform_figure
+from core.plots import ddk_rhythm_figure, intensity_figure, spectrogram_figure, waveform_figure
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
     instruction_text_scale_control,
@@ -179,6 +179,13 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 st.caption(
                     "Höherer Variationskoeffizient (CV) = unregelmäßigere Zyklen — gilt in der "
                     "Literatur als möglicher Hinweis auf ataktische Dysarthrie, nicht nur die reine Rate."
+                )
+                st.pyplot(ddk_rhythm_figure(ddk.get("cycle_times", []), ddk.get("duration_s")), width="stretch")
+                st.caption(
+                    "Oben: Zeitpunkte der erkannten Silbenzyklen. Unten: Abstand zwischen "
+                    "aufeinanderfolgenden Zyklen als Balken (orange = deutlich vom Mittelwert "
+                    "abweichend) — macht „stolpernde“, unregelmäßige Silbenfolgen sichtbar, die "
+                    "der CV-Zahl allein verloren gehen."
                 )
 
             with st.expander("Alle Werte im Detail"):

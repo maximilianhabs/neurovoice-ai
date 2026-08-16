@@ -257,6 +257,52 @@ def pause_timeline_figure(words: list[dict], total_duration_s: float | None = No
     return fig
 
 
+def ddk_rhythm_figure(cycle_times: list[float], duration_s: float | None = None):
+    """DDK-Rhythmus-Spur (docs/konzept_visualisierungen.md 3.3) -- macht "Regelmaessigkeit"
+    (bisher nur als einzelne CV-Zahl, core.interpretation::PARAMETER_INFO["cycle_interval_cv"])
+    tatsaechlich sichtbar: Tick-Marken der erkannten Silben-Onsets entlang einer Zeitachse,
+    darunter die Zyklus-Intervalle als Balken -- "stolpernde"/unregelmaessige Silbenfolgen
+    (Verdachtsmoment fuer ataktische Dysarthrie) werden als sichtbar ungleichmaessige
+    Balkenhoehen erkennbar, waehrend eine einzelne CV-Zahl diese Textur abstrahiert."""
+    fig, (ax_ticks, ax_bars) = plt.subplots(
+        2, 1, figsize=(9, 3), height_ratios=[1, 2.2], sharex=False,
+    )
+
+    if not cycle_times or len(cycle_times) < 2:
+        for ax in (ax_ticks, ax_bars):
+            ax.axis("off")
+        ax_ticks.text(
+            0.5, 0.5, "Zu wenige erkannte Silbenzyklen für eine Rhythmus-Spur",
+            ha="center", va="center", color=TEXT_SECONDARY, transform=ax_ticks.transAxes,
+        )
+        fig.tight_layout()
+        return fig
+
+    end_time = duration_s if duration_s else cycle_times[-1] + 0.2
+    ax_ticks.eventplot([cycle_times], colors=[ACCENT], lineoffsets=0, linelengths=0.8, linewidths=2)
+    ax_ticks.set_xlim(0, end_time)
+    ax_ticks.set_yticks([])
+    ax_ticks.set_title("DDK-Rhythmus-Spur — erkannte Silben-Onsets")
+    for spine in ("top", "right", "left"):
+        ax_ticks.spines[spine].set_visible(False)
+    ax_ticks.set_xticklabels([])
+
+    intervals = np.diff(cycle_times)
+    interval_positions = cycle_times[1:]
+    mean_interval = float(np.mean(intervals))
+    colors = [WARNING if abs(iv - mean_interval) > 0.4 * mean_interval else ACCENT for iv in intervals]
+    ax_bars.bar(interval_positions, intervals, width=mean_interval * 0.6, color=colors)
+    ax_bars.axhline(mean_interval, color=TEXT_PRIMARY, linewidth=1, linestyle="--", label="Ø Intervall")
+    ax_bars.set_xlim(0, end_time)
+    ax_bars.set_xlabel("Zeit (s)")
+    ax_bars.set_ylabel("Zyklus-Intervall (s)")
+    ax_bars.legend(loc="upper right", fontsize=8)
+    ax_bars.grid(color=PLOT_GRID, alpha=0.5, axis="y")
+
+    fig.tight_layout()
+    return fig
+
+
 def radar_figure(labels: list[str], values: list[float]):
     """Radar-/Spinnennetz-Profil ueber mehrere normalisierte (0-1) Werte, siehe Normwert-Konzept."""
     n = len(labels)
