@@ -1129,20 +1129,62 @@ für ein eigenes P-Item sind — bei Bedarf von hier in einen konkreten Bucket �
 Hängt lose mit J2 (Radar-Redesign) zusammen, aber bewusst als eigener, wachsender Block
 gedacht statt an ein einzelnes Item gebunden zu sein.
 
-- [ ] **V1 — Histogramm der Wortdauern** (Nutzer-Idee 2026-08-16): bei Spontansprache UND
-      Vorlesen die einzelnen Wortdauern (aus der Wort-Zeitstempel-Tabelle, `duration_s`-Spalte,
-      seit BUG-19 vorhanden) als Histogramm darstellen, mit Median UND Mittelwert als
-      eingezeichnete Linien/Marker, plus sichtbare Verteilungsform. Idee dahinter: die
-      Streuung/Form der Verteilung (z.B. rechtsschief durch wenige sehr lange Wörter,
-      bimodal durch zwei Sprechweisen) ist informativer als nur der bereits vorhandene
-      Einzelwert "Ø Wortdauer" (siehe C2/mean_word_duration_s). Technisch ähnlich zu den
-      bereits beim EDF-Analyzer etablierten Histogramm-Mustern (RR-Intervall-Histogramm,
-      Amplituden-Histogramm — siehe [[project_edf_ui_redesign]]), dort schon mit Median/
-      Mittelwert-Linien umgesetzt, könnte als Vorlage dienen. Kein neuer Tech-Stack (Plotly/
-      Matplotlib-Histogramme werden im Projekt schon verwendet).
-- [ ] **V2 — Platzhalter für weitere Visualisierungsideen**: dieser Block ist bewusst offen für
-      zukünftige Einträge — bei neuen Ideen hier ergänzen statt einen eigenen Bucket zu eröffnen,
-      solange die Idee noch nicht konkret genug für eine Umsetzungsentscheidung ist.
+- [x] **V1 — Histogramm der Wortdauern** ✅ UMGESETZT (2026-08-16) — bei Spontansprache UND
+      Vorlesen die einzelnen Wortdauern als Histogramm mit Mittelwert-Linie
+      (`core/plots.py::word_duration_histogram_figure()`). Teil des Visualisierungskonzepts,
+      siehe `docs/konzept_visualisierungen.md`.
+- [x] **V2 — Sechs weitere Visualisierungen aus dem Konzept** ✅ ALLE UMGESETZT (2026-08-16) —
+      siehe `docs/konzept_visualisierungen.md` für Details/Screenshots-Beschreibungen:
+      Vokaltrapez (F1/F2-Dreieck der Eckvokale, macht VSA sichtbar), Sprechfluss-Zeitstrahl
+      (Sprech-/Pausensegmente farbcodiert), DDK-Rhythmus-Spur (Silben-Onsets + Intervall-
+      Balken), gebündeltes Perturbations-Diagramm (alle 5 Jitter-/Shimmer-Maße mit Normwert-
+      Referenzlinie, nutzt neues `core/reference_ranges.py::good_zone_bounds()`), Sprechrate/
+      Pausenzeit-Balken (Artikulations- vs. Pausenzeit gestapelt). Alle server-verifiziert
+      (AppTest + HTTP 200 nach jedem Schritt), einzeln committed.
+      **Teil 2 — großes Nutzer-Feedback 2026-08-16 mit ~35 weiteren Visualisierungsideen
+      (Speech-Motor-Landscape-Konzept)**: ausführlich gesichtet und triagiert, siehe
+      `docs/konzept_visualisierungen.md` Abschnitt "Teil 2" für die vollständige Einordnung —
+      mehrere Ideen (synchronisierte Speech-Rail-Zeitachse, Patient-vs-Norm-Z-Score-Profil,
+      Vokal-Trajektorie über Zeit) sind mit vorhandenen Daten umsetzbar und als neue V-Punkte
+      unten aufgenommen; andere (Phänotyp-Klassifikation, SHAP-Erklärungen, Motor-Space via
+      PCA/UMAP über Patientenkohorten) verletzen explizit die bestehenden Projekt-Prinzipien
+      (keine Diagnose/Score, kein ML ohne echte gelabelte Patientendaten) und werden NICHT
+      verfolgt; wieder andere (Longitudinal-Trajektorien, artikulatorische Mundraum-Animation)
+      brauchen Daten, die es noch nicht gibt (Mehrfach-Sitzungen, EMA/Acoustic-to-
+      Articulatory-Inversion).
+- [ ] **V3 — Patient-vs-Norm-Profil (alle Parameter)** (Nutzer-Feedback 2026-08-16, NICHT
+      umgesetzt) — Generalisierung des bereits gebauten `perturbation_bundle_figure()`-Musters
+      (Wert als Vielfaches des Normwert-Cutoffs, Referenzlinie bei 1,0) auf ALLE 22 Parameter
+      mit `typical_values`/Cutoff aus P15, nicht nur die 5 Jitter-/Shimmer-Maße. Geringster
+      Aufwand der Teil-2-Ideen, da `good_zone_bounds()` bereits die komplette Infrastruktur
+      liefert — siehe `docs/konzept_visualisierungen.md` Teil 2, Punkt A.2. Empfohlen als
+      nächster Schritt, falls diese Runde weitergeführt wird.
+- [ ] **V4 — Vokal-Trajektorie über Zeit ("Vowel Flight")** (Nutzer-Feedback 2026-08-16, NICHT
+      umgesetzt) — F1/F2-Bewegung WÄHREND einer Äußerung statt nur der Mittelwert-Punkte im
+      bestehenden Vokaltrapez. Braucht `formant_features()`/`formant_dynamics_features()`
+      erweitert um Frame-für-Frame-F1/F2-Rohdaten (aktuell nur aggregiert) — dieselben Werte
+      werden intern in `spectrogram_figure()` schon einmal berechnet, nur nicht persistiert.
+      Siehe `docs/konzept_visualisierungen.md` Teil 2, Punkt A.3. Öffnet danach auch
+      Vokalraum-Dichtekarte/Trajektorie-Ellipse (Punkt B) als Folgeschritte.
+- [ ] **V5 — Speech Rail (synchronisierte Multi-Track-Zeitachse)** (Nutzer-Feedback 2026-08-16,
+      NICHT umgesetzt) — Audio-Wellenform, Wörter, F0, Intensität, Formanten, Pausen auf EINER
+      gemeinsamen Zeitachse statt in getrennten Plots, ähnlich einem Genome-Browser. Vom
+      Nutzer selbst als wichtigste Einzelvisualisierung eingestuft. Größter Aufwand der
+      Teil-2-Ideen, im Kern eine Zusammenführung/Erweiterung des bereits gebauten
+      `pause_timeline_figure()` mit bereits vorhandenen F0-/Intensitäts-/Formant-Daten. Siehe
+      `docs/konzept_visualisierungen.md` Teil 2, Punkt A.1.
+- [ ] **V6 — Tremor-Modulationsspektrum** (Nutzer-Feedback 2026-08-16, NICHT umgesetzt) —
+      `f0_tremor_features()` berechnet intern bereits ein Spektrum der F0-Zeitreihe, gibt aber
+      nur die Peak-Frequenz zurück. Additive Erweiterung (Muster wie bei den DDK-`cycle_times`,
+      P9-Umbau), zeigt das volle Frequenz-×-Power-Spektrum statt nur eines Einzelwerts. Siehe
+      `docs/konzept_visualisierungen.md` Teil 2, Punkt A.4.
+- [ ] **Konzept: Interaktive Visualisierungen (Plotly statt matplotlib)** (Nutzer-Feedback
+      2026-08-16, NICHT umgesetzt, nur als Entscheidungspunkt vermerkt) — Hover-Tooltips,
+      Zeitbereich markieren mit synchronem Reagieren aller Plots (Idee aus dem Teil-2-Feedback)
+      bräuchten einen Wechsel von `st.pyplot()` (statische Bilder) zu einer JS-basierten
+      Chart-Bibliothek (z.B. Plotly via `st.plotly_chart()`) — eine grundsätzliche Tech-Stack-
+      Entscheidung, die VOR größeren neuen Zeitachsen-Visualisierungen wie V5 getroffen werden
+      sollte, siehe `docs/konzept_visualisierungen.md` Teil 2, Punkt B.
 
 ### Benchmark-Datensätze (Recherche 2026-08-15, nur Referenz — Lizenzen vor Nutzung prüfen)
 
