@@ -1733,9 +1733,24 @@ hatten bzw. die bei uns bereits richtig sind.
       bereits bestehende Patienten-Testprotokoll-Konzept oben (Aufgabe 1-3).
 
 **Prio 3 — neuer Tech-Stack, größerer Aufwand:**
-- [ ] **openSMILE eGeMAPSv02** als standardisierter Feature-Block (ergänzt, ersetzt nicht die
-      eigenen Parselmouth-Features) — neue Python-Abhängigkeit, muss gegen die
-      Server-Ressourcen geprüft werden (siehe Chunk-5-Lehre bei WhisperX).
+- [ ] **openSMILE eGeMAPSv02** ❌ **LIZENZ-CHECK NEGATIV (2026-08-17) — NICHT als Code-
+      Abhängigkeit integrieren.** Volltext der `LICENSE`-Datei aus dem offiziellen
+      audEERING-Repo geprüft (nicht nur aus Sekundärquellen übernommen): openSMILE läuft
+      trotz des Namens NICHT unter einer echten Open-Source-Lizenz, sondern unter der
+      proprietären **"audEERING Research License Agreement"**. Wesentlich strenger als GPL-3.0
+      (unser Vergleichsfall Praat/Parselmouth, siehe `ROAD_TO_PUBLIC.md`): kommerzielle Nutzung
+      ist explizit verboten, AUCH wenn kostenlos ("no matter whether free or paid"). Entscheidend:
+      *"any direct (software) or indirect (**models, features extracted with the software**)
+      use of the software, parts of the software, or derivatives in a product […] is not
+      allowed without an additional commercial license"* — selbst NUR die extrahierten Zahlen
+      in unserer App anzuzeigen würde laut Lizenztext als "indirekte Nutzung in einem Produkt"
+      zählen. Unsere App ist öffentlich, funktionsfähig und zur echten Nutzung gedacht — fällt
+      damit nicht unter die erlaubte "rein akademische Forschung ohne Produktentwicklungsbezug"-
+      Ausnahme. **Entscheidung**: keine Integration, stattdessen höchstens als reine
+      Literatur-/Methoden-Referenz verlinken (Eyben et al. 2016 zitieren, Link zum
+      audEERING-Repo), niemals eigenen Code/eigene Abhängigkeit darauf aufbauen. Bei
+      Interesse müsste eine kommerzielle Lizenz direkt bei audEERING (info@audeering.com)
+      angefragt werden — nicht Teil des aktuellen Vorhabens.
 - [x] **Speech-Intelligibility-Score (WER/CER)** ✅ UMGESETZT (2026-08-17, Nutzer-Idee: "das
       Sprachmodell versagt bei Dysarthrie" objektivieren) — neues
       `core/speech_intelligibility.py::compute_intelligibility_score()`, vergleicht die
