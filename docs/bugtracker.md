@@ -118,16 +118,16 @@ Mikrofon-Berechtigungsabfrage.
 **Root Cause:** Browser (Chrome/Firefox/Safari gleichermaßen) verweigern den Zugriff auf
 `getUserMedia` (die zugrunde liegende Web-API für Mikrofon-/Kamerazugriff) grundsätzlich auf
 unverschlüsselten Origins — Ausnahme ist nur `localhost`. Unser Dashboard lief bisher
-ausschließlich über `http://100.67.129.76:8501` (kein HTTPS), eine private Tailscale-IP zählt
+ausschließlich über `http://<TAILSCALE-IP>:8501` (kein HTTPS), eine private Tailscale-IP zählt
 dabei NICHT als "sicherer Kontext". Kein App-Bug im engeren Sinn, sondern eine
 Browser-Sicherheitsrichtlinie, die erst beim echten Mikrofon-Testversuch sichtbar wurde
 (automatisierte Tests/AppTest können das nicht abdecken, da sie keinen echten Browser
 verwenden).
 
-**Fix:** `tailscale serve --bg http://100.67.129.76:8501` — stellt automatisches, gültiges
+**Fix:** `tailscale serve --bg http://<TAILSCALE-IP>:8501` — stellt automatisches, gültiges
 HTTPS innerhalb des eigenen Tailnets bereit (Zertifikat via Tailscale selbst, kein Public-
 Internet-Zugriff, kein eigenes Zertifikats-Handling). Neue App-Adresse:
-`https://homeserver.tailaecdbb.ts.net`. Setup brauchte zwei einmalige Freischaltungen:
+`https://<TAILSCALE-HOSTNAME>`. Setup brauchte zwei einmalige Freischaltungen:
 (1) `sudo tailscale set --operator=maximilian` auf dem Server (NOPASSWD-freundlich, analog
 zum Stromspar-Timer-Setup), (2) "Serve" im Tailscale-Admin-Konto bestätigen
 (login.tailscale.com, nur mit Nutzer-Login möglich, einmalig pro Tailnet).
@@ -499,7 +499,7 @@ sorgfältiges Betiteln beim Aufnehmen entschärft wird, nicht durch Software.
 **Symptom 1:** iPhone zeigte „Disconnected", diverse Timeouts/Connection-Refused-Meldungen.
 **Root Cause 1:** Globale Discovery/Relay sind auf dem Server bewusst deaktiviert (Datenschutz)
 — dadurch funktioniert die Standard-Adresse „dynamic" nicht, das iPhone konnte den Server nicht
-finden. **Fix:** Statische Adresse `tcp://100.67.129.76:22000` im iPhone-Client hinterlegt.
+finden. **Fix:** Statische Adresse `tcp://<TAILSCALE-IP>:22000` im iPhone-Client hinterlegt.
 
 **Symptom 2:** Danach Server-Log `Connection rejected ... error="unknown device"`.
 **Root Cause 2:** iPhone war nur einseitig (auf dem iPhone selbst) als Remote-Device

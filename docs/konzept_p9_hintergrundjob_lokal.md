@@ -108,7 +108,7 @@ auf keinem fremden Rechner laufen:
 
 | Aktuell (Beelink-spezifisch) | Problem für lokale Nutzung |
 |---|---|
-| `100.67.129.76:8501:8501` (Tailscale-IP-Bind) | Diese IP existiert nur auf dem Server — lokal müsste `127.0.0.1:8501:8501` gebunden werden |
+| `<TAILSCALE-IP>:8501:8501` (Tailscale-IP-Bind) | Diese IP existiert nur auf dem Server — lokal müsste `127.0.0.1:8501:8501` gebunden werden |
 | `/home/maximilian/neurovoice-data/raw:/data:ro` (Host-Bind-Mount, fester Pfad) | Auf einem fremden Rechner existiert dieser Pfad nicht |
 | `mem_limit: 7g` | Kalibriert, um NICHT die anderen Dienste auf dem 10GB-Server zu verdrängen (Dienstwerk, EEG-Navigator) — für einen dedizierten lokalen Rechner irrelevant/zu niedrig |
 

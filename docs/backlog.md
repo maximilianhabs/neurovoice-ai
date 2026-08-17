@@ -10,9 +10,9 @@ ist und wie einfach es aus einem einzelnen Task-Typ zuverlässig extrahierbar is
 
 ## ⚠️ Immer beachten beim Testen (Live-URL)
 
-**Für Browser-Tests mit Mikrofon NIEMALS die rohe Tailscale-IP `100.67.129.76:8501` geben.**
+**Für Browser-Tests mit Mikrofon NIEMALS die rohe Tailscale-IP `<TAILSCALE-IP>:8501` geben.**
 Browser verweigern `getUserMedia` (Mikrofonzugriff) auf unverschlüsseltem HTTP/IP-Origins.
-Stattdessen immer: **`https://homeserver.tailaecdbb.ts.net`** (HTTPS via `tailscale serve`,
+Stattdessen immer: **`https://<TAILSCALE-HOSTNAME>`** (HTTPS via `tailscale serve`,
 seit BUG-15/2026-08-15 eingerichtet, dauerhaft aktiv auf dem Server). Die IP-Adresse
 funktioniert weiterhin für alles außer Mikrofon. Siehe auch G1 unten (dieselbe Wurzelursache,
 aber für Fremd-Nutzer ohne unsere Tailscale-Infrastruktur — dort noch ungelöst).
@@ -68,10 +68,10 @@ tatsächlich analysierbar ist. Ist die konsequente UI-Umsetzung der bereits best
       Mikrofon-Modus zeigt Task-Dropdown + korrekten Hinweistext ohne Aufnahme, HTTP 200 nach
       Deploy. **Echter Mikrofon-Test im Browser deckte einen echten Blocker auf** (siehe
       docs/bugtracker.md BUG-15): Browser verweigern Mikrofonzugriff grundsätzlich auf
-      unverschlüsselten HTTP-Origins — App lief nur über `http://100.67.129.76:8501`.
-      **Fix**: `tailscale serve --bg http://100.67.129.76:8501` — automatisches HTTPS
+      unverschlüsselten HTTP-Origins — App lief nur über `http://<TAILSCALE-IP>:8501`.
+      **Fix**: `tailscale serve --bg http://<TAILSCALE-IP>:8501` — automatisches HTTPS
       innerhalb des Tailnets (kein öffentlicher Zugriff, kein eigenes Zertifikats-Handling
-      nötig). Neue Adresse: **`https://homeserver.tailaecdbb.ts.net`**. Setup brauchte
+      nötig). Neue Adresse: **`https://<TAILSCALE-HOSTNAME>`**. Setup brauchte
       einmalig `tailscale set --operator=maximilian` (NOPASSWD-Pattern) + einmalige
       Freischaltung von "Serve" im Tailscale-Admin-Konto (Nutzer-Bestätigung über
       login.tailscale.com). HTTP 200 über die neue HTTPS-Adresse bestätigt. **Echter
@@ -1273,7 +1273,7 @@ Pitch-Kontur/Formant-Tracks/Intensitätskurve + wachsende Feature-Tabelle. Start
 Stufe 1 der Feature-Extraktion (F0/Jitter/Shimmer/HNR) steht — nicht erst nach vollem
 Feature-Umfang.
 
-- [x] Streamlit-Grundgerüst (Datei auswählen → Player → Wellenform) — läuft auf `100.67.129.76:8501`, Code in `dashboard/`
+- [x] Streamlit-Grundgerüst (Datei auswählen → Player → Wellenform) — läuft auf `<TAILSCALE-IP>:8501`, Code in `dashboard/`
 - [x] Spektrogramm-Ansicht (mit F0-Overlay)
 - [x] Intensitätskurve (Lautstärke über Zeit)
 - [x] Feature-Tabelle Stufe 1 (F0 Mittelwert/SD, Jitter, Shimmer, HNR) mit Warnhinweis bei Nicht-Vokal-Tasks
@@ -1750,9 +1750,9 @@ beide bewusst nur als Konzept/Idee festgehalten, noch nicht umzusetzen:
 
 ### Stufe A — Fernzugriff auf die bestehende Beelink-Installation
 - Über Tailscale ist das im Grunde **bereits heute möglich** — jedes Gerät im eigenen Tailnet
-  erreicht `100.67.129.76:8501` von überall, nicht nur im Heimnetz. Kein Zusatzaufwand nötig,
+  erreicht `<TAILSCALE-IP>:8501` von überall, nicht nur im Heimnetz. Kein Zusatzaufwand nötig,
   nur bewusst machen, dass "online von unterwegs" schon funktioniert, solange Tailscale aktiv ist.
-- Alternative: Deployment auf dem **Hetzner-Server** (neuro-vibe.de, `deploy@178.105.255.72`),
+- Alternative: Deployment auf dem **Hetzner-Server** (neuro-vibe.de, `deploy@<ANDERER-SERVER-IP>`),
   wo bereits EEG-Navigator/CWCMS/EDF-Analyzer öffentlich (mit Passwortschutz) laufen.
   ⚠️ **Ressourcen-Check (2026-07-22)**: Hetzner hat nur **3,7GB RAM, 2 Kerne, 6,7GB freien
   Speicherplatz** (82% Disk belegt) — deutlich knapper als der Beelink (10GB RAM, 4 Kerne).

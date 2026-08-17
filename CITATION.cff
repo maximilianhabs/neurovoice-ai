@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "Wenn Sie diese Software verwenden, zitieren Sie sie bitte wie folgt."
+title: "NeuroVoice AI — lokales Sprachbiomarker-System für neurologische Verlaufskontrolle"
+abstract: >-
+  Lokale, datenschutzkonforme Plattform zur Aufzeichnung und Analyse von
+  Sprache/Stimme für die longitudinale Verlaufskontrolle neurologischer
+  Erkrankungen (z. B. Parkinson, Dysarthrie) — kein Diagnose-Ersatz, sondern
+  objektive, über Zeit vergleichbare Sprachbiomarker. Vier geführte Module
+  (Vokalisation, Vorlesen, Spontansprache, Diadochokinese) extrahieren
+  etablierte akustische/prosodische/artikulatorische Parameter (u. a.
+  Jitter/Shimmer/HNR/CPPS, Vokalraum, Sprech-/Pausenzeiten, DDK-Rate) und
+  ordnen jeden Wert nach Evidenzgrad ein ("gut etabliert" / "in der
+  Forschung diskutiert" / "eigene Heuristik" / "deskriptiv"), mit
+  Literaturangaben je Parameter. Transkription läuft lokal über WhisperX,
+  ohne Cloud-API. Bewusst keine Diagnose-KI, kein automatischer Score.
+type: software
+authors:
+  - family-names: Habs
+    given-names: Maximilian
+    # ORCID kann hier ergänzt werden:
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+repository-code: "https://github.com/maximilianhabs/neurovoice-ai"
+version: "0.1.0"
+date-released: "2026-08-17"
+license: GPL-3.0-or-later
+keywords:
+  - speech biomarkers
+  - sprachbiomarker
+  - parkinson
+  - dysarthria
+  - dysarthrie
+  - acoustic analysis
+  - voice analysis
+  - longitudinal monitoring
+  - digital health
+  - clinical research
+  - privacy
+  - local-first

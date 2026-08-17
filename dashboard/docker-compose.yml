@@ -12,8 +12,12 @@ services:
       NEUROVOICE_DATA_DIR: /data
       NEUROVOICE_DERIVED_DIR: /derived
     ports:
-      # Nur ueber Tailscale erreichbar, wie alle anderen Dienste auf diesem Server.
-      - "100.67.129.76:8501:8501/tcp"
+      # Nur ueber Tailscale erreichbar, wie alle anderen Dienste auf diesem Server. Die
+      # tatsaechliche IP steht NICHT hier im Repo, sondern in einer lokalen .env-Datei auf dem
+      # Server (NEUROVOICE_BIND_ADDR=<Tailscale-IP>, siehe .env.example) -- Public-Release-
+      # Bereinigung, siehe ROAD_TO_PUBLIC.md Stufe 1. Lokal (docker-compose.local.yml) bindet
+      # stattdessen fest an 127.0.0.1, siehe dort.
+      - "${NEUROVOICE_BIND_ADDR:-127.0.0.1}:8501:8501/tcp"
     volumes:
       # Read-only: das Dashboard liest nur, es schreibt/loescht keine Rohdaten.
       - /home/maximilian/neurovoice-data/raw:/data:ro

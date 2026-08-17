@@ -17,12 +17,12 @@ nebenbei.
 ### 🔴 Konkrete Funde (2026-08-16, gegen den echten Code/Docs geprüft)
 
 1. **Reale Tailscale-IP + Hostname in `docs/backlog.md` und `docs/bugtracker.md`**
-   (`100.67.129.76`, `homeserver.tailaecdbb.ts.net`) sowie die Hetzner-IP `178.105.255.72` an
+   (`<TAILSCALE-IP>`, `<TAILSCALE-HOSTNAME>`) sowie die Hetzner-IP `<ANDERER-SERVER-IP>` an
    einer Stelle. Beide Dateien sind Teil des Repos und würden mit veröffentlicht. Analog zum
    bereits behobenen Fund beim EDF-Analyzer (dort: Ops-Abschnitt im README) — hier aber tiefer
    in der laufenden Projekt-Doku verteilt (Backlog/Bugtracker sind hier viel umfangreicher
    als bei den Schwesterprojekten, dementsprechend mehr Fundstellen). Auch
-   `dashboard/docker-compose.yml` bindet die Tailscale-IP direkt (`100.67.129.76:8501:8501`).
+   `dashboard/docker-compose.yml` bindet die Tailscale-IP direkt (`<TAILSCALE-IP>:8501:8501`).
    **Fix**: entweder durch Platzhalter ersetzen (Doku-Referenzen) bzw. auf eine Umgebungsvariable
    umstellen (docker-compose.yml), oder bewusst als „kein Sicherheitsrisiko, nur interne
    Referenz“ stehen lassen (wie beim EDF-Analyzer für den alten Ops-Abschnitt entschieden) —
@@ -119,7 +119,28 @@ ist die Lage **nicht identisch**, weil eine harte Abhängigkeit anders lizenzier
   (u.a. `pyannote-audio`, `faster-whisper`, `torch`) — vor Public-Release einmal gezielt prüfen,
   ob eine davon zusätzliche Lizenz-/Nutzungsbedingungen hat (z.B. Modell-Lizenzen bei
   Pyannote-Checkpoints), analog zum EDF-Analyzer-Vorgehen mit `tools/check_licenses.py`.
-- **Entscheidung liegt beim Nutzer** — dies ist eine Einordnung, keine finale Festlegung.
+- **Entscheidung getroffen (2026-08-17): GPL-3.0-or-later.** `LICENSE` liegt jetzt im Repo-Root.
+
+### ✅ Lizenzaudit WhisperX-Unterabhängigkeiten (durchgeführt 2026-08-17, direkt im laufenden
+Server-Container per `pip show`/`importlib.metadata` geprüft, nicht nur aus Dokumentation
+übernommen)
+
+| Paket | Lizenz | Anmerkung |
+|---|---|---|
+| whisperx | BSD-2-Clause | |
+| faster-whisper | MIT | |
+| ctranslate2 | MIT | ASR-Backend |
+| torch / torchaudio | BSD-3-Clause | |
+| pyannote-audio | MIT | **installiert, aber im Code NICHT genutzt** (`core/transcription.py` ruft `whisperx.load_model()`+`whisperx.align()` auf, nie Diarization/`DiarizationPipeline`, kein `hf_token`) — die potenziell restriktiveren, "gated" Pyannote-Modell-Checkpoints (separates Lizenzmodell auf HuggingFace) kommen dadurch praktisch nie zum Einsatz. |
+| numpy, pandas | BSD-3-Clause | |
+| nltk | Apache-2.0 | |
+
+**Ergebnis: keine zusätzliche Lizenzauflage über die Code-Abhängigkeiten hinaus gefunden.** Die
+Forced-Alignment-Modellgewichte (wav2vec2, sprachabhängig, WhisperX-Standardauswahl) werden zur
+Laufzeit von HuggingFace geladen (Docker-Volume `whisperx-models`) — **nie im Git-Repo committet**,
+daher keine Lizenzvererbung ins Repo selbst, nur eine Laufzeit-/Deployment-Überlegung (bereits in
+`SECURITY.md` in Bezug auf Proband:innendaten, nicht Modell-Lizenzen, adressiert — Modell-Lizenz
+ist ein rein operatives Thema für wer selbst deployed, kein Repo-Blocker).
 
 ## Stufe 6 — KI-Nutzung knapp offenlegen
 

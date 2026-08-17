@@ -1,63 +1,62 @@
 # NeuroVoice AI — Lokales Sprachbiomarker-System
 
-Lokale, datenschutzkonforme Plattform zur Aufzeichnung und Analyse von Sprache/Stimme
-für neurologische Verlaufskontrolle (Parkinson, Dysarthrie, etc.). Kein Diagnose-KI-Ersatz,
-sondern objektive Sprachbiomarker über Zeit (longitudinal) — analog zu einer EEG-Verlaufsanalyse,
-nur auf Basis akustischer Sprachmerkmale statt Hirnstromkurven.
+![Status](https://img.shields.io/badge/status-aktiv-brightgreen)
+![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0--or--later-blue)
+
+Lokale, datenschutzkonforme Plattform zur Aufzeichnung und Analyse von Sprache/Stimme für die
+**longitudinale Verlaufskontrolle** neurologischer Erkrankungen (z. B. Parkinson, Dysarthrie).
+**Kein Diagnose-Ersatz** — die App stellt keine Diagnose und gibt keinen Krankheits-Score aus,
+sondern liefert objektive, über Zeit vergleichbare Sprachbiomarker mit Literatur-Einordnung je
+Wert, analog zu einer EEG-Verlaufsanalyse, nur auf Basis akustischer Sprachmerkmale statt
+Hirnstromkurven.
 
 ## Status
 
-🟡 Konzeptphase — Phase 1 (Aufnahme-Pipeline) in Umsetzung, noch kein Nutzer außer Testaufnahmen des Entwicklers.
+🟢 Funktionsfähiges Analysewerkzeug, in aktivem Eigen-Test — noch kein Einsatz mit echten
+Patient:innen außerhalb von Testaufnahmen des Entwicklers. Siehe [ROAD_TO_PUBLIC.md](ROAD_TO_PUBLIC.md)
+für den aktuellen Stand Richtung öffentlicher Nutzung.
 
-## Phasen
+## Was die App tut
 
-- **Phase 1 (aktuell)**: Audioaufnahme-Pipeline. iPhone (Voice Memos, ALAC lossless) → Syncthing → Server
-  (Beelink, Ubuntu) → verlustfreie Konvertierung zu WAV via ffmpeg → verifiziert (Checksumme + ffprobe) →
-  pseudonymisiert abgelegt.
-- **Phase 2+**: Feature-Extraktion (siehe [docs/backlog.md](docs/backlog.md) und
-  [docs/literatur_review.md](docs/literatur_review.md)), beginnend mit den etablierten, einfachen
-  Phonation-Features (F0/Jitter/Shimmer/HNR am gehaltenen Vokal), dann schrittweise Ausbau Richtung
-  Spektral-/Artikulations-/Prosodie-/Zeitstruktur-Features (eGeMAPS-Umfang als Zielhorizont).
-- **Später (nicht Teil des aktuellen Auftrags)**: Whisper-Transkription, ML-Klassifikation,
-  lokales LLM für Berichte.
+Ein geführtes Streamlit-Dashboard mit vier Aufnahme-Modulen, aufsteigend nach Aufwand, jedes
+optional/überspringbar:
 
-## Hardware
+1. **Vokalisation** — gehaltener Vokal /a/ (Pflicht), optional /i//u/ (für den Vokalraum) und
+   maximale Phonationsdauer (MPT).
+2. **Vorlesen** — Standardtext "Nordwind und Sonne", automatisch transkribiert (lokal, siehe
+   unten) für Sprechrate/Pausen-Kennwerte und lexikalische Diversität.
+3. **Spontansprache** — freies Sprechen (~30s) zu einem gestuften Themen-Prompt.
+4. **Diadochokinese (DDK)** — pa/ta/ka einzeln + kombiniert, für Artikulations-Rhythmus.
 
-- Server: Beelink Mini-PC, Intel N150, 12GB RAM, 512GB SSD, Ubuntu Linux
-- Aufnahmegerät: iPhone (Voice Memos, Lossless/ALAC, bis 24bit/48kHz)
-- Perspektivisch: externes USB-Mikro (z.B. Rode NT-USB Mini) für höhere Qualität
+Jede Aufnahme kann mehrfach wiederholt werden (Take-Management); die beste Aufnahme wird manuell
+ausgewählt — es wird **nichts automatisch gemittelt**. Pro Parameter zeigt die App Wert,
+Normbereich, Status und einen Kontext-Kommentar mit Literaturquelle, klar nach Evidenzgrad
+eingeordnet ("gut etabliert" / "in der Forschung diskutiert" / "eigene Heuristik" / "deskriptiv")
+— siehe [docs/literatur_review.md](docs/literatur_review.md). Ein Gesamtbericht fasst alle
+Module einer Sitzung zusammen und lässt sich als Excel/PDF exportieren.
 
-## Aufnahme-Konzept
+Transkription (für Sprechrate/Pausen/Lexik) läuft komplett lokal über
+[WhisperX](https://github.com/m-bain/whisperX) in einem eigenen Hintergrund-Prozess — keine
+Cloud-API, keine Daten verlassen den eigenen Rechner/Server.
 
-- Dauer: **10 Sekunden Snippets (Standard, bewusst kurz gehalten gegen Datenmüll)**
-- Task-Typen: Freisprache, gehaltener Vokal ("aaa"), Lesetext
-  (wichtig: unterschiedliche Feature-Familien sind nur bei bestimmten Task-Typen zuverlässig
-  extrahierbar — siehe Literaturrecherche, Abschnitt "Einschränkungen")
-  - Lesetext "Nordwind und Sonne" passt nicht komplett in 10s — für den Start reicht der erste
-    Satz ("Einst stritten sich Nordwind und Sonne, wer von ihnen beiden wohl der Stärkere wäre...")
-- Sprechabstand konstant halten (~15-20cm), unteres iPhone-Mikro nicht verdecken
+## Datenschutz-Prinzip
 
-## Ordnerstruktur (Daten)
-
-```
-data/raw/<patient_id>/YYYY-MM-DD_HHMM_task-<typ>_take<n>.wav
-```
-
-`patient_id` ist pseudonymisiert (DSGVO-tauglich von Anfang an). Aktuell nur Testaufnahmen des
-Entwicklers selbst, echte Zuordnungstabelle noch nicht relevant/konzipiert.
-
-## Übertragung iPhone → Server
-
-Syncthing (P2P, verschlüsselt, kein Cloud-Zwischenspeicher) — Zielarchitektur von Anfang an,
-kein Zwischenschritt über SMB/eigene Web-App.
+Bewusst **kein Name, keine Initialen** — jede Sitzung wird nur einer pseudonymen ID + Alter
+zugeordnet (`core/subject_store.py`). Eine Re-Identifizierung liegt außerhalb der App bei der
+aufnehmenden Person. **Wichtig**: die App hat aktuell **keinen eigenen Auth-Layer** — siehe
+[SECURITY.md](SECURITY.md) für das Zugriffsmodell, bevor sie in einem Mehrbenutzer-/Netzwerk-
+Kontext betrieben wird.
 
 ## Repo-Struktur
 
-- `docs/` — Konzept, Backlog, Literaturrecherche, [Bug-/Problem-Tracker](docs/bugtracker.md)
-- `raw-inbox/` — Syncthing-Zielordner (unveränderte .m4a-Dateien, noch nicht konvertiert/einsortiert)
-- `data/raw/` — finale Ablage nach Konvertierung + Umbenennung
-- `scripts/` — Konvertierungs-/Verifikations-Skripte
-- `dashboard/` — Streamlit-Analyse-Dashboard (siehe docs/dashboard_konzept.md)
+- `dashboard/` — das eigentliche Streamlit-Analyse-Dashboard (Code, Docker-Setup)
+- `docs/` — Konzept, [Backlog](docs/backlog.md), [Literaturrecherche](docs/literatur_review.md),
+  [Bug-/Problem-Tracker](docs/bugtracker.md)
+- `raw-inbox/`, `data/raw/`, `scripts/` — optionaler Alternativ-Weg zur direkten Browser-
+  Mikrofonaufnahme: Dateien per Syncthing/manuell einspielen und über `scripts/
+  convert_and_verify.sh` verlustfrei nach WAV konvertieren, das Dashboard liest `data/raw/`
+  read-only als zusätzliche Aufnahmequelle
+- `ROAD_TO_PUBLIC.md` — Fahrplan/Checkliste Richtung öffentlicher Nutzung
 
 ## Lokal starten (Mac/Windows, per Docker)
 
@@ -130,9 +129,9 @@ Host-Ordner statt eines Docker-Volumes möchte, kann `NEUROVOICE_HOST_DATA_DIR`/
 ### Verwendete Kernbibliotheken (Lizenzen)
 
 NeuroVoice AI baut auf mehreren externen Open-Source-Projekten auf — hier die wichtigsten,
-mit Lizenz laut deren eigenen Angaben (keine Rechtsberatung, nur Orientierung; die
-Gesamt-Lizenzfrage für dieses Repo selbst ist noch offen, siehe
-[ROAD_TO_PUBLIC.md](ROAD_TO_PUBLIC.md)):
+mit Lizenz laut deren eigenen Angaben (keine Rechtsberatung, nur Orientierung). Wegen der
+GPL-3.0-Kernabhängigkeit Parselmouth steht dieses Repo selbst unter **GPL-3.0-or-later** (siehe
+[LICENSE](LICENSE) und die Herleitung in [ROAD_TO_PUBLIC.md](ROAD_TO_PUBLIC.md)):
 
 | Bibliothek | Zweck im Projekt | Lizenz |
 |---|---|---|
@@ -146,3 +145,12 @@ Gesamt-Lizenzfrage für dieses Repo selbst ist noch offen, siehe
 | [openpyxl](https://openpyxl.readthedocs.io/) | Excel-Report-Export | MIT |
 | [fpdf2](https://py-pdf.github.io/fpdf2/) | PDF-Report-Export | LGPL-3.0-only |
 | [ffmpeg](https://ffmpeg.org/) | Audio-Konvertierung | je nach Debian-Build LGPL/GPL-Mix, siehe Projektseite |
+
+## Lizenz & Mitwirken
+
+- **Lizenz**: [GNU GPL-3.0-or-later](LICENSE).
+- **Sicherheit/Zugriffsmodell**: [SECURITY.md](SECURITY.md) — bitte vor dem eigenen Betrieb lesen.
+- **Mitwirken**: [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Zitieren**: [CITATION.cff](CITATION.cff) (GitHub "Cite this repository").
+- Dieses Projekt entstand mit Unterstützung von KI-Werkzeugen (Claude Code) bei Implementierung
+  und Recherche — Inhalt, Testung und fachliche Bewertung verantwortet der Autor.
