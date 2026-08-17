@@ -74,6 +74,14 @@ docker compose -f docker-compose.local.yml up -d --build
 
 Danach im Browser: **http://localhost:8501**
 
+**Mikrofon funktioniert hier ohne weitere Schritte.** Browser verweigern Mikrofonzugriff
+(`getUserMedia`) zwar grundsätzlich auf unverschlüsselten Adressen — `localhost` ist davon
+aber laut Browser-Spezifikation ausdrücklich ausgenommen. Solange App und Browser auf
+demselben Rechner laufen, ist kein HTTPS/Zertifikat nötig. Erst wer die App von einem
+**anderen Gerät** aus erreichen will (z. B. Tablet im selben WLAN), braucht echtes HTTPS —
+siehe [„Zugriff von einem zweiten Gerät“](#zugriff-von-einem-zweiten-gerät-optional-mikrofon-übers-lan)
+weiter unten.
+
 ### Systemanforderungen im Detail (Disclaimer)
 
 Zwei Container starten gemeinsam: das Dashboard (Web-Oberfläche) und ein getrennter
@@ -125,6 +133,83 @@ aber NICHT automatisch irgendwohin gesichert. Wer direkten Dateizugriff auf eine
 Host-Ordner statt eines Docker-Volumes möchte, kann `NEUROVOICE_HOST_DATA_DIR`/
 `NEUROVOICE_HOST_DERIVED_DIR` per `.env`-Datei setzen (siehe Kommentare in
 `dashboard/docker-compose.local.yml`).
+
+### Zugriff von einem zweiten Gerät (optional, Mikrofon übers LAN)
+
+Reicht `localhost` nicht — z. B. weil die App auf einem Rechner läuft und ein Tablet/zweiter
+Laptop im selben Netzwerk darauf zugreifen soll — braucht der Mikrofonzugriff dort echtes
+HTTPS (siehe Erklärung oben). Dafür gibt es ein optionales
+[Caddy](https://caddyserver.com/)-Reverse-Proxy-Profil, das lokal (ohne Internet, ohne
+Domain) gültige Zertifikate ausstellt:
+
+```bash
+cd dashboard
+docker compose -f docker-compose.local.yml --profile https up -d --build
+```
+
+Das startet zusätzlich zu Dashboard + Worker einen dritten Container, der HTTPS auf Port
+**8443** terminiert. Von **demselben** Rechner reicht danach `https://localhost:8443` — der
+Browser zeigt aber eine Zertifikatswarnung, solange die untenstehende einmalige CA-Installation
+nicht gemacht wurde.
+
+**Einmalig: Caddys lokale Zertifizierungsstelle (CA) installieren**, damit Browser sie als
+vertrauenswürdig einstufen (kein Trick, keine Internetverbindung dafür nötig — Caddy erzeugt
+diese CA rein lokal):
+
+```bash
+docker compose -f docker-compose.local.yml --profile https cp caddy:/data/caddy/pki/authorities/local/root.crt ./neurovoice-local-ca.crt
+```
+
+<details>
+<summary><strong>macOS</strong> — Zertifikat installieren</summary>
+
+```bash
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ./neurovoice-local-ca.crt
+```
+
+Alternativ: Datei doppelklicken → Schlüsselbund „System" → Zertifikat öffnen →
+„Vertrauen" → „Bei Verwendung dieses Zertifikats" → „Immer vertrauen".
+</details>
+
+<details>
+<summary><strong>Windows</strong> — Zertifikat installieren</summary>
+
+Datei doppelklicken → „Zertifikat installieren" → „Lokaler Computer" →
+„Zertifikate in folgendem Speicher speichern" → „Vertrauenswürdige Stammzertifizierungsstellen".
+</details>
+
+<details>
+<summary><strong>Linux</strong> — Zertifikat installieren (Debian/Ubuntu-Beispiel)</summary>
+
+```bash
+sudo cp ./neurovoice-local-ca.crt /usr/local/share/ca-certificates/neurovoice-local-ca.crt
+sudo update-ca-certificates
+```
+
+Firefox/Chrome haben je nach Distribution einen eigenen, vom System getrennten Zertifikatsspeicher
+— dort ggf. zusätzlich über die Browser-Einstellungen importieren.
+</details>
+
+<details>
+<summary><strong>Zweites Gerät im selben Netzwerk</strong> (Tablet/Handy/anderer Laptop)</summary>
+
+1. `neurovoice-local-ca.crt` auf das zweite Gerät übertragen (AirDrop, E-Mail, USB, …).
+2. Dort als vertrauenswürdiges Root-Zertifikat installieren (iOS: Profil installieren
+   **und zusätzlich** unter Einstellungen → Allgemein → Info → Zertifikatsvertrauens­einstellungen
+   aktivieren; Android: Einstellungen → Sicherheit → Verschlüsselung & Anmeldedaten →
+   Zertifikat installieren → „CA-Zertifikat").
+3. Die eigene LAN-IP des Rechners herausfinden, auf dem Docker läuft (z. B. `ipconfig getifaddr en0`
+   auf dem Mac), dann auf dem zweiten Gerät `https://<diese-LAN-IP>:8443` öffnen.
+</details>
+
+**Wichtig**: Port 8443 ist standardmäßig an alle Netzwerk-Interfaces gebunden
+(`NEUROVOICE_HTTPS_BIND=0.0.0.0`, siehe `dashboard/.env.local.example`) — dadurch von jedem
+Gerät im selben LAN erreichbar, aber **nicht** vom Internet, solange am Router keine
+Portweiterleitung eingerichtet wird. Wer das weiter einschränken möchte, kann
+`NEUROVOICE_HTTPS_BIND` in einer eigenen `.env`-Datei auf eine bestimmte eigene IP setzen.
+
+Konzept/Alternativen (mkcert, Tailscale, warum Caddy statt Streamlits eigener SSL-Option) siehe
+[docs/konzept_g1_mikrofon_ohne_tailscale.md](docs/konzept_g1_mikrofon_ohne_tailscale.md).
 
 ### Verwendete Kernbibliotheken (Lizenzen)
 

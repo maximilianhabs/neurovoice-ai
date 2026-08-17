@@ -1,0 +1,20 @@
+# Nur aktiv, wenn das "https"-Compose-Profil gestartet wird (siehe docker-compose.local.yml,
+# G1-Konzept docs/konzept_g1_mikrofon_ohne_tailscale.md). Terminiert HTTPS lokal fuer den
+# Mehrgeraete-Fall (Zugriff von einem ANDEREN Geraet im selben Netzwerk) -- fuer reine
+# Solo-Nutzung auf demselben Rechner ist das NICHT noetig, siehe README ("localhost" ist
+# bereits ein sicherer Kontext ohne HTTPS).
+#
+# "tls internal" nutzt Caddys eigene, lokal erzeugte CA (kein Let's Encrypt, kein Internet-
+# Zugriff noetig) -- siehe README fuer den einmaligen CA-Import ins Betriebssystem.
+:8443 {
+	# "on_demand" noetig, weil dieser Listener KEINEN festen Hostnamen hat (":8443" matcht
+	# jede SNI/jeden Host-Header) -- ohne on_demand weiss Caddy nicht, fuer welchen Host es
+	# ein Zertifikat ausstellen soll (getestet: ohne on_demand schlaegt der TLS-Handshake mit
+	# "internal error" fehl, egal ob per "localhost" oder LAN-IP verbunden wird). Damit
+	# funktioniert derselbe Listener sowohl fuer "https://localhost:8443" als auch fuer
+	# "https://<eigene-LAN-IP>:8443" von einem zweiten Geraet, ohne die IP vorher zu kennen.
+	tls internal {
+		on_demand
+	}
+	reverse_proxy neurovoice-dashboard:8501
+}

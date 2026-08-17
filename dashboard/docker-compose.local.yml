@@ -46,7 +46,34 @@ services:
       # heruntergeladen. Braucht Internetzugang beim allerersten Start (siehe README).
       - neurovoice-local-whisperx-models:/root/.cache
 
+  # Optionaler Reverse Proxy fuer den MEHRGERAETE-Fall (G1-Konzept, docs/
+  # konzept_g1_mikrofon_ohne_tailscale.md) -- nur noetig, wenn die App von einem ANDEREN
+  # Geraet im selben Netzwerk erreicht werden soll (z.B. Tablet), nicht fuer reine
+  # Solo-Nutzung auf demselben Rechner (dort reicht "localhost", siehe README). Startet NUR
+  # mit dem "https"-Profil:
+  #   docker compose -f docker-compose.local.yml --profile https up -d --build
+  # Dann im Browser: https://localhost:8443 (oder von einem anderen Geraet:
+  # https://<eigene-LAN-IP>:8443, siehe README fuer den einmaligen CA-Import).
+  caddy:
+    image: caddy:2-alpine
+    container_name: neurovoice-caddy-local
+    restart: unless-stopped
+    profiles: ["https"]
+    ports:
+      - "${NEUROVOICE_HTTPS_BIND:-0.0.0.0}:8443:8443/tcp"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      # Persistiert Caddys selbst erzeugte lokale CA -- ohne dieses Volume wuerde jeder
+      # Neustart eine NEUE CA erzeugen und der einmalige Import ins Betriebssystem waere
+      # nach jedem "docker compose down" hinfaellig.
+      - neurovoice-local-caddy-data:/data
+      - neurovoice-local-caddy-config:/config
+    depends_on:
+      - neurovoice-dashboard
+
 volumes:
   neurovoice-local-data:
   neurovoice-local-derived:
   neurovoice-local-whisperx-models:
+  neurovoice-local-caddy-data:
+  neurovoice-local-caddy-config:
