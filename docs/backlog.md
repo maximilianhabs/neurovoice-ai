@@ -1133,15 +1133,22 @@ reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück
       `session_id` wird beim nächsten `get_session_id()`-Aufruf gemintet. Nicht-destruktiv:
       bereits gespeicherte Aufnahmen/Analysen bleiben auf dem Server, über "Bekannte:r
       Proband:in fortsetzen" wieder erreichbar.
-- [x] **J6 — Piepton-Zuverlässigkeit gehärtet.** Nutzer-Feedback: Piepton bei Aufnahmestart nur
-      bei Vokalisation zuverlässig, bei Vorlesen/Spontansprache/DDK oft nicht. Code-Vergleich:
-      Aufruf von `recording_start_blip()` ist in allen 5 Views strukturell identisch — kein
-      Page-spezifischer Unterschied gefunden. Als Härtung zusätzlich zum bestehenden
-      `MutationObserver` ein `setInterval`-Poll alle 250ms ergänzt (`core/shared.py`), der
-      dieselbe `scan()`-Funktion aufruft — fängt auch Zustandswechsel ab, die der Observer durch
-      gebündelte Browser-Mutation-Batches verpasst haben könnte. Echte Ursache nicht abschließend
-      bewiesen (Audio nicht headless testbar) — bitte beim nächsten Test auf allen 4 Modul-Seiten
-      erneut prüfen.
+- [x] **J6 — Piepton-Zuverlässigkeit gehärtet** ✅ ECHTER ROOT CAUSE GEFUNDEN + BEHOBEN
+      (2026-08-17). Erster Versuch (2026-08-16, `setInterval`-Poll als Netz zum
+      MutationObserver) hatte das eigentliche Problem NICHT behoben — Nutzer bestätigte beim
+      nächsten Test weiterhin "nur bei Vokalisation ein Ton". Tatsächlicher Fund per
+      DOM-Inspektion im laufenden lokalen Docker-Stack (`docker-compose.local.yml`, Browser-
+      Tool): das `doc.__nvBlipInstalled`-Flag lebt zwar auf dem äußeren, über Seitenwechsel
+      hinweg bestehenden Streamlit-Dokument (Single-Page-App) — der eigentliche
+      `MutationObserver`/`setInterval` läuft aber IM IFRAME SELBST. Wechselt man die Seite,
+      zerstört Streamlit das alte Iframe samt seinem Observer, das neue Iframe sieht aber
+      "schon installiert" und registriert nichts Neues — ab dem ersten Seitenwechsel lauscht
+      nirgendwo mehr ein lebender Observer. Fix (`core/shared.py::recording_start_blip()`):
+      kein dauerhaftes Flag mehr, stattdessen bei jedem Iframe-Lauf alten (ggf. toten)
+      Observer/Timer abmelden und einen frischen installieren. Verifiziert per simuliertem
+      "Stop"-Button (kein echtes Mikrofon nötig): auf Vorlesen UND Spontansprache nach echtem
+      Seitenwechsel feuert der Trigger jetzt nachweisbar (`AudioContext` wird erzeugt bzw.
+      Button wird korrekt markiert). Deployed auf den Server, HTTP 200 verifiziert.
 - [x] **J7 — Glossar aus Excel/PDF-Report entfernt.** Nutzer-Feedback: Report soll nur die
       reinen Werte enthalten, keine Erklärtexte/Literatur. `core/report_export.py`:
       `collect_report_data()` sammelt kein Glossar mehr, Excel-Sheet "Glossar" entfernt,

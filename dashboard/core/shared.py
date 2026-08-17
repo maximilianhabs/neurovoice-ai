@@ -397,16 +397,26 @@ def recording_start_blip() -> None:
     gebaut.
 
     Haertung 2026-08-16 (Nutzer-Feedback "Piepton nur bei Vokalisation zuverlaessig, bei
-    Vorlesen/Spontansprache/DDK oft nicht"): Aufruf-Code in allen 5 Views ist identisch (gleiche
-    Funktion, gleiche Position -- kein Page-spezifischer Unterschied gefunden). Wahrscheinlichste
-    Ursache: der MutationObserver beobachtet zwar `childList`+`attributes`, aber falls Streamlit
-    einen Button bei bestimmten Rerun-Mustern (z.B. within `st.tabs()`/`st.expander()` mit
-    zusaetzlichen dynamischen Kindelementen wie Lauftext-Countdown im Button) komplett ERSETZT
-    statt nur das Attribut zu patchen, koennte ein einzelnes verpasstes Mutation-Batch (Browser
-    fasst mehrere DOM-Aenderungen pro Tick zusammen) den Trigger auslassen. Als Netz zusaetzlich
-    zum Observer jetzt ein `setInterval`-Poll alle 250ms, der dieselbe `scan()`-Funktion aufruft
-    -- unabhaengig von Mutation-Events, erkennt also auch Zustaende, die der Observer verpasst
-    hat, mit maximal 250ms Verzoegerung (nicht hoerbar als "zu spaet").
+    Vorlesen/Spontansprache/DDK oft nicht") -- erster Versuch war ein zusaetzlicher
+    `setInterval`-Poll als Netz zum MutationObserver, hat das eigentliche Problem aber NICHT
+    behoben (siehe Bugfix 2026-08-17 unten fuer den tatsaechlichen Root Cause). Poll bleibt
+    trotzdem als zusaetzliche Absicherung bestehen.
+
+    Bugfix 2026-08-17 (echter Root Cause gefunden, per DOM-Inspektion im laufenden lokalen
+    Docker-Stack verifiziert): das alte `doc.__nvBlipInstalled`-Flag lebt zwar auf dem AEUSSEREN
+    Streamlit-Dokument und ueberlebt Seitenwechsel (Streamlit ist eine Single-Page-App, `doc`
+    bleibt dasselbe Objekt) -- der eigentliche `MutationObserver`/`setInterval` laeuft aber IM
+    IFRAME SELBST. Wechselt man die Seite, zerstoert Streamlit das alte Iframe (samt seinem
+    Observer/Timer), das neue Iframe auf der neuen Seite sieht aber `doc.__nvBlipInstalled ===
+    true` und registriert deshalb GAR NICHTS Neues -- ab dem ersten Seitenwechsel lauscht
+    nirgendwo mehr ein lebender Observer. Das erklaert exakt das gemeldete Symptom ("nur auf
+    der zuerst besuchten Seite zuverlaessig"). Fix: kein dauerhaftes "schon installiert"-Flag
+    mehr -- stattdessen wird bei JEDEM Iframe-Lauf (Seitenwechsel UND normale Streamlit-Reruns
+    auf derselben Seite) ein evtl. vorhandener alter (moeglicherweise bereits toter) Observer/
+    Timer zuerst abgemeldet und danach ein frischer, garantiert an DIESES lebende Iframe
+    gebundener installiert. Harmlos bei Mehrfachaufruf auf derselben Seite (`disconnect()`/
+    `clearInterval()` auf einer bereits toten Referenz ist ein No-Op), loest aber das
+    Seitenwechsel-Problem zuverlaessig.
     """
     st.iframe(
         """
@@ -418,8 +428,8 @@ def recording_start_blip() -> None:
             } catch (e) {
                 return;
             }
-            if (doc.__nvBlipInstalled) { return; }
-            doc.__nvBlipInstalled = true;
+            if (doc.__nvBlipObserver) { doc.__nvBlipObserver.disconnect(); }
+            if (doc.__nvBlipInterval) { clearInterval(doc.__nvBlipInterval); }
 
             function getCtx() {
                 if (!doc.__nvBlipCtx) {
@@ -468,7 +478,8 @@ def recording_start_blip() -> None:
                 childList: true, subtree: true,
                 attributes: true, attributeFilter: ["aria-label"],
             });
-            setInterval(scan, 250);
+            doc.__nvBlipObserver = observer;
+            doc.__nvBlipInterval = setInterval(scan, 250);
         })();
         </script>
         """,
