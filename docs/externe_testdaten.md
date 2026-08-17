@@ -130,6 +130,38 @@ Hintergrundrauschen der ~25 Jahre alten Klinik-Aufnahmen (nicht als Konvertierun
 eingeordnet, Wellenform manuell gegengeprüft: sauberer Signalverlauf, keine Sprünge/Artefakte,
 kein Clipping).
 
+## Fokus Gesunde: Qualitätsbewertung mehrerer TORGO-Kontrollsprecher:innen (2026-08-17)
+
+Auf Nutzer-Wunsch gezielt mehrere gesunde Referenzen getestet und über
+`core/audio.py::recording_quality_features()` (SNR/Clipping/Stille) bewertet, um
+herausragende Aufnahmen zu identifizieren. 6 verschiedene TORGO-Kontrollsprecher:innen (3w/4m,
+je eine zufällige Datei pro Sprecher:in) + die bereits vorhandene FC01-Datei:
+
+| Datei | Dauer | SNR (dB) | Clipping % | Stille % | F0 (Hz) | Einordnung |
+|---|---|---|---|---|---|---|
+| `healthy_MC04_..._0026.wav` | 5,71s | **35,6** | 2,6 | 15,8 | 166,9 | ✅ Beste SNR, aber etwas Clipping — leichter Abzug |
+| `healthy_FC02_..._0048.wav` | 4,30s | **33,0** | 0,6 | 29,4 | 215,1 | ✅ **Beste Gesamtqualität** — hohe SNR, kaum Clipping |
+| `healthy_FC03_..._0008.wav` | 1,42s | 22,1 | 0,0 | 0,0 | 217,0 | Ordentlich, aber sehr kurz |
+| `normal_FC01_0047.wav` | 5,31s | 21,5 | 0,0 | 0,0 | 191,0 | Ordentlich (siehe oben, bereits dokumentiert) |
+| `healthy_MC01_..._0025.wav` | 2,91s | 21,4 | 0,0 | 0,0 | 120,8 | Ordentlich |
+| `healthy_MC03_..._0042.wav` | 1,61s | 20,6 | 0,0 | 0,0 | 100,4 | Ordentlich, kurz |
+| `healthy_MC02_..._0045.wav` | 6,00s | **1,9** | 0,0 | 0,0 | **kein F0 erkennbar** | ❌ **Schlechtes Beispiel** — Maximalamplitude nur 0,07 (statt ~1,0), durchgängig zu leise Aufnahme, kein Konvertierungsfehler (Rohsamples manuell geprüft) |
+
+**Empfehlung für "hervorragende Qualität"-Referenz**: `healthy_FC02_FC02_Session3_0048.wav`
+(weiblich, F0 215Hz plausibel, SNR 33dB, praktisch kein Clipping) und `healthy_MC04_MC04_
+Session1_0026.wav` (männlich, F0 167Hz plausibel, SNR 35,6dB, minimales Clipping) — beide
+liefen ohne Exception durch `phonation_features()`, F0-Werte passen zum jeweils gelabelten
+Geschlecht (Plausibilitäts-Gegenprobe bestanden).
+
+**MC02 bewusst behalten statt gelöscht** — nützliches Negativbeispiel für künftige Tests
+("erkennt unsere App/unser Qualitäts-Check eine zu leise Aufnahme zuverlässig als
+Warnung?", noch nicht gezielt gegen die `quality_tiles()`-UI getestet).
+
+**Weiterhin unverändert offen**: alle 7 getesteten Dateien sind kurze Wörter/Sätze, keine
+gehaltenen Vokale (bestätigt auch hier: 33-47% stimmhaft, mehrere Energie-Einbrüche) — für
+eine echte Vokalisation-Modul-Validierung fehlt weiterhin eine kleine, hochwertige GESUNDE
+Referenz mit gehaltenem Vokal (SVD `healthy.zip` bleibt mit 6GB das Hindernis).
+
 ## Offene Punkte für die nächste Erweiterung
 
 - [ ] Kleine "gesund"-Referenz aus SVD fehlt noch (6GB-Datei nicht teilbar) — Alternativen zu
@@ -145,3 +177,9 @@ kein Clipping).
 - [ ] TORGO-Datensatz enthält laut eigener Dokumentation auch gehaltene Vokal-Aufgaben (nicht
       nur Woerter/Saetze) — noch nicht gezielt danach gesucht, nur eine zufällige Datei
       getestet. Könnte bei gezielter Auswahl doch fürs Vokalisation-Modul nutzbar sein.
+- [ ] `healthy_MC02_..._0045.wav` (zu leise, SNR 1,9dB) noch nicht gezielt gegen die
+      `core/shared.py::quality_tiles()`-UI getestet — prüfen, ob die App diese schlechte
+      Aufnahme zuverlässig als Warnung anzeigt (echter Negativ-Test für den Qualitäts-Check).
+- [ ] `healthy_FC02_..._0048.wav` und `healthy_MC04_..._0026.wav` (beste Qualität, siehe
+      Tabelle oben) noch nicht über die eigentliche App-UI (`views/testdaten.py`) hochgeladen
+      und angeschaut — bisher nur per Skript gegen `core/audio.py` getestet.
