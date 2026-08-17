@@ -1915,3 +1915,84 @@ zu entschlüsseln — deutlich realistischer als offene Spracherkennung bei schw
 - Wird ein "pa-ta-ka"-Task für Diadochokinese ergänzt, oder bleibt es bei den 3 Task-Typen?
 - Wie wird mit der Diskrepanz zwischen automatisierten Metriken und klinisch-perzeptivem Höreindruck
   umgegangen (Konfidenzangaben statt reiner Zahlen)?
+
+## Dysarthrie-Vergleichsstudie (eigene Testläufe, ab 2026-08-17)
+
+Nutzer nimmt mehrere Session-Paare auf (klare Artikulation vs. bewusst simulierte Dysarthrie),
+um zu prüfen, welche Parameter zuverlässig reagieren. **Reiner Sanity-Check mit einer einzigen
+Testperson, kein klinischer Validierungsdatensatz** — dient der Priorisierung, welche
+Parameter bei der Interpretation im Vordergrund stehen sollten, nicht als Beleg für
+diagnostische Aussagekraft.
+
+### Durchlauf 1 (NV-BFU8 klar vs. NV-4A4T simuliert, 2026-08-17) — Ergebnis
+
+**Konsistent im erwarteten Muster verschlechtert** (Fokus-Parameter für die Interpretation):
+- **Sprechrate** (Vorlesen 170→107 WPM, Spontan 155→101 WPM) — stärkstes, klassischstes
+  Dysarthrie-Signal in diesem Testlauf.
+- **Ø Wortdauer** (0,27→0,47s bzw. 0,29→0,48s) — Wörter fast doppelt so lang.
+- **Jitter/Shimmer** (durchgehend höher bei /a/ und /i/, weniger deutlich bei /u/).
+- **HNR** (deutlich niedriger bei /a/: 16,5→9,5 dB).
+- **Voice Breaks** (0→1, neu aufgetreten bei /a/).
+- **DDK-Regelmäßigkeit (CV)** (0,51→0,67, mehr Unregelmäßigkeit).
+
+**Widersprüchlich/nicht ins Muster passend (vermutlich Artefakte, nicht bei der Interpretation
+priorisieren, bis mehr Durchläufe vorliegen):**
+- **DDK-Rate** stieg (1,84→2,47 Hz) statt zu fallen — gegenläufig zur Erwartung.
+- **F0-Tremor-Frequenz** sprang auf physiologisch unplausible 12,14 Hz (vorher 3,81 Hz) —
+  vermutlich Artefakt der neu aufgetretenen Voice Breaks, kein echtes Tremor-Signal.
+- **/u/-Vokal** zeigte insgesamt deutlich weniger Verschlechterung als /a/ und /i/ — noch
+  unklar, ob das an der Simulation lag oder ein generelles Muster ist.
+
+**Nächste Schritte**: weitere Durchläufe geplant (derselbe Nutzer, mehrere Wiederholungen),
+um zu prüfen, ob sich das Muster bestätigt, bevor eine feste "Fokus-Parameter-Liste" für die
+Berichts-Interpretation festgeschrieben wird.
+
+### Offene Grundsatzfrage: über die reine Deskription hinaus? (NICHT umgesetzt, nur vermerkt)
+
+Nutzer-Aussage 2026-08-17: über die rein deskriptive Reportseite hinaus soll es perspektivisch
+**"eine Art der Beurteilung bzw. Interpretation"** geben. **Wichtiger Konflikt mit dem
+bestehenden Projektprinzip** ("keine Diagnose, kein unvalidierter Score" — siehe
+`CONTRIBUTING.md`, `docs/literatur_review.md`, wiederholt in mehreren Backlog-Einträgen
+bekräftigt): jede Form von "Beurteilung" muss sehr genau definiert werden, um diese Grenze
+nicht zu verletzen.
+
+**Mögliche, mit dem Projektprinzip vereinbare Zwischenstufen** (Diskussionsgrundlage, keine
+Entscheidung):
+1. **Muster-Zusammenfassung statt Einzelwert-Liste**: "N von M literaturbasiert etablierten
+   Parametern zeigen eine Auffälligkeit in dieselbe Richtung" — rein deskriptiv-aggregierend,
+   kein neuer Score, nur eine andere Darstellung bereits vorhandener Einzelbefunde.
+2. **Konsistenz-Hinweis**: ob sich mehrere Parameter, die laut Literatur ZUSAMMENHÄNGEN (z.B.
+   die ganze Jitter/Shimmer-Familie), gemeinsam oder nur vereinzelt auffällig zeigen — Hinweis
+   auf Plausibilität, keine Bewertung der Schwere.
+3. **EXPLIZIT NICHT vereinbar**: ein einzelner Gesamt-Score/Wahrscheinlichkeitswert
+   ("X % Dysarthrie-Wahrscheinlichkeit") ohne echte, extern validierte Kohortenstudie
+   dahinter — das wäre unvalidierte Diagnostik, siehe `CONTRIBUTING.md` Projektprinzip.
+
+**Nächster Schritt**: mit dem Nutzer klären, welche der Zwischenstufen (falls überhaupt)
+gewünscht ist, sobald mehrere Vergleichsdurchläufe vorliegen — bewusst noch nicht umgesetzt.
+
+## Geschlechtsschätzung aus der Stimme ✅ UMGESETZT (2026-08-17)
+
+Nutzer-Wunsch: F0-basierte Schätzung, ob eine Aufnahme eher männlich oder weiblich klingt, mit
+Konfidenzangabe in Prozent — sollte laut Nutzer in die Auswertung mit einfließen. Hintergrund-
+recherche bereits vorhanden (siehe `docs/literatur_review.md` "Perspektivische
+Zusatzparameter" — Geschlechtserkennung hat mit 92-99% Genauigkeit in Studien die solideste
+Evidenzlage der dort geprüften Zukunfts-Parameter).
+
+**Umsetzung**: neues `core/voice_demographics.py::estimate_voice_gender()` — Sigmoid-Heuristik
+auf Basis publizierter F0-Referenzbereiche (Männer ~100-146Hz, Frauen ~188-221Hz),
+Entscheidungsgrenze bei 165Hz. Bewusst NUR F0-basiert (v1), nicht formant-kombiniert, da F0 im
+Gegensatz zu Formanten vokal-unabhängig vergleichbar ist (funktioniert gleich für /a/, /i/,
+/u/) — Formant-Kombination für höhere Genauigkeit als mögliche spätere Erweiterung vermerkt.
+Konfidenz gedeckelt bei 50-97% (nie 100% Sicherheit behauptet), F0 außerhalb 60-400Hz gilt als
+"nicht bestimmbar" (Schutz gegen Pitch-Erkennungs-Artefakte). Anzeige über neues
+`core/shared.py::render_voice_gender_estimate()` in `views/vokalisation.py`, bewusst NICHT als
+normale Kachel (kein "Normbereich"-Konzept anwendbar), mit explizitem Grenzen-Hinweis
+(unzuverlässig bei Kinderstimmen, manchen Trans-Stimmen, kurzen/verrauschten Aufnahmen).
+
+Verifiziert per manuellem Formel-Test gegen die echten F0-Werte beider Testsessions (alle
+Werte plausibel, 80-86% männlich bei F0 91-108Hz) + AppTest-Regressionslauf (kein Exception)
+auf dem Server, deployed.
+
+**Noch offen**: Alterserkennung und Nervositäts-Erkennung aus der Stimme bleiben unpriorisiert
+(siehe bestehender Backlog-Eintrag oben, moderate bzw. inkonsistente Evidenzlage).

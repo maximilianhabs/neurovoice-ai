@@ -49,7 +49,9 @@ from core.shared import (
     recording_start_blip,
     render_glossary,
     render_interpretation_table,
+    render_voice_gender_estimate,
 )
+from core.voice_demographics import estimate_voice_gender
 
 require_subject_or_stop()
 recording_start_blip()
@@ -230,6 +232,13 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 for col, tile in zip(cols, row):
                     with col:
                         kpi_tile(tile["label"], tile["value_text"], tile["sub_text"], tile["zone"], tile["description"], tile.get("range_text"))
+
+            # Geschlechtsschaetzung aus der Stimme (Nutzer-Wunsch 2026-08-17,
+            # core/voice_demographics.py) -- F0-basiert, funktioniert fuer jeden der 3
+            # Vokal-Teilaufgaben unabhaengig, da F0 (anders als Formanten) vokal-unabhaengig
+            # vergleichbar ist.
+            gender_estimate = estimate_voice_gender(flat.get("f0_mean_hz"))
+            render_voice_gender_estimate(gender_estimate)
 
             with st.expander("Alle Werte im Detail"):
                 rows = build_rows(flat)

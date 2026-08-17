@@ -677,6 +677,38 @@ def quality_tiles(q: dict) -> None:
         with qc3:
             kpi_tile("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB", snr_label, snr_zone,
                      "90.–10. Perzentil der Fenster-Lautstärke — Heuristik aus der Signalverarbeitung, keine stimmklinische Referenz.")
+
+
+def render_voice_gender_estimate(estimate: dict) -> None:
+    """Zeigt die F0-basierte Geschlechtsschaetzung (Nutzer-Wunsch 2026-08-17,
+    core/voice_demographics.py::estimate_voice_gender()) als eigenen, klar als SCHAETZUNG
+    gekennzeichneten Block -- bewusst NICHT als normale Kachel (kein "Normbereich", keine
+    Zone im ueblichen Sinn), damit es nicht wie ein klinischer Kennwert unter den anderen
+    Kacheln wirkt. Immer mit Konfidenz UND Grenzen-Hinweis, nie als absolute Aussage."""
+    if estimate["label"] == "nicht bestimmbar":
+        return
+
+    with st.container(border=True):
+        st.markdown(
+            '<div style="font-size:13px;font-weight:600;text-transform:uppercase;'
+            'letter-spacing:0.02em;color:var(--dw-text-secondary);margin-bottom:2px;">'
+            "Geschlechtsschätzung aus der Stimme (F0-basiert)</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div style="font-size:1.4rem;font-weight:700;color:var(--dw-text-primary);">'
+            f'{estimate["label"]} <span style="font-size:1rem;font-weight:600;'
+            f'color:var(--dw-text-secondary);">({estimate["confidence_pct"]:.0f} % Konfidenz)</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            f"Basiert auf F0-Mittelwert {estimate['f0_hz']:.0f} Hz gegen literaturtypische "
+            "Bereiche (Männer ~100–146 Hz, Frauen ~188–221 Hz). Eigene Heuristik auf Basis "
+            "publizierter Referenzbereiche, kein trainiertes/validiertes Modell — funktioniert "
+            "z. B. bei Kinderstimmen, manchen Trans-Stimmen oder kurzen/verrauschten Aufnahmen "
+            "unzuverlässig. Rein deskriptiv, keine Diagnose."
+        )
         st.caption(
             "Rein informativ, kein automatisches Aussortieren. Grenzwerte sind pragmatische "
             "Faustregeln, keine klinische Norm."
