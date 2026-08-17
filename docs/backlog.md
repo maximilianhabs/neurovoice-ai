@@ -2075,3 +2075,15 @@ entschieden ist, ob/wie das umgesetzt wird.
 
 Siehe auch `docs/bugtracker.md` RANDNOTIZ-14 zum ein drittes Mal beobachteten (aber wohl
 kosmetischen) Export-Button-Verdacht trotz BUG-25-Fix.
+
+### Externe Referenz-Testdaten (Robustheits-/Plausibilitätstest, 2026-08-17)
+
+Laufend gepflegte Sammlung + Testergebnisse jetzt in eigenem Dokument:
+[docs/externe_testdaten.md](externe_testdaten.md) — nicht hier im Backlog, da diese Sammlung
+über die Zeit wächst und eine eigene Struktur (Zugriffswege, Datei-Tabelle, Testergebnisse,
+offene Punkte) braucht. Kurzfassung des bisher wichtigsten Befunds: zwei externe SVD-Vokal-
+Aufnahmen (Parkinson, ALS, extern als "pathologisch" gelabelt) zeigten BESSERE Jitter/Shimmer/
+HNR-Werte als unsere eigenen "gesunden" Baseline-Sessions — bestätigt unabhängig unseren
+eigenen Befund aus der simulierten Dysarthrie-Vergleichsstudie oben: isolierte Vokal-
+Perturbationsmaße sind ein schwächerer Marker als Sprechrate/Voice-Breaks/Wortdauer bei
+fließender Sprache.
