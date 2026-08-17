@@ -62,12 +62,28 @@ def generate_subject_id(prefix: str = "NV") -> str:
     raise RuntimeError("Konnte keine kollisionsfreie Proband-ID erzeugen (sehr unwahrscheinlich).")
 
 
-def bind_subject_to_session(session_id: str, subject_id: str, age: int) -> None:
+def bind_subject_to_session(session_id: str, subject_id: str, age: int, *, is_rename: bool = False) -> None:
     """Ordnet die aktuelle Sitzung einer Proband:innen-ID zu: speichert subject_id/Alter in
     st.session_state (fuer die laufende Sitzung + Anzeige auf jeder Seite, siehe
     core/shared.py::render_subject_badge()), persistiert sofort die Sitzungsdatei
     (core/session_store.py -- auch wenn noch keine Aufnahme existiert) UND aktualisiert den
-    Proband:innen-Index (derived/_subjects/<id>.json)."""
+    Proband:innen-Index (derived/_subjects/<id>.json).
+
+    Sicherheitsnetz gegen Datenvermischung zwischen Proband:innen (Nutzer-Fund 2026-08-17,
+    Verdacht auf denselben Fehlerklasse wie fruehere "Report zeigt alte Daten"-Probleme): wird
+    hier auf eine ANDERE subject_id gebunden als bisher in st.session_state stand,
+    wird `module_results` (die Aufnahme-/Analyse-Ergebnisse der laufenden Sitzung) geloescht --
+    sonst koennten Aufnahmen der VORHERIGEN Proband:in faelschlich unter der NEUEN ID im
+    Gesamtbericht/Export auftauchen. Der bisherige "Neue:r Proband:in"-Verwerfen-Dialog
+    (views/start.py) macht das bereits explizit, aber NICHT jeder Weg zu einer neuen ID lief
+    darueber (z.B. direkt ueber die Start-Tabs) -- dieses Sicherheitsnetz deckt ALLE Wege ab.
+    `is_rename=True` (views/start.py Bearbeiten-Flow, core/subject_store.py::rename_subject())
+    schaltet das bewusst aus, da dort dieselbe Person nur umbenannt wird, keine neue Zuordnung
+    stattfindet -- deren Ergebnisse sollen erhalten bleiben."""
+    previous_subject_id = st.session_state.get("subject_id")
+    if not is_rename and previous_subject_id is not None and previous_subject_id != subject_id:
+        st.session_state.pop("module_results", None)
+
     st.session_state["subject_id"] = subject_id
     st.session_state["subject_age"] = age
     save_session_snapshot(session_id)

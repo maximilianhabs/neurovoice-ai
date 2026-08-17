@@ -61,7 +61,7 @@ elif st.session_state.get("subject_id") and editing:
         except ValueError as exc:
             st.error(str(exc))
         else:
-            bind_subject_to_session(get_session_id(), saved_id, int(new_age))
+            bind_subject_to_session(get_session_id(), saved_id, int(new_age), is_rename=True)
             st.session_state.pop("_subject_edit_mode", None)
             st.success(f"Gespeichert: **{saved_id}**, Alter {int(new_age)}.")
             st.rerun()

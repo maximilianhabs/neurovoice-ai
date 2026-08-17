@@ -610,6 +610,91 @@ fehlenden Einbindung im Vorlesen-Modul.
 Server bestätigen, dass der Ton jetzt bei jeder Aufnahme (nicht nur der ersten) und in jedem
 Modul zuverlässig kommt.
 
+**Nachtrag 2026-08-17: Diese Diagnose war UNVOLLSTÄNDIG.** Nutzer bestätigte beim nächsten
+Test: weiterhin nur bei Vokalisation ein Ton. Der tatsächliche Root Cause + Fix steht in
+BUG-24.
+
+---
+
+## BUG-24 — Piepton wirklich nur bei der zuerst besuchten Seite: Iframe-Observer stirbt beim Seitenwechsel ✅ BEHOBEN
+
+**Symptom:** Nachtrag zu BUG-22 — auch nach dem dortigen Fix (WeakSet-Bug + AudioContext-
+Wiederverwendung) UND einer ersten Härtung (2026-08-16, zusätzlicher `setInterval`-Poll als
+Netz zum `MutationObserver`) blieb der Piepton bei Vorlesen/Spontansprache/DDK stumm,
+funktionierte laut Nutzer weiterhin nur zuverlässig auf der zuerst besuchten Seite
+(Vokalisation).
+
+**Root Cause (gefunden 2026-08-17 per Live-DOM-Inspektion im lokalen Docker-Stack, Browser-
+Tool, `document.__nvBlipObserver`-Zustand nach echtem Seitenwechsel geprüft):**
+`recording_start_blip()` rendert pro Seite ein eigenes `<iframe>` mit dem Beep-Skript. Der
+bisherige "schon installiert"-Schutz (`doc.__nvBlipInstalled`) lag auf dem ÄUSSEREN,
+über Seitenwechsel hinweg bestehenden Streamlit-Dokument (Streamlit ist eine Single-Page-App,
+`window.parent.document` bleibt dasselbe Objekt) — der eigentliche `MutationObserver`/
+`setInterval` lief aber IM IFRAME SELBST. Beim Seitenwechsel zerstört Streamlit das alte
+Iframe (das der zuerst besuchten Seite) samt seinem Observer/Timer. Das neue Iframe auf der
+neuen Seite sieht `doc.__nvBlipInstalled === true` und registriert deshalb GAR NICHTS Neues.
+Ab dem ersten Seitenwechsel lauschte nirgendwo mehr ein lebender Observer — exakt das
+gemeldete Muster.
+
+**Fix (`core/shared.py::recording_start_blip()`):** kein dauerhaftes "schon installiert"-Flag
+mehr. Stattdessen wird bei JEDEM Iframe-Lauf (Seitenwechsel UND normale Streamlit-Reruns auf
+derselben Seite) ein evtl. vorhandener alter (möglicherweise bereits toter) Observer/Timer
+zuerst abgemeldet (`disconnect()`/`clearInterval()`, No-Op falls schon tot) und danach ein
+frischer, garantiert an DIESES lebende Iframe gebundener installiert.
+
+**Verifiziert OHNE echtes Mikrofon**, per DOM-Simulation im lokalen Docker-Stack: nach echtem
+Seitenwechsel (Vokalisation → Vorlesen → Spontansprache) ein `<button aria-label="Stop
+recording">` per JS injiziert und geprüft, dass `playBlip()` tatsächlich feuert
+(`document.__nvBlipCtx`-AudioContext wird erzeugt bzw. läuft, Button wird korrekt als
+"armed" markiert) — auf beiden Seiten nach echter Navigation erfolgreich. **Vom Nutzer im
+echten Browser auf allen 4 Modulen gegengetestet und bestätigt (2026-08-17): Piepton kommt
+jetzt überall.**
+
+---
+
+## BUG-25 — Proband:innen-Wechsel konnte alte Aufnahme-Ergebnisse unter neuer ID zeigen ✅ BEHOBEN
+
+**Symptom (Nutzer-Verdacht 2026-08-17):** Nach dem Anlegen einer zweiten, neuen Proband:in
+(für einen Vorher/Nachher-Vergleich zweier Aufnahme-Sessions) war der "Excel-Report
+erstellen"-Button auf dem Gesamtbericht schon verfügbar, obwohl für die neue ID noch nichts
+aufgenommen worden war — Verdacht auf dieselbe Fehlerklasse wie frühere "Report zeigt alte
+Daten"-Probleme.
+
+**Root Cause:** `core/subject_store.py::bind_subject_to_session()` speicherte `subject_id`/
+`subject_age` in `st.session_state`, ließ `st.session_state["module_results"]` (die
+eigentlichen Aufnahme-/Analyse-Ergebnisse) dabei aber UNANGETASTET. `views/gesamtbericht.py`
+zeigt den Export-Button, sobald `module_results` nicht leer ist — unabhängig davon, ob diese
+Ergebnisse tatsächlich zur AKTUELL gebundenen `subject_id` gehören. Der neue "Neue:r
+Proband:in"-Verwerfen-Dialog (P J5, 2026-08-16) löscht `module_results` zwar explizit, aber
+NICHT jeder Weg zu einer neuen ID lief über diesen Dialog (z.B. direkt über die Start-Tabs
+"Neue:r Proband:in"/"Bekannte:r Proband:in fortsetzen") — auf diesen Wegen blieben alte
+Ergebnisse potenziell bestehen.
+
+**Gegenprobe am konkreten Fall:** der tatsächlich exportierte PDF-Report zur neuen ID zeigte
+plausible, klar UNTERSCHIEDLICHE Werte (nicht dupliziert) — die Daten waren also zum
+Export-Zeitpunkt korrekt. Das gemeldete Symptom war vermutlich ein kurzzeitig sichtbarer,
+potenziell riskanter Zwischenzustand, kein bereits eingetretener Datenfehler — trotzdem ein
+echter, im Code nachvollziehbarer Fehlerpfad, der bei anderer Klickreihenfolge zu echter
+Datenvermischung hätte führen können.
+
+**Fix:** `bind_subject_to_session()` bekommt ein Sicherheitsnetz: wird auf eine ANDERE
+`subject_id` gebunden als zuvor in `st.session_state` stand, wird `module_results` gelöscht —
+unabhängig davon, über welchen der 4 Aufrufwege (`views/start.py` Neu-Tab, Bekannt-Tab,
+Bearbeiten-Speichern, `views/testdaten.py`) das passiert. Neuer Parameter `is_rename: bool =
+False` schaltet das für den Bearbeiten/Umbenennen-Fall (`core/subject_store.py::
+rename_subject()`) gezielt aus, da dort dieselbe Person nur umbenannt wird und ihre Ergebnisse
+erhalten bleiben sollen.
+
+**Verifiziert** per gezieltem `AppTest`-Logiktest (3 Fälle: ID-Wechsel löscht
+`module_results`, Rename behält sie, erneutes Binden derselben ID behält sie ebenfalls) —
+alle drei bestanden. Deployed.
+
+**Zum ebenfalls gemeldeten Zeitstempel-Verdacht**: die Aufnahme-Zeitstempel beider Sessions
+(`09:04:58–09:08:01` bzw. `09:10:21–09:13:23`) waren beim Nachprüfen tatsächlich lückenlos
+chronologisch — kein Fehler gefunden. Falls beim nächsten Mal wieder ein falscher Zeitstempel
+auffällt, bitte den genauen Wert + erwarteten Wert nennen, damit gezielt nachvollzogen werden
+kann.
+
 ---
 
 ## BUG-23 — Docker-Image zog trotz "CPU-only Torch"-Fix noch die komplette NVIDIA/CUDA-Kette mit ✅ BEHOBEN
