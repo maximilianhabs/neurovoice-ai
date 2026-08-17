@@ -1,6 +1,7 @@
 # Road to Public — NeuroVoice AI
 
-**Status: reines Konzept, NICHT umgesetzt.** Repo bleibt privat. Diese Datei beschreibt, was
+**Status (2026-08-17): Phase 1+2 umgesetzt, bereit für die Umschaltung auf öffentlich** (liegt
+beim Nutzer, siehe „Nächster konkreter Schritt“ unten). Diese Datei beschreibt, was
 zu tun ist, bevor `neurovoice-ai` von privat auf öffentlich geschaltet wird — analog zum bereits
 abgeschlossenen Fahrplan bei [`anonymisator`](https://github.com/maximilianhabs/anonymisator)
 und [`edf-analyzer`](https://github.com/maximilianhabs) (siehe dortige `ROAD_TO_PUBLIC.md`/
@@ -166,37 +167,33 @@ falls JETZT veröffentlicht:
   Einordnung + Quellenangaben je Parameter) ist bereits ungewöhnlich gründlich für ein
   Solo-Projekt in diesem Stadium.
 
-## Fehlende Standard-Artefakte (alle 3 fehlen komplett, Stand 2026-08-16)
+## Fehlende Standard-Artefakte — ✅ ALLE 4 UMGESETZT (2026-08-17)
 
-- [ ] `LICENSE` — Entscheidung siehe Stufe 5 (GPL-3.0 vs. Apache-2.0+Parselmouth-Isolierung).
-- [ ] `CITATION.cff` — noch nie angelegt (anders als bei den Schwesterprojekten, die es schon
-      vor ihrer Public-Phase hatten).
-- [ ] `SECURITY.md` — inkl. explizitem Hinweis „kein Auth-Layer, Tailscale ist die einzige
-      Zugriffskontrolle“ (siehe Stufe 1, Punkt 2) und „keine Mehrbenutzer-Trennung“.
-- [ ] `CONTRIBUTING.md` — optional, aber beim Anonymisator als hilfreich empfunden (klare
-      Vor-PR-Checkliste, „nie echte Proband:innen-Daten einreichen“-Regel wäre hier das
-      NeuroVoice-AI-Äquivalent zur Anonymisator-Regel „nie echte Dokumente einreichen“).
+- [x] `LICENSE` — GPL-3.0-or-later (Nutzer-Entscheidung 2026-08-17, siehe Stufe 5).
+- [x] `CITATION.cff` — angelegt, Schema analog zu den Schwesterprojekten.
+- [x] `SECURITY.md` — inkl. explizitem Hinweis „kein Auth-Layer, Tailscale ist die einzige
+      Zugriffskontrolle“ und „keine Mehrbenutzer-Trennung“.
+- [x] `CONTRIBUTING.md` — inkl. „nie echte Proband:innen-Daten/Aufnahmen einreichen“-Regel und
+      Hinweis auf das Projektprinzip „keine Diagnose, kein unvalidierter Score“.
 
-## Vorgeschlagener Phasenplan (analog zu den Schwesterprojekten, noch NICHT begonnen)
+## Phasenplan — Status 2026-08-17
 
-- **Phase 1 (klein, risikoarm)**: `SECURITY.md` (Auth-Hinweis), `CITATION.cff`,
-  `CONTRIBUTING.md` mit Proband:innen-Daten-Regel — keine Code-Änderung nötig.
-- **Phase 2 (zwingend vor Public)**: README-Neuschrieb (Stufe 2), Lizenz-Entscheidung mit
-  Nutzer treffen + `LICENSE` anlegen, reale IPs/Hostnamen in `docs/backlog.md`/
-  `docs/bugtracker.md`/`docker-compose.yml` bereinigen ODER bewusst als unkritisch akzeptieren
-  (Nutzer-Entscheidung wie bei den Schwesterprojekten), Lizenzaudit der WhisperX-Unter-
-  abhängigkeiten.
-- **Phase 3 (größer, eigene Rücksprache nötig)**: Screenshots/kurzes Demo-GIF fürs README
-  (analog Anonymisator-Vorbild), evtl. eine bewusst synthetische/anonymisierte Beispiel-Session
-  zum Ausprobieren ohne eigene Aufnahme (Idee, noch nicht konkretisiert — vergleichbar mit dem
-  EDF-Anonymizer-Begleitprojekt-Gedanken, hier aber nicht zwingend ein eigenes Repo nötig).
-- **Phase 4**: Repo bleibt privat, bis Phase 1+2 abgeschlossen sind. Phase 3 ist wünschenswert,
-  aber keine harte Voraussetzung (wie beim Anonymisator, wo der Goldkorpus am Ende bewusst
-  kleiner belassen wurde als ursprünglich geplant — reine Nutzer-Abwägung, kein Muss).
+- [x] **Phase 1** (klein, risikoarm): `SECURITY.md`/`CITATION.cff`/`CONTRIBUTING.md`.
+- [x] **Phase 2** (zwingend vor Public): README-Neuschrieb (Stufe 2, aktueller 4-Modul-Stand
+      statt Tag-1-Konzept), `LICENSE` (GPL-3.0), reale IPs/Hostnamen in `docs/backlog.md`/
+      `docs/bugtracker.md`/`docker-compose.yml` bereinigt (Nutzer-Entscheidung: bereinigen statt
+      stehen lassen — `docker-compose.yml` liest die echte Adresse jetzt aus einer lokalen,
+      nicht committeten `.env`), Lizenzaudit der WhisperX-Unterabhängigkeiten (keine
+      zusätzlichen Auflagen gefunden, siehe Stufe 5).
+- [ ] **Phase 3** (größer, eigene Rücksprache nötig, KEINE harte Voraussetzung): Screenshots/
+      kurzes Demo-GIF fürs README, evtl. eine synthetische Beispiel-Session zum Ausprobieren
+      ohne eigene Aufnahme — noch nicht konkretisiert.
+- **Phase 4**: Repo kann jetzt umgeschaltet werden (Phase 1+2 abgeschlossen) — den Schalter auf
+  public legt der Nutzer selbst um, siehe unten.
 
-## Nächster konkreter Schritt (bei Freigabe)
+## Nächster konkreter Schritt
 
-Noch NICHTS umgesetzt. Vorschlag für den ersten Schritt, falls freigegeben: Phase 1
-(SECURITY.md/CITATION.cff/CONTRIBUTING.md) — unabhängig vom Public-Zeitplan sinnvoll, weil
-risikofrei und schnell erledigt, wie bei den Schwesterprojekten als „macht man ohnehin“
-eingestuft.
+Phase 1+2 sind vollständig umgesetzt, committed und gepusht. **Das Repo kann jetzt von privat
+auf öffentlich umgeschaltet werden** — dieser letzte Schritt liegt bewusst beim Nutzer selbst
+(GitHub → Repo → Settings → Danger Zone → Change visibility), analog zum Vorgehen bei den
+Schwesterprojekten. Phase 3 (Screenshots/Demo) ist optional und kann jederzeit danach folgen.
