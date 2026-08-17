@@ -38,7 +38,7 @@ from core.audio import (
 from core.interpretation import PARAMETER_INFO, build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take, selected_take
 from core.subject_store import require_subject_or_stop
-from core.plots import intensity_figure, perturbation_bundle_figure, spectrogram_figure, vowel_space_figure, waveform_figure
+from core.plots import intensity_figure, perturbation_bundle_figure, spectrogram_figure, voice_gender_estimate_figure, vowel_space_figure, waveform_figure
 from core.reference_ranges import good_zone_bounds
 from core.shared import (
     SPECTROGRAM_LEGEND_CAPTION,
@@ -239,6 +239,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
             # vergleichbar ist.
             gender_estimate = estimate_voice_gender(flat.get("f0_mean_hz"))
             render_voice_gender_estimate(gender_estimate)
+            st.pyplot(voice_gender_estimate_figure(gender_estimate), width="stretch")
 
             with st.expander("Alle Werte im Detail"):
                 rows = build_rows(flat)

@@ -29,14 +29,14 @@ import math
 # Mittelpunkten ((123+204.5)/2 ≈ 163.75, gerundet 165Hz). Skalierung (Sigmoid-Steilheit) = halber
 # Abstand der beiden Bereichs-Mittelpunkte -- je weiter ein F0-Wert von der Grenze entfernt liegt,
 # desto sicherer die Einordnung, symmetrisch in beide Richtungen.
-_BOUNDARY_HZ = 165.0
+BOUNDARY_HZ = 165.0
 _SCALE_HZ = 41.0
 
 # F0-Werte ausserhalb des menschlichen Sprechstimme-Bereichs sind eher ein Mess-/Extraktions-
 # Artefakt (z.B. Oktavfehler der Pitch-Erkennung) als eine echte Stimme -- dann lieber "nicht
 # bestimmbar" statt einer falsch selbstsicheren Aussage.
-_PLAUSIBLE_MIN_HZ = 60.0
-_PLAUSIBLE_MAX_HZ = 400.0
+PLAUSIBLE_MIN_HZ = 60.0
+PLAUSIBLE_MAX_HZ = 400.0
 
 # Nie 100% Sicherheit behaupten -- auch bei extremen F0-Werten bleibt es eine Schaetzung.
 _MAX_CONFIDENCE_PCT = 97.0
@@ -50,12 +50,12 @@ def estimate_voice_gender(f0_mean_hz: float | None) -> dict:
     Gibt ein dict mit `label` ("männlich"/"weiblich"/"nicht bestimmbar"),
     `confidence_pct` (float oder None) und `f0_hz` zurueck. `label="nicht bestimmbar"` bei
     fehlendem oder unplausiblem F0 (ausserhalb 60-400Hz)."""
-    if f0_mean_hz is None or not (_PLAUSIBLE_MIN_HZ <= f0_mean_hz <= _PLAUSIBLE_MAX_HZ):
+    if f0_mean_hz is None or not (PLAUSIBLE_MIN_HZ <= f0_mean_hz <= PLAUSIBLE_MAX_HZ):
         return {"label": "nicht bestimmbar", "confidence_pct": None, "f0_hz": f0_mean_hz}
 
     # Sigmoid auf den Abstand zur Entscheidungsgrenze -- p_male=0.5 GENAU an der Grenze,
     # naehert sich 1.0 (klar maennlich) bzw. 0.0 (klar weiblich) mit wachsendem Abstand.
-    distance = _BOUNDARY_HZ - f0_mean_hz
+    distance = BOUNDARY_HZ - f0_mean_hz
     p_male = 1.0 / (1.0 + math.exp(-distance / _SCALE_HZ))
 
     if p_male >= 0.5:

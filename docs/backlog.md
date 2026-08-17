@@ -2011,6 +2011,31 @@ auf dem Server, deployed.
 **Noch offen**: Alterserkennung und Nervositäts-Erkennung aus der Stimme bleiben unpriorisiert
 (siehe bestehender Backlog-Eintrag oben, moderate bzw. inkonsistente Evidenzlage).
 
+### Visualisierung ergänzt ✅ UMGESETZT (2026-08-17)
+
+Nutzer-Wunsch: die Geschlechtsschätzung soll nicht nur als Text/Prozentzahl erscheinen,
+sondern auch visuell — und soll ab jetzt fester Bestandteil der App bleiben (nicht nur
+Experiment). Neues `core/plots.py::voice_gender_estimate_figure()` — horizontaler
+"Spektrum"-Balken: zeigt die beiden literaturbasierten F0-Referenzbereiche (männlich/weiblich)
+als farbige Bänder, die Entscheidungsgrenze (165Hz, gestrichelt) UND den tatsächlich
+gemessenen F0-Wert als Marker (Dreieck+Punkt) auf einen Blick — macht sichtbar, WIE WEIT der
+Wert von der Grenze entfernt liegt (= Grundlage der Konfidenzangabe), statt nur das
+Endergebnis als nackte Zahl zu zeigen. Bei "nicht bestimmbar" (F0 außerhalb des plausiblen
+Bereichs) zeigt die Funktion einen neutralen Hinweistext statt der Skala.
+
+Anzeige-Skala bewusst enger gezogen (60-260Hz Standardfall, dehnt sich nur bei extremen
+Messwerten mit aus) als der volle Plausibilitätsbereich (60-400Hz) — sonst wirken die
+Referenzbänder auf einen schmalen Streifen gequetscht. `BOUNDARY_HZ`/`PLAUSIBLE_MIN_HZ`/
+`PLAUSIBLE_MAX_HZ` in `core/voice_demographics.py` von privaten (`_`-Prefix) auf öffentliche
+Konstanten umbenannt, da jetzt modulübergreifend gebraucht (keine doppelten Zahlen an zwei
+Stellen pflegen).
+
+Verifiziert: manuelle Bild-Kontrolle für 4 F0-Fälle (klar männlich/an der Grenze/klar
+weiblich/nicht bestimmbar) — dabei zwei Layout-Probleme gefunden und behoben (Werte am
+Rand überlappten mit den Achsen-Ticks, "Grenze"-Beschriftung überlappte mit der Legende).
+Voller AppTest-Durchlauf mit echter synthetischer Aufnahme zeigt 4 Bilder (Wellenform/
+Lautstärke/Spektrogramm + neuer Gender-Plot), kein Exception. Deployed, HTTP 200 verifiziert.
+
 ### Reproduzierbarkeitstest: 2. Normalbefund (NV-Z8YW vs. NV-BFU8, 2026-08-17)
 
 Zweiter "Normalbefund" (anderer Lesetext) zum Test, wie stabil die Werte bei derselben Person

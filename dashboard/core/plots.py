@@ -395,3 +395,67 @@ def radar_figure(labels: list[str], values: list[float]):
 
     fig.tight_layout()
     return fig
+
+
+def voice_gender_estimate_figure(estimate: dict):
+    """Visualisierung der F0-basierten Geschlechtsschaetzung (Nutzer-Wunsch 2026-08-17,
+    core/voice_demographics.py::estimate_voice_gender()) -- horizontaler "Spektrum"-Balken
+    statt nur Text/Prozentzahl: zeigt die beiden literaturbasierten F0-Referenzbereiche
+    (Maenner ~100-146Hz, Frauen ~188-221Hz, siehe core/voice_demographics.py fuer die Quelle),
+    die Entscheidungsgrenze (165Hz) UND den tatsaechlich gemessenen F0-Wert als Marker auf
+    einen Blick. Macht sichtbar, wie WEIT der Wert von der Grenze entfernt liegt (= Grundlage
+    der Konfidenzangabe), statt nur das Endergebnis als Zahl zu zeigen.
+
+    `estimate`: Rueckgabe von estimate_voice_gender() -- bei label="nicht bestimmbar" wird ein
+    neutraler Hinweis statt der Skala gezeigt (kein F0-Wert zum Einzeichnen vorhanden)."""
+    from core.voice_demographics import BOUNDARY_HZ
+
+    fig, ax = plt.subplots(figsize=(7, 2.1))
+
+    if estimate["label"] == "nicht bestimmbar" or estimate["f0_hz"] is None:
+        ax.text(0.5, 0.5, "F0 außerhalb des plausiblen Bereichs — keine Schätzung möglich",
+                ha="center", va="center", color=TEXT_SECONDARY, transform=ax.transAxes)
+        ax.axis("off")
+        fig.tight_layout()
+        return fig
+
+    # Literaturbasierte Referenzbereiche, siehe core/voice_demographics.py-Docstring fuer die
+    # Quelle -- hier bewusst dieselben Zahlen wie dort, nicht neu erfunden.
+    male_range = (100, 146)
+    female_range = (188, 221)
+    f0 = estimate["f0_hz"]
+
+    # Feste, eng gezogene Anzeige-Skala statt des vollen Plausibilitaets-Bereichs
+    # (60-400Hz core/voice_demographics.py) -- deckt beide Referenzbereiche + realistische
+    # Messwerte komfortabel ab, ohne die Baender auf einen schmalen Streifen zu quetschen. Bei
+    # sehr extremen (aber noch plausiblen) F0-Werten dehnt sie sich mit aus, statt den Marker
+    # abzuschneiden.
+    lo = min(60, f0 - 20)
+    hi = max(260, f0 + 20)
+
+    ax.axhspan(0, 1, xmin=(male_range[0] - lo) / (hi - lo), xmax=(male_range[1] - lo) / (hi - lo),
+               color=ACCENT, alpha=0.25, label="typisch männlich (Literatur)")
+    ax.axhspan(0, 1, xmin=(female_range[0] - lo) / (hi - lo), xmax=(female_range[1] - lo) / (hi - lo),
+               color=INFO, alpha=0.25, label="typisch weiblich (Literatur)")
+
+    ax.axvline(BOUNDARY_HZ, color=TEXT_SECONDARY, linewidth=1, linestyle="--")
+    ax.text(BOUNDARY_HZ, 0.97, "Grenze", ha="center", va="top", fontsize=7.5, color=TEXT_SECONDARY)
+
+    marker_color = ACCENT if estimate["label"] == "männlich" else INFO
+    ax.plot([f0], [0.5], marker="v", markersize=14, color=TEXT_PRIMARY, zorder=5)
+    ax.plot([f0], [0.5], marker="o", markersize=9, color=marker_color, zorder=6)
+    # Label ueber statt unter dem Marker, versetzt nach oben -- vermeidet Ueberlappung mit den
+    # x-Achsen-Ticks direkt darunter (bei Marker nahe am linken/rechten Rand sonst abgeschnitten).
+    ax.annotate(f"{f0:.0f} Hz", xy=(f0, 0.5), xytext=(0, 22), textcoords="offset points",
+                ha="center", va="bottom", fontsize=9, fontweight="bold", color=TEXT_PRIMARY)
+
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(0, 1)
+    ax.set_yticks([])
+    ax.set_xlabel("Mittleres F0 (Hz)")
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_color(PLOT_GRID)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.42), ncol=2, fontsize=8, frameon=False)
+
+    fig.tight_layout()
+    return fig
