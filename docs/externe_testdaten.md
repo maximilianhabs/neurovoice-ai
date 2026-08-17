@@ -7,6 +7,40 @@ Durchläufen (siehe `docs/backlog.md` "Dysarthrie-Vergleichsstudie"). **Kein Ers
 echte klinische Validierungsstudie** — kleine Stichprobe, keine standardisierte Erhebung durch
 uns selbst, aber besser als nur simulierte Daten.
 
+## ⚠️ Wichtige Einschränkungen dieser Sammlung (Stand 2026-08-17)
+
+- **TORGO ist Englisch.** Sprache ≠ Deutsch (unsere App ist auf Deutsch eingestellt) — nur für
+  sprachunabhängige akustische Maße (Jitter/Shimmer/HNR/CPPS) verwendbar, NICHT für WER/CER
+  oder lexikalische Maße. Diese Einschränkung gilt für JEDE Datei aus `EXT-TORGO-*`-Ordnern.
+- **Sehr kurze Vokal-Aufnahmen** — alle bisher genutzten SVD-Vokale liegen bei 0,53–1,99s,
+  keine erreicht 3 Sekunden. Deutlich kürzer als eine "so lange wie möglich halten"-Aufnahme
+  unseres eigenen Vokalisation-Moduls — schränkt z.B. die Aussagekraft für MPT-artige Analysen
+  ein, auch wenn Jitter/Shimmer/HNR bei diesen Kurzclips noch plausibel berechenbar bleiben.
+- **Insgesamt heterogene Sammlung**: unterschiedliche Sprachen, Aufnahmejahre (1997–2002 bei
+  SVD, unbekannt bei TORGO), Aufnahmegeräte, Aufgabentypen (Wort/Satz/Vokal) und Sampleraten
+  (16kHz TORGO, 50kHz SVD, 48kHz unsere eigenen Aufnahmen) je nach Quelle — bewusst NICHT
+  einheitlich, jede Datei einzeln in der Tabelle unten mit ihren jeweiligen Eckdaten vermerkt.
+
+## Prozessregel: externe Aufnahmen IMMER von einer Person gegenlesen lassen
+
+**Bevor eine extern beschaffte Datei als vertrauenswürdige Referenz gilt** (z.B. in die
+App-Testdatenbank übernommen oder für einen Vergleich zitiert wird), muss sie von einem
+Menschen gegengeprüft werden — mindestens:
+
+1. **Sprache**: passt die gesprochene Sprache zur Quellenangabe (z.B. wirklich Deutsch bei
+   SVD)? Automatisiert nur indirekt über Metadaten geprüft, nicht durch echtes Zuhören.
+2. **Inhaltliche Plausibilität**: klingt es nach dem behaupteten Aufgabentyp (gehaltener Vokal
+   vs. Wort vs. Satz)? Bisher nur per Signalanalyse (stimmhafter Anteil, Energie-Einbrüche)
+   NÄHERUNGSWEISE geprüft, nicht durch Anhören verifiziert.
+3. **Wahrgenommene Aufnahmequalität**: klingt es tatsächlich sauber/verrauscht/verzerrt? Unsere
+   automatisierten Kennwerte (SNR-Schätzung, Clipping-Anteil) sind — wie RANDNOTIZ-15 zeigt —
+   nicht für jeden Aufgabentyp verlässlich, ein menschliches Ohr bleibt die verlässlichere
+   Referenz.
+
+**Bisher NICHT durchgeführt** — alle Dateien in diesem Dokument wurden bisher nur automatisiert
+(Signalanalyse) geprüft, nicht angehört. Jede Zeile in der Datei-Tabelle unten braucht noch ein
+"gegengehört: ja/nein"-Vermerk, sobald das nachgeholt wurde.
+
 **Speicherort**: `data/raw/external_reference/` — lokal, NICHT committed (per `.gitignore`
 "data/raw/*" ausgeschlossen, wie alle Audiodaten in diesem Projekt). Wer diese Sammlung
 fortsetzt, muss die Dateien über die untenstehenden Befehle selbst neu herunterladen.
@@ -87,13 +121,17 @@ Samplerate der SVD-Aufnahmen: 50000 Hz (deutlich höher als unsere eigenen 48kHz
 
 ## Bisher heruntergeladene/getestete Dateien
 
-| Datei (lokal) | Quelle | Label | Dauer | Aufgabentyp | Für unsere Module geeignet? |
-|---|---|---|---|---|---|
-| `torgo_english/normal_FC01_0047.wav` | HF/TORGO, `non_dysarthria_female/FC01_Session1_0047.wav` | gesund (Studien-Label) | 5,3s | kurzes Wort/Satz (per Signalanalyse verifiziert: nur 35% stimmhaft, 17 Energie-Einbrüche in 5,3s — klar KEINE Vokalisation) | Nur bedingt Spontansprache, eigentlich nur Robustheitstest |
-| `svd_pathological/svd_parkinson_a_n.wav` | Zenodo/SVD, AufnahmeID 1580, SprecherID 1887 | Morbus Parkinson + Dysphonie (Diagnose: "Hypotone Komponente, vox senilis") | 0,72s | gehaltener Vokal /a/, normale Tonlage | Ja — genau unser Vokalisation-Aufgabentyp |
-| `svd_pathological/svd_parkinson_phrase.wav` | dieselbe Session | " | 2,31s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja (Deutsch!) — aber noch nicht gegen Vorlesen/WER getestet (bräuchte WhisperX, läuft nur im Docker-Container) |
-| `svd_pathological/svd_als_a_n.wav` | Zenodo/SVD, AufnahmeID 1242, SprecherID 1630 | ALS + zentral-laryngale Bewegungsstörung | 1,57s | gehaltener Vokal /a/, normale Tonlage | Ja |
-| `svd_pathological/svd_als_phrase.wav` | dieselbe Session | " | 2,2s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja, noch nicht gegen Vorlesen/WER getestet |
+| Datei (lokal) | Quelle | Sprache | Label | Dauer | Aufgabentyp | Für unsere Module geeignet? | Von Mensch gegengehört? |
+|---|---|---|---|---|---|---|---|
+| `torgo_english/normal_FC01_0047.wav` | HF/TORGO, `non_dysarthria_female/FC01_Session1_0047.wav` | **Englisch** | gesund (Studien-Label) | 5,3s | kurzes Wort/Satz (per Signalanalyse verifiziert: nur 35% stimmhaft, 17 Energie-Einbrüche in 5,3s — klar KEINE Vokalisation) | Nur bedingt Spontansprache, eigentlich nur Robustheitstest | ❌ nein |
+| `svd_pathological/svd_parkinson_a_n.wav` | Zenodo/SVD, AufnahmeID 1580, SprecherID 1887 | Deutsch | Morbus Parkinson + Dysphonie (Diagnose: "Hypotone Komponente, vox senilis") | 0,72s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja — genau unser Vokalisation-Aufgabentyp | ❌ nein |
+| `svd_pathological/svd_parkinson_phrase.wav` | dieselbe Session | Deutsch | " | 2,31s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja (Deutsch!) — aber noch nicht gegen Vorlesen/WER getestet (bräuchte WhisperX, läuft nur im Docker-Container) | ❌ nein |
+| `svd_pathological/svd_als_a_n.wav` | Zenodo/SVD, AufnahmeID 1242, SprecherID 1630 | Deutsch | ALS + zentral-laryngale Bewegungsstörung | 1,57s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja | ❌ nein |
+| `svd_pathological/svd_als_phrase.wav` | dieselbe Session | Deutsch | " | 2,2s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja, noch nicht gegen Vorlesen/WER getestet | ❌ nein |
+| `svd_pathological/svd_bulbar1_a_n.wav` | Zenodo/SVD, AufnahmeID 101, SprecherID 1301 | Deutsch | Bulbärparalyse (Verdacht) | 1,99s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja | ❌ nein |
+| `svd_healthy/svd_healthy_5_a_n.wav` | Zenodo/SVD, AufnahmeID 5, SprecherID 5 | Deutsch | gesund (Studien-Label, männlich) | 1,35s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja — beste Qualität (HNR 27,4dB) | ❌ nein |
+| `svd_healthy/svd_healthy_6_a_n.wav` | Zenodo/SVD, AufnahmeID 6, SprecherID 6 | Deutsch | gesund (Studien-Label, weiblich) | 0,80s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja — zweitbeste Qualität (HNR 27,2dB) | ❌ nein |
+| `torgo_english/healthy_MC04_..._0026.wav` | HF/TORGO, `non_dysarthria_male/MC04_...` | **Englisch** | gesund (Studien-Label) | 5,71s | kurzes Wort/Satz | Nur bedingt, Robustheitstest | ❌ nein |
 
 ## Testergebnis: Robustheit + inhaltlicher Vergleich (2026-08-17)
 
@@ -250,6 +288,9 @@ Interpretations-Vorsicht (siehe auch "Offene Grundsatzfrage" in `docs/backlog.md
 
 ## Offene Punkte für die nächste Erweiterung
 
+- [ ] **Höchste Priorität**: alle 9 Dateien in der Tabelle oben von einem Menschen gegenhören
+      lassen (Sprache/Inhalt/Qualität, siehe Prozessregel oben) — bisher nur automatisiert per
+      Signalanalyse geprüft, nicht angehört.
 - [x] Gesunde SVD-Referenz ✅ NACHGELIEFERT (2026-08-17, siehe Nachtrag oben) — einmaliger
       voller `healthy.zip`-Download (6GB, temporär, danach vollständig gelöscht), 2 beste von
       7 Kandidaten behalten (~200KB).
