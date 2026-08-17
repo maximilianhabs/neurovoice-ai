@@ -824,3 +824,40 @@ prüfen, ob der Button dann verschwindet (Beleg für reinen Render-Zeitversatz) 
 bleibt (Beleg für einen noch nicht gefundenen echten State-Bug).
 
 ---
+
+## RANDNOTIZ-15 — SNR-Schätzung (`recording_quality_features()`) ungeeignet für gehaltene Vokale ⚠️ ECHTE METHODEN-LIMITATION, NICHT BEHOBEN
+
+**Kontext:** Beim Bewerten externer SVD-Referenzdateien (Parkinson/ALS/Bulbärparalyse, alle
+gehaltene Vokale /a/) fiel auf, dass ALLE Dateien einen sehr niedrigen "SNR"-Wert zeigten
+(1,2–5,4 dB) — verdächtig konsistent über 5 verschiedene Fälle, unterschiedliche Diagnosen,
+unterschiedliche Aufnahmejahre hinweg.
+
+**Root Cause gefunden**: `core/audio.py::recording_quality_features()` berechnet die
+"SNR"-Schätzung als 90.–10. Perzentil der Fenster-Lautstärke (Naeherung fuer "lauter Sprach-
+Anteil minus leiser Rausch-Anteil", siehe eigener Docstring — bewusst als grobe Heuristik
+gekennzeichnet, kein echtes messtechnisches SNR). Das ist eine **Lautstärke-Dynamikspannen-
+Schätzung**, keine echte Rauschboden-Referenz. Ein gehaltener Vokal SOLL laut Aufgabenstellung
+eine MOEGLICHST KONSTANTE Lautstaerke haben — die Dynamikspanne ist bei einem gut gehaltenen
+Vokal also von Natur aus klein, unabhaengig von der tatsaechlichen Aufnahmequalitaet.
+
+**Verifiziert per synthetischem Gegenbeweis**: ein technisch PERFEKTER, rauschfreier
+synthetischer gehaltener Vokal (konstante Lautstaerke, nur minimales realistisches
+Grundrauschen) bekommt von unserer eigenen Formel nur **0,2dB "SNR"** — obwohl er technisch
+exzellent ist. Das beweist: die Metrik ist fuer gehaltene Vokale (Vokalisation-Modul) NICHT
+aussagekraeftig, funktioniert aber vermutlich sinnvoll fuer Woerter/Saetze/Spontansprache (wo
+echte Lautstaerke-Kontraste zwischen Sprache und Pausen/leisen Konsonanten natuerlich
+vorkommen).
+
+**NICHT behoben** — betrifft die Kachel "SNR (geschätzt)" in `core/shared.py::quality_tiles()`,
+die aktuell in ALLEN 4 Modulen inkl. Vokalisation dieselbe Formel nutzt. Moegliche Fixes fuer
+spaeter (noch nicht entschieden/umgesetzt):
+1. Fuer Vokalisation eine ECHTE Rauschboden-Referenz nutzen (z.B. die ersten/letzten ~100ms vor
+   Stimmeinsatz, falls vorhanden) statt Perzentil-Spanne.
+2. Den Kontext-Text der SNR-Kachel um einen Hinweis ergaenzen ("bei gehaltenen Vokalen mit
+   Vorsicht interpretieren, niedrige Werte koennen auch stabile Phonation bedeuten").
+3. Die Kachel im Vokalisation-Modul ausblenden/anders labeln.
+
+**Fund entstand als Nebenprodukt** der externen Referenzdaten-Bewertung (siehe
+`docs/externe_testdaten.md`), nicht durch gezielte Suche danach.
+
+---

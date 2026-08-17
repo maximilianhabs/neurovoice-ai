@@ -162,6 +162,50 @@ gehaltenen Vokale (bestätigt auch hier: 33-47% stimmhaft, mehrere Energie-Einbr
 eine echte Vokalisation-Modul-Validierung fehlt weiterhin eine kleine, hochwertige GESUNDE
 Referenz mit gehaltenem Vokal (SVD `healthy.zip` bleibt mit 6GB das Hindernis).
 
+## Integration in die App-Testdatenbank (`views/testdaten.py`, 2026-08-17)
+
+Auf Nutzer-Wunsch die besten Beispiele direkt im App-eigenen Testbereich nutzbar gemacht —
+NICHT nur als Rohdatei in diesem Repo, sondern über `core/audio.py::list_patients()`/
+`list_recordings()` (liest aus `NEUROVOICE_DATA_DIR`, auf dem Server
+`~/neurovoice-data/raw/`, read-only in den Container gemountet) direkt in der App auswählbar.
+
+**Wichtig — zwei unterschiedliche Orte**: dieses Dokument + `data/raw/external_reference/`
+(lokal auf dem Mac, dieses Repo) sind der ARCHIV-/Recherche-Ort. Für die tatsächliche
+App-Nutzung mussten die Dateien zusätzlich auf den **Server** kopiert werden
+(`~/neurovoice-data/raw/`, dort liest der laufende Container sie), da lokale Dateien in diesem
+Repo vom Server-Container nicht gesehen werden.
+
+Neue Patient:innen-Ordner (Namensschema `EXT-<Quelle>-<Kennung>`, klar von echten/simulierten
+Sessions unterscheidbar) + Dateinamen nach dem bestehenden Schema
+`<Datum>_<Zeit>_task-<task>_take<n>.wav` (siehe `core/audio.py::FILENAME_RE`):
+
+| Ordner | Datei | Task-Label | Herkunft |
+|---|---|---|---|
+| `EXT-TORGO-healthy-FC02` | `..._task-unbekannt_take1.wav` | Unbekannt (kein passender Task-Code — kurzes Wort, keine unserer 8 Kategorien) | TORGO, beste SNR-Qualität (33dB) |
+| `EXT-TORGO-healthy-MC04` | `..._task-unbekannt_take1.wav` | Unbekannt | TORGO, höchste SNR (35,6dB, leichtes Clipping) |
+| `EXT-SVD-Parkinson-1580` | `..._task-vokal_take1.wav` + `..._task-lesetext_take1.wav` | Gehaltener Vokal /a/ + Satz | SVD, Morbus Parkinson |
+| `EXT-SVD-Bulbaer-101` | `..._task-vokal_take1.wav` | Gehaltener Vokal /a/ | SVD, Bulbärparalyse (beste verfügbare Signalqualität unter den 5 pathologischen Kandidaten) |
+
+Verifiziert: `list_patients('/data')`/`list_recordings()` im Server-Container zeigen alle 4
+neuen Ordner + 5 Dateien korrekt an, Task-Zuordnung stimmt.
+
+**Warum "task-unbekannt" bei TORGO**: keiner unserer 8 Task-Codes
+(`lesetext/vokal/vokali/vokalu/ddkgemischt/ddkeinzeln/spontan/unbekannt`) passt ehrlich zu
+"kurzes einzelnes Wort" — eine Falsch-Etikettierung (z.B. als "spontan") wäre irreführender als
+die ehrliche "unbekannt"-Kennzeichnung.
+
+## Wichtiger Nebenbefund: unsere eigene SNR-Schätzung ist für gehaltene Vokale nicht aussagekräftig
+
+Siehe `docs/bugtracker.md` RANDNOTIZ-15 für die volle Herleitung. Kurzfassung: Beim Vergleich
+der SVD-Vokal-Dateien fiel auf, dass ALLE (Parkinson, 2×ALS, 2×Bulbärparalyse) einen sehr
+niedrigen "SNR"-Wert (1,2–5,4dB) zeigten — verdächtig konsistent. Root Cause: unsere SNR-
+Schätzung misst die Lautstärke-DYNAMIKSPANNE (90.–10. Perzentil), nicht den echten Rauschboden.
+Ein gehaltener Vokal soll per Aufgabenstellung möglichst KONSTANT laut sein — die Dynamikspanne
+ist dadurch systematisch klein, unabhängig von der tatsächlichen Aufnahmequalität. Bewiesen per
+synthetischem Test: ein perfekter, rauschfreier künstlicher Vokal bekommt von unserer eigenen
+Formel nur 0,2dB "SNR". **Das bedeutet: die "SNR (geschätzt)"-Kachel im Vokalisation-Modul
+ist aktuell irreführend** — noch nicht gefixt, siehe Bugtracker für Lösungsvorschläge.
+
 ## Offene Punkte für die nächste Erweiterung
 
 - [ ] Kleine "gesund"-Referenz aus SVD fehlt noch (6GB-Datei nicht teilbar) — Alternativen zu
