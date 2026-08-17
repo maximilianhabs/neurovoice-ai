@@ -797,3 +797,30 @@ in 5 Sekunden nachzaehlen") aufnehmen und `cycle_times`/Anzahl der erkannten Zyk
 gegenpruefen.
 
 ---
+
+## RANDNOTIZ-14 — Export-Button-Verdacht (BUG-25) trotz Fix ein weiteres Mal beobachtet (⚠️ Ursache nicht abschließend geklärt)
+
+**Kontext:** Nutzer berichtete am 2026-08-17 ein drittes Mal (nach dem BUG-25-Fix, verifiziert
+live auf dem Server vorhanden) denselben Eindruck: nach dem Anlegen einer neuen Proband:in
+wirkte der "Excel-Report erstellen"-Button, als sei er schon vorher da gewesen.
+
+**Gegenprobe:** der tatsächlich exportierte Report (NV-VAE5) zeigt erneut plausible, klar von
+den vorherigen Sessions unterscheidbare Werte, keine Duplikate — wie schon beim ersten
+gemeldeten Fall. Die Zeitstempel sind lückenlos chronologisch zur vorherigen Session (NV-Z8YW
+endete 10:02 UTC, NV-VAE5 begann 10:04 UTC).
+
+**Aktuelle Einschätzung**: der BUG-25-Fix (`bind_subject_to_session()` löscht `module_results`
+bei ID-Wechsel) ist nachweislich im Server-Container vorhanden (per `docker exec grep`
+geprüft). Da die exportierten Daten beide Male nach dem gemeldeten Verdacht korrekt waren,
+liegt der Verdacht nahe, dass es sich um einen rein KOSMETISCHEN Render-Zeitversatz handelt
+(kurzes Nachwirken der alten Seite im Browser, bevor Streamlit den Rerun nach dem
+Proband:innen-Wechsel vollständig abgeschlossen hat) -- NICHT um echte Datenvermischung.
+**Nicht abschließend bewiesen** -- dafür müsste das Verhalten live im Browser mit
+Developer-Tools (Netzwerk-Tab/Timing) beobachtet werden, was bisher nicht gemacht wurde.
+
+**Nächster Schritt (laut Nutzer nicht dringend, "irgendwann bereinigen")**: beim nächsten Mal,
+wenn der Effekt auftritt, VOR dem Klick auf "Export" einmal die Seite manuell neu laden und
+prüfen, ob der Button dann verschwindet (Beleg für reinen Render-Zeitversatz) oder bestehen
+bleibt (Beleg für einen noch nicht gefundenen echten State-Bug).
+
+---

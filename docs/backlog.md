@@ -2008,3 +2008,31 @@ Messung. Shimmer, MPT (v.a. /u/) und Spontansprache-Sprechrate zeigen größere 
 plausibel als normale Tag-/Text-Variabilität. Die zwei reproduzierbar "auffälligen" Muster
 (CPPS Fließsprache, DDK-Rate) sind als offene, dokumentierte Beobachtungen vermerkt — nicht
 als Bugs gefixt, siehe RANDNOTIZ-13 für Details und nächste Schritte.
+
+### Durchlauf 2 (NV-VAE5, "schwerer ausgeprägt", 2026-08-17) — konsolidierter Stand nach 4 Sessions
+
+Vergleich gegen beide Normalbefunde (NV-BFU8, NV-Z8YW) und die leichtere Simulation (NV-4A4T).
+
+**Robusteste Fokus-Parameter (Dosis-Effekt über 4 Sessions bestätigt):**
+- **Sprechrate Spontansprache**: sauberer, monotoner Abfall über alle 4 Sessions
+  (155→121→101→93 WPM), kippt bei der schwereren Simulation erstmals auf "auffällig" statt
+  nur "grenzwertig". Bisher der zuverlässigste Einzelmarker.
+- **Voice Breaks**: 0% bei beiden Normalbefunden (bis auf einen kleinen Ausreißer), 33,99%
+  (/i/) bzw. 10,27% (/a/) bei der schwereren Simulation — deutlich stärker als bei der
+  leichteren Simulation (nur 13,54% bei /a/). Zweiter robuster Dosis-Effekt.
+- **Ø Wortdauer**: steigt konsistent mit dem Schweregrad (0,27-0,29s → 0,47-0,53s).
+
+**Nicht konsistent dosis-abhängig, weniger verlässlich für die Schweregrad-Einordnung:**
+- Jitter/Shimmer/HNR/CPPS bei den Vokalen (Session 4 teils näher an der Baseline als Session 3).
+- DDK-Rate/DDK-Regelmäßigkeit (CV) — vermutlich durch die in RANDNOTIZ-13 vermutete
+  Zählweise-Unsicherheit überlagert.
+
+**Vorläufige Fokus-Parameter-Liste für die künftige Berichts-Interpretation** (Zwischenstand,
+weitere Durchläufe folgen laut Nutzer noch): Sprechrate (v.a. Spontansprache), Voice Breaks,
+Ø Wortdauer. Siehe auch die oben unter "Offene Grundsatzfrage" skizzierten, mit dem
+Projektprinzip vereinbaren Interpretations-Zwischenstufen (Muster-Zusammenfassung/
+Konsistenz-Hinweis) — diese Fokus-Liste wäre die inhaltliche Grundlage dafür, sobald
+entschieden ist, ob/wie das umgesetzt wird.
+
+Siehe auch `docs/bugtracker.md` RANDNOTIZ-14 zum ein drittes Mal beobachteten (aber wohl
+kosmetischen) Export-Button-Verdacht trotz BUG-25-Fix.
