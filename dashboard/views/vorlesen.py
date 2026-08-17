@@ -281,6 +281,35 @@ else:
             kc1.metric("Ø Erkennungs-Konfidenz", f"{mean_confidence:.0%}" if mean_confidence is not None else "–")
             kc2.metric("Unsichere Wörter (<75%)", low_confidence_count)
 
+            # Sprachverstaendlichkeit ueber ASR-Erkennungsguete (Nutzer-Idee 2026-08-17,
+            # core/speech_intelligibility.py): der Referenztext ist bei diesem Task bekannt --
+            # ein Vergleich der Transkription dagegen liefert eine objektive Naeherung, wie gut
+            # das Sprachmodell verstanden hat, was gesagt wurde.
+            from core.speech_intelligibility import compute_intelligibility_score
+
+            reference_text = LESETEXTE.get(take.get("lesetext_key", chosen_key), LESETEXTE["nordwind"])
+            intelligibility = compute_intelligibility_score(reference_text, transcript["words"])
+            take["intelligibility"] = intelligibility
+
+            ic1, ic2 = st.columns(2)
+            ic1.metric(
+                "Wortfehlerrate (WER)",
+                f"{intelligibility['wer_pct']:.0f} %" if intelligibility["wer_pct"] is not None else "–",
+            )
+            ic2.metric(
+                "Zeichenfehlerrate (CER)",
+                f"{intelligibility['cer_pct']:.0f} %" if intelligibility["cer_pct"] is not None else "–",
+            )
+            st.caption(
+                "Vergleich der Transkription mit dem bekannten Lesetext (Editierdistanz). "
+                "Näherung an Sprachverständlichkeit — erfasst auch reine ASR-Erkennungsfehler "
+                "(Hintergrundgeräusch, Betonung), nicht nur artikulatorische Präzision. "
+                "Literaturbasierte Orientierung: gesunde Sprache je nach ASR-System ~6–27 % "
+                "WER, dysarthrische Sprache deutlich höher (~62–135 %, bei schwerer Ausprägung "
+                "auch über 100 % durch Einfügungsfehler). Kein fester Normbereich hinterlegt — "
+                "die Streubreite zwischen Studien/Systemen ist dafür zu groß."
+            )
+
             def _tile_group(title: str, keys: list[str], source: dict) -> None:
                 group_tiles = build_tiles({k: source[k] for k in keys if k in source})
                 if not group_tiles:

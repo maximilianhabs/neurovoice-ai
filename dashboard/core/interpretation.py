@@ -193,6 +193,38 @@ PARAMETER_INFO: dict[str, dict] = {
         "evidence": "eigene Heuristik / explorativ",
         "literature": "Projekteigene Burst-Erkennung, kein Standardmaß aus der Literatur — lose an Verschlussdauer-Konzepte angelehnt (siehe „Sprachspezifik Deutsch\" in docs/literatur_review.md)",
     },
+    "wer_pct": {
+        "label": "Wortfehlerrate (WER)",
+        "unit": "%",
+        "description": "Wie stark die automatische Transkription (WhisperX) vom bekannten Lesetext abweicht (Editierdistanz auf Wortebene) — Näherung an Sprachverständlichkeit über die ASR-Erkennungsgüte.",
+        "zones_func": None,
+        "context": (
+            "Erfasst auch reine Spracherkennungsfehler (Hintergrundgeräusch, Betonung, "
+            "Wortschatzlücken des Modells), nicht ausschließlich artikulatorische Präzision — "
+            "deshalb bewusst als Näherung, nicht als direktes Dysarthrie-Maß eingeordnet. Nur "
+            "bei bekanntem Referenztext (Vorlesen-Modul) berechenbar, nicht bei Spontansprache."
+        ),
+        "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "ASR-Word-Error-Rate als Proxy für Sprachverständlichkeit wird in mehreren Dysarthrie-Studien genutzt (u.a. UASpeech-Korpus-Arbeiten, EasyCall-Korpus); explizite Limitation dabei: klassisches WER/CER erfasst semantische Nähe nicht, siehe z.B. 'Aligning ASR Evaluation with Human and LLM Judgments' (2026)",
+        "typical_values": (
+            "Große Streuung zwischen Studien/ASR-Systemen, deshalb bewusst kein fester "
+            "Cutoff: gesunde Sprache je nach System ca. 6-27% WER, dysarthrische Sprache "
+            "deutlich höher (~62-135%, bei schwerer Ausprägung auch über 100% durch "
+            "Einfügungsfehler des Erkenners)."
+        ),
+    },
+    "cer_pct": {
+        "label": "Zeichenfehlerrate (CER)",
+        "unit": "%",
+        "description": "Wie stark die Transkription auf Zeichenebene vom bekannten Lesetext abweicht — feinere Auflösung als WER, erkennt auch teilweise/knapp verfehlte Worterkennungen.",
+        "zones_func": None,
+        "context": "Ergänzt die WER um eine feinere Granularität — siehe dortiger Kontext für dieselben Einschränkungen (ASR-Fehler ≠ nur Artikulationsfehler).",
+        "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Siehe Wortfehlerrate (WER) — dieselbe Quellenlage, CER als übliche Ergänzung in der ASR-Literatur",
+        "typical_values": None,
+    },
     "monoloudness_intensity_sd_db": {
         "label": "Monoloudness",
         "unit": "dB",

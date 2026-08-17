@@ -1736,9 +1736,23 @@ hatten bzw. die bei uns bereits richtig sind.
 - [ ] **openSMILE eGeMAPSv02** als standardisierter Feature-Block (ergänzt, ersetzt nicht die
       eigenen Parselmouth-Features) — neue Python-Abhängigkeit, muss gegen die
       Server-Ressourcen geprüft werden (siehe Chunk-5-Lehre bei WhisperX).
-- [ ] **Speech-Intelligibility-Score (WER/CER)** — ASR-Text (WhisperX, bereits vorhanden) gegen
-      erwarteten Text vergleichen (bei standardisierten Aufgaben wie Lesetext/DDK bekannt).
-      Braucht Referenztext-Hinterlegung pro Task + Editierdistanz-Berechnung.
+- [x] **Speech-Intelligibility-Score (WER/CER)** ✅ UMGESETZT (2026-08-17, Nutzer-Idee: "das
+      Sprachmodell versagt bei Dysarthrie" objektivieren) — neues
+      `core/speech_intelligibility.py::compute_intelligibility_score()`, vergleicht die
+      WhisperX-Transkription gegen den bekannten Lesetext (`views/vorlesen.py::LESETEXTE`,
+      Referenztext-Zuordnung war über `lesetext_key` je Take schon vorhanden). Eigene
+      Levenshtein-Editierdistanz (keine neue Abhängigkeit), WER (Wortebene) + CER
+      (Zeichenebene, feinere Auflösung). Bewusst OHNE eigenen Normbereich — Websuche 2026-08-17
+      ergab zu große Streuung zwischen ASR-Systemen/Studien für einen seriösen Cutoff (gesunde
+      Sprache ~6-27% WER, dysarthrische Sprache ~62-135% je nach Studie/System), stattdessen
+      als Kontext-Text hinterlegt. Neue `PARAMETER_INFO`-Einträge `wer_pct`/`cer_pct` —
+      erscheinen dadurch automatisch auch im Gesamtbericht/Export/Glossar (kein Zusatzaufwand
+      an diesen Stellen nötig, bestehende `flatten_take()`/`build_rows()`-Pipeline greift).
+      Nur im Vorlesen-Modul (einziger Task mit bekanntem Referenztext) — bei Spontansprache
+      nicht anwendbar, bewusst nicht eingebaut. Verifiziert: Formel-Selbsttest (4 Fälle: perfekt/
+      leicht gestört/unverständlich/leer, alle plausibel) + voller AppTest-Durchlauf mit
+      gefaketem Transkript (kein echtes Mikrofon nötig) zeigt korrekte WER/CER-Werte in der UI,
+      kein Exception. Deployed, HTTP 200 verifiziert.
 - [ ] **Silero VAD** als Ersatz/Ergänzung zur bisherigen Intensitäts-basierten Stimm-/Pause-
       Erkennung — leichtgewichtig, lokal/ONNX-fähig, aber neue Abhängigkeit, Nutzen gegenüber
       der bestehenden Lösung (Intensitätsschwellen aus Praat) noch nicht belegt.
