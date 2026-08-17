@@ -127,7 +127,7 @@ Samplerate der SVD-Aufnahmen: 50000 Hz (deutlich höher als unsere eigenen 48kHz
 | `svd_pathological/svd_parkinson_a_n.wav` | Zenodo/SVD, AufnahmeID 1580, SprecherID 1887 | Deutsch | Morbus Parkinson + Dysphonie (Diagnose: "Hypotone Komponente, vox senilis") | 0,72s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja — genau unser Vokalisation-Aufgabentyp | ❌ nein |
 | `svd_pathological/svd_parkinson_phrase.wav` | dieselbe Session | Deutsch | " | 2,31s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja (Deutsch!) — aber noch nicht gegen Vorlesen/WER getestet (bräuchte WhisperX, läuft nur im Docker-Container) | ❌ nein |
 | `svd_pathological/svd_als_a_n.wav` | Zenodo/SVD, AufnahmeID 1242, SprecherID 1630 | Deutsch | ALS + zentral-laryngale Bewegungsstörung | 1,57s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja | ❌ nein |
-| `svd_pathological/svd_als_phrase.wav` | dieselbe Session | Deutsch | " | 2,2s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja, noch nicht gegen Vorlesen/WER getestet | ❌ nein |
+| `svd_pathological/svd_als_phrase.wav` | dieselbe Session | Deutsch | " | 2,2s | Satz "Guten Morgen, wie geht es Ihnen?" | Ja — gegen WER/CER getestet, siehe eigener Abschnitt unten | ✅ **ja** (Nutzer 2026-08-17: "super dysarthrie beispiel", Sprache+Inhalt bestätigt) |
 | `svd_pathological/svd_bulbar1_a_n.wav` | Zenodo/SVD, AufnahmeID 101, SprecherID 1301 | Deutsch | Bulbärparalyse (Verdacht) | 1,99s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja | ❌ nein |
 | `svd_healthy/svd_healthy_5_a_n.wav` | Zenodo/SVD, AufnahmeID 5, SprecherID 5 | Deutsch | gesund (Studien-Label, männlich) | 1,35s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja — beste Qualität (HNR 27,4dB) | ❌ nein |
 | `svd_healthy/svd_healthy_6_a_n.wav` | Zenodo/SVD, AufnahmeID 6, SprecherID 6 | Deutsch | gesund (Studien-Label, weiblich) | 0,80s (< 3s) | gehaltener Vokal /a/, normale Tonlage | Ja — zweitbeste Qualität (HNR 27,2dB) | ❌ nein |
@@ -285,6 +285,37 @@ Interpretations-Vorbehalt**: unsere absoluten Jitter-/Shimmer-Werte könnten dur
 Aufnahmeumgebung systematisch leicht erhöht sein, unabhängig vom Gesundheitszustand der
 sprechenden Person — noch nicht verifiziert, aber ein Punkt für die künftige
 Interpretations-Vorsicht (siehe auch "Offene Grundsatzfrage" in `docs/backlog.md`).
+
+## WER/CER-Test am ersten menschlich gegengehörten Dysarthrie-Fall (2026-08-17)
+
+**`svd_als_phrase.wav`** (AufnahmeID 1242, ALS-Sprecher, Satz "Guten Morgen, wie geht es
+Ihnen?") — vom Nutzer selbst angehört und bestätigt: "super dysarthrie beispiel". Erster
+Fall in dieser Sammlung, der die neue Gegenlese-Prozessregel (siehe oben) tatsächlich
+durchlaufen hat. Über den Worker-Container direkt mit WhisperX transkribiert und mit
+`core/speech_intelligibility.py::compute_intelligibility_score()` ausgewertet:
+
+- **Erkannter Text**: "Guten Morgen. Wie geht es Ihnen?" — inhaltlich exakt richtig.
+- **WER: 0,0 % — CER: 0,0 %.**
+- **Aber Ø Erkennungs-Konfidenz nur 52,3 %**, 5 von 6 Wörtern unter der 75%-Schwelle:
+  "es" 5,4 %(!), "Ihnen?" 34,6 %, "geht" 45,8 %, "Wie" 62,7 %, "Guten" 73,5 %. Nur "Morgen."
+  war mit 91,6 % sicher erkannt.
+
+**Wichtiger methodischer Befund**: bei einem kurzen, hochgradig vorhersehbaren Satz (einer
+Standard-Begrüßungsfloskel) kann WhisperX die richtigen Wörter offenbar aus dem Sprachmodell-
+Kontext "erraten", selbst wenn das akustische Signal laut Konfidenzwerten kaum zu erkennen
+war. **Reine WER/CER wäre hier also ein irreführend "perfektes" Ergebnis gewesen** — hätte
+suggeriert, die Aufnahme sei völlig unauffällig verständlich, obwohl es sich um einen vom
+Menschen bestätigten, eindrücklichen Dysarthrie-Fall handelt. **Die Erkennungs-Konfidenz
+(bereits an anderer Stelle in der App vorhanden, siehe `views/vorlesen.py` "Ø Erkennungs-
+Konfidenz"/"Unsichere Wörter") ist für kurze, prädiktive Sätze offenbar der empfindlichere
+Indikator als WER/CER allein.** Für die Interpretations-Praxis: WER/CER und Konfidenz-Werte
+immer GEMEINSAM betrachten, nicht WER/CER isoliert als "Verständlichkeits-Score" verwenden —
+ergänzt/relativiert den ursprünglichen Ansatz aus `docs/backlog.md` "Speech-Intelligibility-
+Score (WER/CER)", ohne ihn zu verwerfen (bei längeren, weniger vorhersehbaren Texten dürfte
+WER/CER empfindlicher sein als bei diesem kurzen Standardsatz).
+
+Datei jetzt vollständig in die Testdatenbank integriert: `EXT-SVD-ALS-1242` (Vokal + Satz,
+auf dem Server verifiziert).
 
 ## Offene Punkte für die nächste Erweiterung
 

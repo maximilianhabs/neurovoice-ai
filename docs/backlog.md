@@ -1753,6 +1753,13 @@ hatten bzw. die bei uns bereits richtig sind.
       leicht gestört/unverständlich/leer, alle plausibel) + voller AppTest-Durchlauf mit
       gefaketem Transkript (kein echtes Mikrofon nötig) zeigt korrekte WER/CER-Werte in der UI,
       kein Exception. Deployed, HTTP 200 verifiziert.
+      **Wichtige Nachbesserung (2026-08-17)**: erster Test an einem echten, vom Nutzer selbst
+      gegengehörten Dysarthrie-Fall (`docs/externe_testdaten.md`, `svd_als_phrase.wav`) zeigte
+      WER=CER=0% trotz eindeutig dysarthrischer Sprache — WhisperX "erriet" die richtigen
+      Wörter eines kurzen, vorhersehbaren Standardsatzes aus dem Sprachmodell-Kontext, obwohl
+      die Erkennungs-Konfidenz nur bei Ø 52% lag (5 von 6 Wörtern unsicher, ein Wort nur 5,4%).
+      **WER/CER allein ist bei kurzen prädiktiven Sätzen kein verlässlicher Verständlichkeits-
+      Indikator** — muss immer zusammen mit der Konfidenz betrachtet werden, nicht isoliert.
 - [ ] **Silero VAD** als Ersatz/Ergänzung zur bisherigen Intensitäts-basierten Stimm-/Pause-
       Erkennung — leichtgewichtig, lokal/ONNX-fähig, aber neue Abhängigkeit, Nutzen gegenüber
       der bestehenden Lösung (Intensitätsschwellen aus Praat) noch nicht belegt.
