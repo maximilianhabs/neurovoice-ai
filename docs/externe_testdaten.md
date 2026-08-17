@@ -185,9 +185,11 @@ Sessions unterscheidbar) + Dateinamen nach dem bestehenden Schema
 | `EXT-TORGO-healthy-MC04` | `..._task-unbekannt_take1.wav` | Unbekannt | TORGO, höchste SNR (35,6dB, leichtes Clipping) |
 | `EXT-SVD-Parkinson-1580` | `..._task-vokal_take1.wav` + `..._task-lesetext_take1.wav` | Gehaltener Vokal /a/ + Satz | SVD, Morbus Parkinson |
 | `EXT-SVD-Bulbaer-101` | `..._task-vokal_take1.wav` | Gehaltener Vokal /a/ | SVD, Bulbärparalyse (beste verfügbare Signalqualität unter den 5 pathologischen Kandidaten) |
+| `EXT-SVD-healthy-5` | `..._task-vokal_take1.wav` | Gehaltener Vokal /a/ | SVD, gesund (m), beste von 7 geprüften Kandidaten (Jitter 0,21%, HNR 27,4dB) |
+| `EXT-SVD-healthy-6` | `..._task-vokal_take1.wav` | Gehaltener Vokal /a/ | SVD, gesund (w), zweitbeste von 7 (Jitter 0,33%, HNR 27,2dB) |
 
-Verifiziert: `list_patients('/data')`/`list_recordings()` im Server-Container zeigen alle 4
-neuen Ordner + 5 Dateien korrekt an, Task-Zuordnung stimmt.
+Verifiziert: `list_patients('/data')`/`list_recordings()` im Server-Container zeigen alle 6
+neuen Ordner + 7 Dateien korrekt an, Task-Zuordnung stimmt.
 
 **Warum "task-unbekannt" bei TORGO**: keiner unserer 8 Task-Codes
 (`lesetext/vokal/vokali/vokalu/ddkgemischt/ddkeinzeln/spontan/unbekannt`) passt ehrlich zu
@@ -206,12 +208,55 @@ synthetischem Test: ein perfekter, rauschfreier künstlicher Vokal bekommt von u
 Formel nur 0,2dB "SNR". **Das bedeutet: die "SNR (geschätzt)"-Kachel im Vokalisation-Modul
 ist aktuell irreführend** — noch nicht gefixt, siehe Bugtracker für Lösungsvorschläge.
 
+## Nachtrag: echte gesunde SVD-Vokale nachgeliefert (2026-08-17)
+
+Die 6GB-Hürde wurde einmalig in Kauf genommen: `healthy.zip` komplett in ein TEMPORÄRES
+Verzeichnis heruntergeladen (NICHT in diesem Repo/`data/raw/`), 7 Kandidaten (AufnahmeID 1-7,
+alle Typ "n"/normal) extrahiert+konvertiert, per `phonation_features()` verglichen (bei
+gehaltenen Vokalen ist HNR ein sinnvolleres Qualitätsmaß als unsere "SNR"-Schätzung, siehe
+RANDNOTIZ-15 unten). Beste zwei: **AufnahmeID 5** (SprecherID 5, männlich, Jitter 0,21%,
+Shimmer 1,56%, HNR 27,4dB) und **AufnahmeID 6** (SprecherID 6, weiblich, Jitter 0,33%,
+Shimmer 2,19%, HNR 27,2dB) — beide technisch exzellent. `healthy.zip` danach vollständig
+gelöscht (nur die 2 kleinen extrahierten WAVs behalten, `data/raw/external_reference/
+svd_healthy/`, ~200KB statt 6GB). In die Testdatenbank integriert: `EXT-SVD-healthy-5`,
+`EXT-SVD-healthy-6` (Task `vokal`).
+
+**Finaler Vergleich, jetzt mit sauber aufgabentypischen (gehaltener Vokal) Referenzen aus
+allen 3 Quellen:**
+
+| Fall | F0 (Hz) | Jitter % | Shimmer % | HNR dB |
+|---|---|---|---|---|
+| SVD gesund #5 (m) | 125,9 | 0,21 | 1,56 | 27,4 |
+| SVD gesund #6 (w) | 251,3 | 0,33 | 2,19 | 27,2 |
+| SVD Parkinson | 161,0 | 0,50 | 2,99 | 18,8 |
+| SVD ALS | 154,1 | 0,43 | 5,19 | 21,1 |
+| Eigene NV-BFU8 (gesund) | 100,1 | 0,59 | 7,61 | 16,5 |
+| Eigene NV-Z8YW (gesund) | 95,0 | 0,64 | 9,72 | 12,5 |
+
+**Innerhalb SVD bestätigt sich jetzt das erwartete Muster** (gesund klar besser als
+pathologisch bei Jitter/Shimmer/HNR) — mit dem vorherigen TORGO-Vergleich (falscher
+Aufgabentyp, siehe oben) war das noch nicht sauber zu zeigen.
+
+**Neuer, bisher nicht erklärter Befund**: unsere EIGENEN gesunden Aufnahmen (NV-BFU8/NV-Z8YW)
+zeigen durchgehend SCHLECHTERE Jitter-/Shimmer-/HNR-Werte als sogar die SVD-*Patient:innen*
+(Parkinson/ALS). Plausibelste Erklärung (nicht verifiziert, nur Hypothese): unterschiedliche
+Aufnahmeketten — SVD nutzt kontrollierte Klinik-Laborausrüstung (dediziertes Mikrofon, EGG-
+synchronisiert, ruhiger Raum), unsere Aufnahmen laufen über Browser-Mikrofon im Alltagsumfeld.
+Jitter/Shimmer gelten in der Literatur als empfindlich gegenüber Aufnahmebedingungen. **Wichtiger
+Interpretations-Vorbehalt**: unsere absoluten Jitter-/Shimmer-Werte könnten durch die
+Aufnahmeumgebung systematisch leicht erhöht sein, unabhängig vom Gesundheitszustand der
+sprechenden Person — noch nicht verifiziert, aber ein Punkt für die künftige
+Interpretations-Vorsicht (siehe auch "Offene Grundsatzfrage" in `docs/backlog.md`).
+
 ## Offene Punkte für die nächste Erweiterung
 
-- [ ] Kleine "gesund"-Referenz aus SVD fehlt noch (6GB-Datei nicht teilbar) — Alternativen zu
-      prüfen: (a) einmalig den vollen `healthy.zip`-Download in Kauf nehmen und nur wenige
-      Dateien behalten, (b) eine dritte Quelle mit kleinen gesunden DEUTSCHEN Vokal-Aufnahmen
-      suchen, (c) beim SVD-Team direkt nach einem kleineren Einzeldatei-Zugang fragen.
+- [x] Gesunde SVD-Referenz ✅ NACHGELIEFERT (2026-08-17, siehe Nachtrag oben) — einmaliger
+      voller `healthy.zip`-Download (6GB, temporär, danach vollständig gelöscht), 2 beste von
+      7 Kandidaten behalten (~200KB).
+- [ ] Der neue Befund "eigene Aufnahmen zeigen schlechtere Jitter/Shimmer als sogar SVD-
+      Patient:innen" (siehe Nachtrag oben) ist nur eine Hypothese (Aufnahmekette/-umgebung) —
+      noch nicht verifiziert. Müsste z.B. mit einem dedizierten externen USB-Mikrofon
+      gegengetestet werden, um Browser-Mikrofon-Pipeline als Ursache zu bestätigen/auszuschließen.
 - [ ] SVD-Satz-Dateien (`svd_parkinson_phrase.wav`/`svd_als_phrase.wav`) noch nicht gegen
       Sprechrate/WER getestet — braucht WhisperX (läuft nur im Docker-Container, nicht in
       diesem lokalen Skript-Kontext). Nächster Schritt: über `views/testdaten.py` (freie
