@@ -1996,3 +1996,15 @@ auf dem Server, deployed.
 
 **Noch offen**: Alterserkennung und Nervositäts-Erkennung aus der Stimme bleiben unpriorisiert
 (siehe bestehender Backlog-Eintrag oben, moderate bzw. inkonsistente Evidenzlage).
+
+### Reproduzierbarkeitstest: 2. Normalbefund (NV-Z8YW vs. NV-BFU8, 2026-08-17)
+
+Zweiter "Normalbefund" (anderer Lesetext) zum Test, wie stabil die Werte bei derselben Person
+ohne simulierte Pathologie sind — Ergebnis siehe `docs/bugtracker.md` RANDNOTIZ-13 für die
+Details der zwei auffälligen, aber reproduzierbaren Muster (CPPS bei Fließsprache, DDK-Rate
+"gemischt"). Kurzfassung: Jitter, F0-Tremor, Sprechrate (Vorlesen) und DDK-Rate selbst
+reproduzieren sich gut zwischen beiden Sessions — spricht grundsätzlich für eine verlässliche
+Messung. Shimmer, MPT (v.a. /u/) und Spontansprache-Sprechrate zeigen größere Schwankung,
+plausibel als normale Tag-/Text-Variabilität. Die zwei reproduzierbar "auffälligen" Muster
+(CPPS Fließsprache, DDK-Rate) sind als offene, dokumentierte Beobachtungen vermerkt — nicht
+als Bugs gefixt, siehe RANDNOTIZ-13 für Details und nächste Schritte.

@@ -756,3 +756,44 @@ sollte leer sein.
 | PROZESS-RISIKO-04 | Freitext-Dateinamen aus Voice Memos | mittel | offen, Lösung noch nicht entschieden |
 | BEFUND-03 | Kosmetische ALAC-Warnung im Skript-Output | niedrig | offen, rein kosmetisch |
 | PROZESS-RISIKO-05 | Task-Label kann inhaltlich falsch gesetzt werden | niedrig | kein technischer Fix geplant, Wachsamkeit nötig |
+
+## RANDNOTIZ-13 — Reproduzierbarkeitstest deckt zwei ungeklärte, aber konsistente Auffälligkeiten auf (⚠️ NICHT behoben, NICHT als Bug bestätigt — Beobachtung dokumentiert)
+
+**Kontext:** Zweiter "Normalbefund" (NV-Z8YW, 2026-08-17) desselben Nutzers, andere
+Lesetext-Variante, zum Test der Reproduzierbarkeit gegen den ersten Normalbefund (NV-BFU8).
+Die meisten Parameter reproduzierten sich gut (Jitter, F0-Tremor, Sprechrate Vorlesen,
+DDK-Rate selbst). Zwei Muster sind in BEIDEN unabhängigen "gesunden" Sessions reproduzierbar
+"auffällig" — ungewöhnlich für echte Normalbefunde, daher dokumentationswürdig.
+
+**1) CPPS bei Fließsprache (Vorlesen/Spontansprache) ~5,6-6,7dB, beide Male "auffällig".**
+Kein Cutoff-Fehler: der Fließsprache-spezifische, literaturbasierte Cutoff (9,33dB statt
+14,45dB) ist in `core/reference_ranges.py::cpps_zones()` UND im User-facing Kontext-Text
+(`core/interpretation.py`, Parameter `cpps_db`) bereits korrekt hinterlegt. Die gemessenen
+Werte liegen aber selbst UNTER diesem lockereren Cutoff — reproduzierbar, kein Einzelausreißer.
+Offene Frage: echte Stimmqualitäts-Eigenschaft dieses Sprechers bei Fließsprache, oder ein
+Unterschied zwischen unserer CPPS-Berechnung (deutsche Lesetexte/Spontansprache) und der
+Referenzstudie (Rainbow-Passage, Englisch)? Nicht geklärt, nur dokumentiert.
+
+**2) DDK-Rate "gemischt" (pa-ta-ka) ~1,84-1,92 Hz, beide Male "auffällig"** (Cutoff ≥5Hz aus
+`ddk_rate_zones()`, Literatur nennt 6,57 Silben/s (SD 0,84) fuer SMR bei Gesunden).
+`core/audio.py::ddk_rate_features()` zaehlt einzelne Verschlusslaute (Taeler in der
+Intensitaetskontur) als "Zyklen" -- bei korrekter Einzellaut-Erkennung waere das Ergebnis
+direkt in Silben/Sekunde und mit der Literatur vergleichbar. Reproduzierbare ~1,9 Hz liegt
+verdaechtig nah an einer "kompletter pa-ta-ka-Dreiklang pro Sekunde"-Rate (was bei ~5,7
+Einzellauten/Sekunde umgerechnet WIEDER im Normbereich läge) statt einer echten
+Einzellaut-Rate. **Hypothese, NICHT verifiziert**: die Verschluss-Erkennung koennte bei
+schnell aufeinanderfolgenden UNTERSCHIEDLICHEN Konsonanten (p→t→k) pro Dreiklang nur EINEN
+statt DREI Taeler finden, waehrend sie bei einzelsilbiger Wiederholung (pa-pa-pa, wo dieselbe
+Erkennung urspruenglich kalibriert wurde) zuverlaessiger 3 separate Taeler pro Sekunde findet.
+
+**Bewusst NICHT als Bug gefixt:** `ddk_rate_features()` teilt sich die Verschluss-Erkennung mit
+`articulation_features()` und ist laut eigenem Docstring "an gesunden Aufnahmen kalibriert,
+bewusst unangetastet gelassen" -- passend zur allgemeinen Projekt-Vorsichtsregel bei bereits
+verifizierter Signal-Erkennung. Eine Aenderung braucht echte Audio-Inspektion (zaehlt der
+Algorithmus bei einer bekannten "pa-ta-ka"-Aufnahme wirklich nur 1-2 statt 3 Taeler pro
+Dreiklang?), nicht nur eine Report-Zahlen-Analyse. **Nächster Schritt**: bei Gelegenheit eine
+DDK-Aufnahme mit bekannter, bewusst langsam gezaehlter Wiederholungszahl (z.B. "10x pa-ta-ka
+in 5 Sekunden nachzaehlen") aufnehmen und `cycle_times`/Anzahl der erkannten Zyklen manuell
+gegenpruefen.
+
+---
