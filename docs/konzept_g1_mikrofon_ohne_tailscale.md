@@ -1,9 +1,34 @@
 # Konzept: Mikrofonzugriff lokal, ohne Abhängigkeit von unserer Tailscale-Infrastruktur (G1)
 
-**Status: reines Konzept, NICHT umgesetzt.** Erstellt 2026-08-17, auf Nutzer-Anfrage nach dem
+**Status (2026-08-17): Empfehlung UMGESETZT.** Erstellt auf Nutzer-Anfrage nach dem
 Road-to-Public-Umbau — betrifft jetzt jede:n, der/die das öffentliche Repo klont und selbst
 hostet, nicht mehr nur unseren eigenen Beelink-Server. Ursprünglich in `docs/backlog.md` als
 G1 vermerkt (2026-08-16).
+
+## ✅ Umsetzung (2026-08-17)
+
+Die im Abschnitt „Empfehlung" unten skizzierte zweistufige Lösung ist umgesetzt:
+
+1. **README-Hinweis zum Solo-Fall** — `localhost:8501` funktioniert bereits ohne HTTPS,
+   direkt in der "Lokal starten"-Sektion dokumentiert.
+2. **Option B (Caddy) als optionales Compose-Profil** — `dashboard/Caddyfile.local` +
+   neuer `caddy`-Service in `dashboard/docker-compose.local.yml` hinter
+   `profiles: ["https"]` (Default-Fall bleibt minimal, Caddy startet nur mit
+   `--profile https`). Caddys lokale CA persistiert in einem eigenen Docker-Volume,
+   README dokumentiert den einmaligen CA-Import je Plattform (macOS/Windows/Linux/
+   mobiles Zweitgerät) über aufklappbare `<details>`-Blöcke.
+
+**Echter Bug beim Verifizieren gefunden und behoben**: der ursprüngliche Catch-all-Listener
+(`:8443` ohne festen Hostnamen) ließ den TLS-Handshake mit `"internal error"` fehlschlagen —
+Caddy wusste ohne `on_demand`-Option nicht, für welchen Host/welche IP es ein Zertifikat
+ausstellen soll, wenn der Listener selbst keinen festen Namen hat. Fix:
+`tls internal { on_demand }`. Verifiziert per Standalone-Caddy-Container (ohne die schweren
+WhisperX-Container zu bauen) gegen `localhost` UND eine simulierte fremde Adresse — beide
+TLS-Handshakes erfolgreich, `502` danach nur weil in diesem isolierten Test kein echter
+Dashboard-Container als Upstream lief (erwartetes Verhalten).
+
+Optionen A/C/D/E unten bleiben als dokumentierte Alternativen bestehen, wurden nicht
+implementiert (bewusst, siehe Begründung unten).
 
 ## Problem, präzise gefasst
 

@@ -1029,16 +1029,19 @@ reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück
 
 ### Bucket G — Lokale HTTPS-Lösung für Endnutzer (WICHTIG, generischer als bisher gedacht)
 
-- [ ] **G1 — Mikrofonzugriff muss auch OHNE Tailscale lokal funktionieren.** Konzept mit 5
-      Optionen (mkcert/Caddy/selbstsigniert/Tailscale-optional/Domain+Let's-Encrypt) + Analyse
-      + Empfehlung siehe
-      [docs/konzept_g1_mikrofon_ohne_tailscale.md](konzept_g1_mikrofon_ohne_tailscale.md)
-      (2026-08-17, NICHT umgesetzt). Wichtiger Fund darin: der reine Solo-Fall
-      (`http://localhost:8501` auf demselben Rechner) funktioniert bereits HEUTE ohne jede
-      Änderung — `localhost` ist laut W3C-Spec immer ein sicherer Kontext. Die eigentliche
-      Lücke betrifft nur den Mehrgeräte-/Netzwerk-Fall. Empfehlung: README-Hinweis sofort
-      (kein Aufwand) + Caddy-Reverse-Proxy optional für den Mehrgeräte-Fall (Streamlit rät
-      von seinen eigenen `--server.sslCertFile`-Flags für Produktivbetrieb selbst ab).
+- [x] **G1 — Mikrofonzugriff muss auch OHNE Tailscale lokal funktionieren** ✅ UMGESETZT
+      (2026-08-17). Konzept mit 5 Optionen (mkcert/Caddy/selbstsigniert/Tailscale-optional/
+      Domain+Let's-Encrypt) + Analyse + Empfehlung siehe
+      [docs/konzept_g1_mikrofon_ohne_tailscale.md](konzept_g1_mikrofon_ohne_tailscale.md).
+      Umgesetzt: (1) README-Hinweis, dass `http://localhost:8501` bereits ohne HTTPS
+      funktioniert (`localhost` ist laut W3C-Spec immer ein sicherer Kontext, deckt den
+      Solo-Fall komplett ab); (2) optionales `https`-Compose-Profil mit Caddy als Reverse
+      Proxy (`dashboard/Caddyfile.local`, `dashboard/docker-compose.local.yml`) für den
+      Mehrgeräte-Fall, inkl. README-Anleitung zum einmaligen CA-Import je Plattform. Beim
+      Verifizieren (Standalone-Caddy-Test, ohne die schweren WhisperX-Container zu bauen)
+      einen echten Konfigurationsfehler gefunden+behoben: `tls internal` allein ließ den
+      TLS-Handshake auf dem hostnamenlosen `:8443`-Listener fehlschlagen, gefixt mit
+      `tls internal { on_demand }`.
 
       Ursprüngliche Klarstellung vom Nutzer: es geht NICHT nur um Komfort (kürzere URL) — Menschen, die die Applikation
       tatsächlich NUTZEN (nicht nur wir selbst), sollen sie lokal auf ihrem eigenen MacBook
