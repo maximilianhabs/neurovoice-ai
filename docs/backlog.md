@@ -1029,8 +1029,18 @@ reines Backlog, nichts umgesetzt** — Umsetzung erst nach Freigabe, dann Stück
 
 ### Bucket G — Lokale HTTPS-Lösung für Endnutzer (WICHTIG, generischer als bisher gedacht)
 
-- [ ] **G1 — Mikrofonzugriff muss auch OHNE Tailscale lokal funktionieren.** Klarstellung vom
-      Nutzer: es geht NICHT nur um Komfort (kürzere URL) — Menschen, die die Applikation
+- [ ] **G1 — Mikrofonzugriff muss auch OHNE Tailscale lokal funktionieren.** Konzept mit 5
+      Optionen (mkcert/Caddy/selbstsigniert/Tailscale-optional/Domain+Let's-Encrypt) + Analyse
+      + Empfehlung siehe
+      [docs/konzept_g1_mikrofon_ohne_tailscale.md](konzept_g1_mikrofon_ohne_tailscale.md)
+      (2026-08-17, NICHT umgesetzt). Wichtiger Fund darin: der reine Solo-Fall
+      (`http://localhost:8501` auf demselben Rechner) funktioniert bereits HEUTE ohne jede
+      Änderung — `localhost` ist laut W3C-Spec immer ein sicherer Kontext. Die eigentliche
+      Lücke betrifft nur den Mehrgeräte-/Netzwerk-Fall. Empfehlung: README-Hinweis sofort
+      (kein Aufwand) + Caddy-Reverse-Proxy optional für den Mehrgeräte-Fall (Streamlit rät
+      von seinen eigenen `--server.sslCertFile`-Flags für Produktivbetrieb selbst ab).
+
+      Ursprüngliche Klarstellung vom Nutzer: es geht NICHT nur um Komfort (kürzere URL) — Menschen, die die Applikation
       tatsächlich NUTZEN (nicht nur wir selbst), sollen sie lokal auf ihrem eigenen MacBook
       oder einem eigenen Server betreiben können, ohne von unserer privaten Tailscale-
       Infrastruktur abhängig zu sein. Browser verweigern `getUserMedia` (Mikrofonzugriff)
