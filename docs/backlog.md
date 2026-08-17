@@ -1992,6 +1992,16 @@ Entscheidung):
 **Nächster Schritt**: mit dem Nutzer klären, welche der Zwischenstufen (falls überhaupt)
 gewünscht ist, sobald mehrere Vergleichsdurchläufe vorliegen — bewusst noch nicht umgesetzt.
 
+**Fortsetzung (2026-08-17)**: nach mehreren eigenen Testreihen + einem extern gegengehörten
+Dysarthrie-Fall genug Datenpunkte für erste, vorsichtige Interpretations-Schwerpunkte je
+Aufgabentyp — siehe eigenes Konzeptdokument
+[docs/konzept_interpretations_schwerpunkte.md](konzept_interpretations_schwerpunkte.md).
+Bewegt sich innerhalb Zwischenstufe 1+2 oben (Muster-/Konsistenz-Hinweis), NICHT Stufe 3.
+Kurzfassung: robusteste Signale bisher Voice Breaks (Vokalisation) und Sprechrate
+(Fließsprache) — beide mehrfach unabhängig bestätigt. DDK-Werte aktuell NICHT nutzbar (siehe
+RANDNOTIZ-13, widersprechen der Literatur in unseren Daten). Reines Konzept, noch nicht
+umgesetzt.
+
 ## Geschlechtsschätzung aus der Stimme ✅ UMGESETZT (2026-08-17)
 
 Nutzer-Wunsch: F0-basierte Schätzung, ob eine Aufnahme eher männlich oder weiblich klingt, mit
