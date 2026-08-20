@@ -601,11 +601,20 @@ def render_glossary(entries: list[dict]) -> None:
         )
         lit_html = f'<div class="dw-glossary-lit">Quelle: {entry["literature"]}</div>' if entry["literature"] else ""
         age_html = f'<div class="dw-glossary-lit">{entry["age_caveat"]}</div>' if entry.get("age_caveat") else ""
+        # RANDNOTIZ-17: Warnung ZUERST und farblich abgesetzt -- wer den Eintrag ueberfliegt,
+        # soll nicht erst nach dem Kontexttext erfahren, dass der Wert nichts taugt.
+        warn_html = (
+            f'<div class="dw-glossary-desc" style="color:{WARNING};border-left:3px solid {WARNING};'
+            f'padding-left:0.6rem;margin-bottom:0.5rem;">'
+            f'<b>Nicht validiert:</b> {entry["validation_warning"]}</div>'
+            if entry.get("validation_warning") else ""
+        )
         st.markdown(
             f'<div class="dw-glossary-entry">'
             f'<div class="dw-glossary-label">{entry["label"]} '
             f'<span class="dw-glossary-evidence" style="color:{color};border-color:{color};">{entry["evidence"]}</span>'
             f'</div>'
+            f'{warn_html}'
             f'<div class="dw-glossary-desc"><b>Was es misst:</b> {entry["description"]}</div>'
             f'<div class="dw-glossary-desc"><b>Kontext (deskriptiv):</b> {entry["context"]}</div>'
             f'{typical_html}{lit_html}{age_html}'
@@ -817,7 +826,13 @@ def render_transcription_job(recording_path: str) -> dict | None:
     -- also erst NACHDEM man schon gewartet hat. Jetzt bereits VOR dem Start sichtbar, direkt
     ueber dem Button, damit klar ist, was gleich passiert (und dass es dauert).
     """
-    from core.job_queue import STATUS_DONE, STATUS_ERROR, get_job_status, submit_job
+    from core.job_queue import (
+        STATUS_DONE,
+        STATUS_ERROR,
+        get_job_status,
+        submit_job,
+        worker_alive,
+    )
     from core.transcription import DEFAULT_MODEL, load_cached_transcript
 
     st.caption(f"Lokales KI-Modell: WhisperX, Modell „{DEFAULT_MODEL}“ — läuft komplett auf diesem Server, keine Cloud/API.")
@@ -855,6 +870,21 @@ def render_transcription_job(recording_path: str) -> dict | None:
             st.success("Transkription abgeschlossen.")
             del st.session_state[job_key]
             st.rerun()
+        elif not worker_alive():
+            # Etappe 1/F2 (docs/konzept_zuverlaessigkeit.md): frueher lief hier einfach der
+            # Fortschrittsbalken weiter -- ohne Fehler, ohne Hinweis, beliebig lange. Ein
+            # nicht laufender Worker ist aber ein Zustand, den nur der Mensch beheben kann,
+            # also muss er auch benannt werden.
+            st.error(
+                "Der Hintergrund-Worker antwortet nicht — die Transkription kann gerade nicht "
+                "bearbeitet werden. Der Container `neurovoice-worker` läuft vermutlich nicht "
+                "(`docker compose up -d` auf dem Server). Der Auftrag bleibt gespeichert und "
+                "wird abgearbeitet, sobald der Worker wieder läuft.",
+                icon=":material/error:",
+            )
+            if st.button("Abbrechen", key=f"cancel_{job_key}"):
+                del st.session_state[job_key]
+                st.rerun()
         elif job["status"] == STATUS_ERROR:
             st.error(f"Transkription fehlgeschlagen: {job.get('error_message', 'unbekannter Fehler')}")
             if st.button("Erneut versuchen", key=f"retry_{job_key}"):

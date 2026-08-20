@@ -15,7 +15,13 @@ from __future__ import annotations
 
 import time
 
-from core.job_queue import list_pending_jobs, mark_done, mark_error, mark_running
+from core.job_queue import (
+    list_pending_jobs,
+    mark_done,
+    mark_error,
+    mark_running,
+    write_heartbeat,
+)
 from core.shared import TRANSCRIPTION_REALTIME_FACTOR
 from core.transcription import save_transcript_cache, transcribe
 
@@ -53,6 +59,9 @@ def _process_transcription_job(job: dict) -> None:
         elapsed = time.time() - start
         progress = min(90, int(elapsed / estimated_total_s * 100))
         mark_running(job_id, progress=progress)
+        # Auch waehrend der Inferenz weiterschlagen: die Hauptschleife kommt hier minutenlang
+        # nicht vorbei, der Worker wuerde sonst genau waehrend der Arbeit als tot gelten.
+        write_heartbeat()
         time.sleep(0.5)
     thread.join()
 
@@ -61,13 +70,21 @@ def _process_transcription_job(job: dict) -> None:
         return
 
     transcript = result["transcript"]
-    save_transcript_cache(audio_path, transcript)
+    # Reihenfolge ist Absicht: ERST das Ergebnis sichern, DANN den Cache versuchen. Frueher
+    # stand save_transcript_cache() davor und konnte den Job mit einer OSError abbrechen,
+    # nachdem die Transkription bereits ein bis zwei Minuten gerechnet hatte -- das Ergebnis
+    # war dann verloren (RANDNOTIZ-16). Der Cache ist eine Beschleunigung, kein Bestandteil
+    # des Ergebnisses; er darf nie darueber entscheiden, ob die Arbeit zaehlt.
     mark_done(job_id, transcript)
+    if not save_transcript_cache(audio_path, transcript):
+        print(f"[worker] Job {job_id}: Transkript berechnet, aber Cache nicht schreibbar "
+              f"({audio_path}) — Ergebnis wurde trotzdem geliefert.", flush=True)
 
 
 def main() -> None:
     print("[worker] NeuroVoice AI Hintergrund-Worker gestartet, warte auf Jobs ...", flush=True)
     while True:
+        write_heartbeat()
         jobs = list_pending_jobs()
         for job in jobs:
             job_id = job["job_id"]

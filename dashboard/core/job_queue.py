@@ -112,3 +112,50 @@ def list_pending_jobs() -> list[dict]:
             jobs.append(job)
     jobs.sort(key=lambda j: j.get("created_at", 0))
     return jobs
+
+
+# --- Worker-Lebenszeichen (Etappe 1, docs/konzept_zuverlaessigkeit.md, Fehlerpfade F2/F4) ----
+#
+# Ohne dieses Signal war ein toter Worker von einem langsamen nicht zu unterscheiden: der Job
+# blieb auf "pending"/"running" stehen und die Oberflaeche zeigte weiter einen Fortschritts-
+# balken -- ohne Fehler, ohne Hinweis, beliebig lange. Das trifft zwei reale Faelle: der
+# Container laeuft gar nicht (`restart: unless-stopped` startet nach einem expliziten Stop
+# NICHT wieder -- genau so war der Syncthing-Container am 2026-08-20 dreizehn Stunden aus),
+# und der Worker stirbt mitten im Lauf (OOM, vgl. INFRA-BEFUND-09).
+
+HEARTBEAT_FILE = os.path.join(JOBS_DIR, "_worker_heartbeat.json")
+
+# Grosszuegig gewaehlt: der Worker schreibt im Sekundentakt, aber waehrend einer laufenden
+# WhisperX-Inferenz kann die Schleife auf einem N150 spuerbar ins Stocken geraten. Lieber
+# spaeter warnen als eine gesunde Transkription faelschlich fuer tot erklaeren.
+HEARTBEAT_STALE_AFTER_S = 60.0
+
+
+def write_heartbeat() -> None:
+    """Vom Worker in jedem Schleifendurchlauf aufgerufen. Fehler werden bewusst verschluckt --
+    ein nicht schreibbares Lebenszeichen darf die Job-Verarbeitung nicht stoppen."""
+    try:
+        os.makedirs(JOBS_DIR, exist_ok=True)
+        tmp = f"{HEARTBEAT_FILE}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"timestamp": time.time()}, f)
+        os.replace(tmp, HEARTBEAT_FILE)
+    except OSError:
+        pass
+
+
+def worker_alive() -> bool:
+    """True, wenn der Worker sich innerhalb von HEARTBEAT_STALE_AFTER_S gemeldet hat.
+
+    Bewusst optimistisch bei fehlender Datei UND bei unlesbarem Inhalt: ein frisch gestarteter
+    Worker hat noch nichts geschrieben, und eine kaputte Datei ist kein Beleg fuer einen toten
+    Prozess. Die Funktion soll einen echten Ausfall melden, nicht bei jeder Unsicherheit
+    Fehlalarm ausloesen."""
+    try:
+        with open(HEARTBEAT_FILE, encoding="utf-8") as f:
+            last = json.load(f).get("timestamp")
+    except (OSError, json.JSONDecodeError):
+        return True
+    if not isinstance(last, (int, float)):
+        return True
+    return (time.time() - last) < HEARTBEAT_STALE_AFTER_S

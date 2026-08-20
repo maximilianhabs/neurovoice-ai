@@ -6,7 +6,6 @@ bleibt nutzbar, wird nach und nach durch echte Modul-Aufnahmen ersetzt, nicht so
 st.set_page_config()/apply_global_style() laufen zentral in app.py, hier NICHT nochmal aufrufen.
 """
 
-import json
 import os
 
 import pandas as pd
@@ -43,6 +42,7 @@ from core.shared import (
     transcribe_with_progress,
 )
 from core.session_store import get_session_id
+from core.transcription import load_cached_transcript, save_transcript_cache
 from core.subject_store import bind_subject_to_session, generate_subject_id
 
 recording_start_blip()
@@ -66,24 +66,23 @@ DATA_DIR = os.environ.get("NEUROVOICE_DATA_DIR", "/data")
 DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
 
 
-def _transcript_cache_path(recording) -> str:
-    patient_dir = os.path.join(DERIVED_DIR, recording.patient_id)
-    os.makedirs(patient_dir, exist_ok=True)
-    base = os.path.splitext(recording.filename)[0]
-    return os.path.join(patient_dir, f"{base}.transcript.json")
+# RANDNOTIZ-16 (2026-08-20): hier standen frueher eigene Cache-Helfer, deren Pfad-Formel von
+# core/transcription.py abwich -- obwohl deren Docstring ausdruecklich beansprucht, die eine
+# gemeinsame Stelle zu sein. Jetzt beide Aufrufwege ueber dieselbe Funktion, damit Cache-Treffer
+# unabhaengig davon greifen, ob eine Aufnahme ueber diese Seite oder ueber den Worker lief.
 
 
 def _load_cached_transcript(recording) -> dict | None:
-    cache_path = _transcript_cache_path(recording)
-    if os.path.exists(cache_path):
-        with open(cache_path, encoding="utf-8") as f:
-            return json.load(f)
-    return None
+    return load_cached_transcript(recording.path)
 
 
 def _save_transcript_cache(recording, transcript: dict) -> None:
-    with open(_transcript_cache_path(recording), "w", encoding="utf-8") as f:
-        json.dump(transcript, f, ensure_ascii=False, indent=2)
+    if not save_transcript_cache(recording.path, transcript):
+        st.warning(
+            "Transkript konnte nicht zwischengespeichert werden — es wird unten trotzdem "
+            "angezeigt, muss beim nächsten Aufruf aber neu berechnet werden.",
+            icon=":material/warning:",
+        )
 
 
 def _fmt(value, decimals=2):

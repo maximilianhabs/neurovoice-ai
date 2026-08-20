@@ -39,6 +39,18 @@ AGE_CAVEAT_JITTER_SHIMMER_HNR_F0 = (
 # Jeder Eintrag: label, unit, description (was der Parameter misst -- Nutzer-Vorgabe
 # 2026-08-15: "Erklärung aller Parameter" direkt auf der Aufnahme-Seite), zones_func (oder
 # None), context (Krankheits-Assoziation, deskriptiv), age_caveat (optional)
+# Warnung fuer die pausenbasierten Masse (RANDNOTIZ-17, docs/bugtracker.md; Entscheidung des
+# Nutzers 2026-08-20: sichtbar lassen, aber deutlich kennzeichnen -- NICHT ausblenden, damit die
+# Werte fuer die eigene Beurteilung im Blick bleiben und auffaellt, falls sie je reagieren).
+PAUSE_VALIDATION_WARNING = (
+    "Dieses Maß ist derzeit NICHT VALIDIERT und sollte nicht zur Beurteilung herangezogen "
+    "werden. Es lieferte in allen bisher geprüften Aufnahmen denselben Wert — auch bei einer "
+    "mittelgradig bis schwer simulierten Dysarthrie, die die Sprechrate um ein Drittel senkte. "
+    "Verdacht: Pausen werden aus den WhisperX-Wortzeitstempeln abgeleitet, deren Forced "
+    "Alignment die Wortgrenzen aneinander dehnt — die Lücken werden dadurch systematisch null, "
+    "unabhängig vom tatsächlichen Sprechverhalten. Siehe docs/bugtracker.md RANDNOTIZ-17."
+)
+
 PARAMETER_INFO: dict[str, dict] = {
     "f0_sd_hz": {
         "label": "Monopitch (F0-Streuung)",
@@ -382,6 +394,7 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
     },
     "fluency_score": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Flüssigkeits-Score",
         "unit": "",
         "description": "Anteil der Sprechspanne, der tatsächlich mit Sprechen (statt Pausen) gefüllt ist — 1,0 = keine nennenswerten Pausen.",
@@ -409,6 +422,7 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
     },
     "mean_pause_duration_s": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Ø Pausendauer",
         "unit": "s",
         "description": "Mittlere Dauer der erkannten Sprechpausen (≥250ms).",
@@ -427,6 +441,7 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
     },
     "max_pause_duration_s": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Max. Pausendauer",
         "unit": "s",
         "description": "Längste einzelne erkannte Sprechpause in der Aufnahme.",
@@ -437,6 +452,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Einzelwert-Ableitung, kein eigenständiges Standardmaß in der Literatur",
     },
     "micro_pause_count": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Mikropausen (250–500ms)",
         "unit": "",
         "description": "Anzahl kürzerer Pausen — meist normale Atem-/Wortgrenzen.",
@@ -447,6 +463,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Projekteigene Schwellenwert-Kategorisierung (500ms-Grenze), keine etablierte Konvention",
     },
     "macro_pause_count": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Makropausen (≥500ms)",
         "unit": "",
         "description": "Anzahl längerer Pausen — eher auffällige Zögerungen/Wortsuche als normale Atemgrenzen.",
@@ -457,6 +474,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Projekteigene Schwellenwert-Kategorisierung (500ms-Grenze), keine etablierte Konvention",
     },
     "mean_micro_pause_duration_s": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Ø Mikropausendauer",
         "unit": "s",
         "description": "Mittlere Dauer der kürzeren Pausen (250–500ms).",
@@ -467,6 +485,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Ergänzt die Mikropausen-Anzahl, keine eigenständige Literatur-Referenz",
     },
     "mean_macro_pause_duration_s": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Ø Makropausendauer",
         "unit": "s",
         "description": "Mittlere Dauer der längeren Pausen (≥500ms).",
@@ -487,6 +506,7 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Direkt aus den Wort-Zeitstempeln abgeleitet, kein etablierter klinischer Referenzwert",
     },
     "pause_count": {
+        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Pausen (Anzahl)",
         "unit": "",
         "description": "Anzahl der Sprechpausen ≥250ms, ermittelt aus den Wort-Zeitstempeln der Transkription.",
@@ -863,6 +883,9 @@ def interpret(param_key: str, value: float | None) -> dict | None:
         "evidence": info["evidence"],
         "literature": info["literature"],
         "typical_values": info.get("typical_values"),
+        # RANDNOTIZ-17: Masse, die nachweislich nicht reagieren, muessen ueberall als
+        # solche erkennbar sein -- Kachel, Tabelle UND Glossar, nicht nur an einer Stelle.
+        "validation_warning": info.get("validation_warning"),
     }
 
     if info["zones_func"] is not None:
@@ -913,7 +936,9 @@ def build_rows(flat: dict) -> list[dict]:
             "Parameter": info["label"],
             "Wert": value_str,
             "Normbereich": info["range"],
-            "Status": info["status"],
+            # Ein nicht validiertes Mass darf keinen Status anzeigen, der wie ein Befund
+            # aussieht ("kein Normwert" liest sich harmlos) -- RANDNOTIZ-17.
+            "Status": "nicht validiert" if info.get("validation_warning") else info["status"],
         })
     return rows
 
@@ -939,6 +964,7 @@ def build_glossary_entries(flat: dict) -> list[dict]:
             "literature": info["literature"],
             "age_caveat": info["age_caveat"],
             "typical_values": info["typical_values"],
+            "validation_warning": info.get("validation_warning"),
         })
     return entries
 
@@ -960,11 +986,14 @@ def build_tiles(flat: dict) -> list[dict]:
         # der P12-Recherche waren die Ranges sonst "unsichtbar erforscht". Nur anzeigen, wenn
         # ein echter Normbereich existiert (nicht bei "kein etablierter Normbereich").
         range_text = info["range"] if info["range"] != "kein etablierter Normbereich" else None
+        warnung = info.get("validation_warning")
         tiles.append({
             "label": info["label"],
             "value_text": value_text,
-            "sub_text": info["status"],
-            "zone": info["zone"],
+            # "warning"-Zone faerbt Rand und Statuswort orange -- lenkt den Blick hin, ohne
+            # eine Auffaelligkeit zu behaupten (RANDNOTIZ-17).
+            "sub_text": "nicht validiert" if warnung else info["status"],
+            "zone": "warning" if warnung else info["zone"],
             "description": info["description"],
             "range_text": range_text,
         })

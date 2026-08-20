@@ -293,6 +293,121 @@ Aufnahmeumgebung systematisch leicht erhöht sein, unabhängig vom Gesundheitszu
 sprechenden Person — noch nicht verifiziert, aber ein Punkt für die künftige
 Interpretations-Vorsicht (siehe auch "Offene Grundsatzfrage" in `docs/backlog.md`).
 
+## Aufnahmeketten-Vergleich Browser vs. iPhone (2026-08-20) — Hypothese oben weitgehend bestätigt
+
+Der Nutzer hat denselben Aufgabensatz noch einmal eingesprochen, diesmal mit dem **iPhone**
+(Sprachmemos, verlustfrei/ALAC, 48kHz/24bit, ca. 20-30cm Abstand) statt über das
+Browser-Mikrofon am Laptop. Damit liegt erstmals **dieselbe Stimme über zwei verschiedene
+Aufnahmeketten** vor — genau der Gegentest, der oben als offener Punkt stand.
+Ablage: `raw/IPH-KTRL-01/`, m4a-Originale unter `originals/IPH-KTRL-01/`.
+
+| Fall | Kette | F0 (Hz) | Jitter % | Shimmer % | HNR dB |
+|---|---|---|---|---|---|
+| SVD gesund #5 (m) | Klinik-Labor | 125,9 | 0,21 | 1,56 | 27,4 |
+| SVD gesund #6 (w) | Klinik-Labor | 251,3 | 0,33 | 2,19 | 27,2 |
+| SVD Parkinson | Klinik-Labor | 161,0 | 0,50 | 2,99 | 18,8 |
+| SVD ALS | Klinik-Labor | 154,1 | 0,43 | 5,19 | 21,1 |
+| Eigene NV-BFU8 (gesund) | **Browser** | 100,1 | 0,59 | 7,61 | 16,5 |
+| Eigene NV-Z8YW (gesund) | **Browser** | 95,0 | 0,64 | 9,72 | 12,5 |
+| **IPH-KTRL-01 take1** (gesund) | **iPhone** | 100,8 | **0,41** | **4,09** | **19,1** |
+| **IPH-KTRL-01 take2** (gesund) | **iPhone** | 98,0 | **0,34** | **3,90** | **20,1** |
+
+**Befund**: Dieselbe Person, dieselbe Aufgabe, nur andere Aufnahmekette — Jitter und Shimmer
+etwa halbiert, HNR um 4-8 dB besser. Die F0 bleibt über alle eigenen Aufnahmen hinweg bei
+95-101 Hz, es ist also nachweislich dieselbe Stimme. Die oben beschriebene Anomalie (eigene
+GESUNDE Aufnahmen schlechter als SVD-*Patient:innen*) verschwindet mit der iPhone-Kette
+weitgehend: die neuen Werte liegen bei Jitter und Shimmer nun besser als SVD-Parkinson und
+SVD-ALS, aber weiterhin schlechter als SVD-gesund (Klinik-Laborausrüstung) — was plausibel ist.
+
+**Die eigentlich wichtige Zahl**: Der Effekt der Aufnahmekette (Shimmer 7,61 → 4,09) ist
+**GRÖSSER als der Effekt der Pathologie innerhalb der SVD-Daten** (gesund 1,56 → Parkinson
+2,99). Solange Aufnahmebedingungen nicht dokumentiert und vergleichbar sind, kann ein
+Shimmer-/Jitter-Unterschied zwischen zwei Aufnahmen also vollständig durch die Technik
+erklärbar sein, ohne dass sich an der Stimme irgendetwas geändert hat. Das ist der bislang
+stärkste Beleg dafür, warum die Aufnahmebedingungs-Erfassung (`core/recording_setup.py`,
+Backlog-Punkt 20) nötig war — und warum absolute Perturbationswerte über verschiedene Setups
+hinweg nicht verglichen werden dürfen.
+
+**Wichtige Gegenhypothese, NICHT ausgeschlossen**: iPhone-Sprachmemos wendet nach allem, was
+über die App bekannt ist, Signalaufbereitung an (automatische Aussteuerung, evtl.
+Rauschunterdrückung). Eine solche Glättung würde Shimmer und HNR künstlich verbessern. Es ist
+damit NICHT belegt, welche der beiden Ketten die „wahren" Werte liefert — belegt ist nur, dass
+die Kette einen Effekt in einer Größenordnung hat, die klinische Unterschiede überdeckt. Für
+die Interpretation ist das die relevante Aussage; welche Kette „richtiger" misst, bliebe ein
+eigener Test gegen ein kalibriertes Referenzmikrofon.
+
+**Einschränkungen**: eine Person, ein Durchgang je Kette, unterschiedliche Tage, kein
+kontrolliertes Experiment. Richtungsweisend, nicht beweisend.
+
+### Paar-Durchlauf iPhone: Kontrolle vs. simulierte bulbäre/faziale Dysarthrie (2026-08-20)
+
+Erstes Session-**Paar** auf identischer Aufnahmekette (iPhone, ALAC 48kHz/24bit, gleicher Tag,
+gleicher Raum, gleicher Abstand, dieselbe Person) — dadurch ist der Aufnahmeketten-Effekt aus
+dem Abschnitt oben als Störgröße herausgerechnet, anders als bei den früheren Browser-Paaren.
+
+- `raw/IPH-KTRL-01/` — gesunde Kontrolle, natürliche Sprechweise
+- `raw/IPH-SIM-01/` — **mittelgradig bis schwer simuliert, gezielt bulbär bzw. faziale Parese**
+  (Angabe des Sprechers)
+
+Je 8 Aufnahmen: /a/ (2 Versuche), /i/, /u/, Lesetext (Nordwind), Spontansprache, DDK kombiniert,
+DDK einzeln. Alle inhaltlich verifiziert (Stimmhaftigkeitsanteil, Formanten, Transkript), kein
+Clipping, m4a-Originale unter `originals/`.
+
+| Parameter | Kontrolle | Simulation | Richtung |
+|---|---|---|---|
+| **Vokalraum VSA (Hz²)** | 421.313 | **40.255** | ↓ −90% |
+| **FCR** | 0,853 | **1,276** | ↑ stark |
+| F1 /a/ (Hz) | 850 | 462 | ↓ Kieferöffnung |
+| F2 /u/ (Hz) | 683 | 1316 | ↑ Lippenrundung weg |
+| F2 /i/ (Hz) | 2112 | 1877 | ↓ Zungenvorverlagerung |
+| **WER Lesetext** | **0,0 %** | **33,3 %** | ↑ |
+| **CER Lesetext** | **0,0 %** | **19,1 %** | ↑ |
+| Sprechrate Lesetext (WPM netto) | 149 | 94 | ↓ |
+| Sprechrate Spontan (WPM netto) | 145 | 98 | ↓ |
+| Ø Wortdauer Lesetext (s) | 0,33 | 0,56 | ↑ |
+| ASR-Konfidenz Lesetext | 0,88 | 0,72 | ↓ |
+| DDK-Rate (Hz) | 3,47 | 3,11 | ↓ |
+| Burst-Schärfe (dB/s) | 331 | 281 | ↓ |
+| Jitter /a/ (%) | 0,41 | 0,43 | ↑ minimal |
+| Shimmer /a/ (%) | 4,09 | 4,30 | ↑ minimal |
+| HNR /a/ (dB) | 19,1 | 20,7 | ↑ gegenläufig |
+
+**Kernbefund — der Parametersatz trennt ARTIKULATION von PHONATION.** Die Simulation zielte auf
+bulbäre/faziale Schwäche, also auf die Artikulation, nicht auf die Stimmlippen. Genau dieses
+Muster zeigen die Werte: Vokalraum, FCR, Verständlichkeit, Sprechrate und Burst-Schärfe brechen
+massiv ein, während Jitter/Shimmer/HNR praktisch unverändert bleiben (HNR sogar minimal besser).
+Das unterscheidet diesen Durchlauf von den früheren Browser-Simulationen (NV-4A4T/NV-VAE5), bei
+denen Jitter/Shimmer/HNR deutlich schlechter wurden — dort wurde offenbar eine allgemeinere
+Dysarthrie inkl. Stimmqualität simuliert. **Für die Interpretation heißt das: unauffällige
+Perturbationswerte schließen eine Dysarthrie NICHT aus**, wenn die Störung artikulatorisch ist.
+
+**Physiologisch stimmig im Detail**: F2 von /u/ verdoppelt sich fast (683 → 1316 Hz). Genau das
+erwartet man bei aufgehobener Lippenrundung — Rundung senkt F2. F1 von /a/ halbiert sich
+(850 → 462 Hz), passend zu reduzierter Kieferöffnung. Beides deckt sich mit der Angabe
+„bulbär/fazial" und ist kein bloßer Skalierungseffekt.
+
+**FCR-Einordnung**: 1,276 liegt deutlich über den früheren, leichteren Simulationen (NV-4A4T
+1,062; NV-VAE5 1,056) und über Sapirs Parkinson-Gruppenmittel (≈1,04) — konsistent mit der
+Selbsteinschätzung „mittelgradig bis schwer". Die Kontrolle liegt mit 0,853 unter den früheren
+Browser-Kontrollen (0,972/0,979); ob das an der Aufnahmekette oder an deutlicherer Artikulation
+liegt, ist offen.
+
+**WER als Verständlichkeitsmaß erstmals am eigenen Paar bestätigt**: Die Kontrolle wird
+fehlerfrei erkannt (0,0 % WER bei 27/27 Wörtern), die Simulation zu einem Drittel falsch. Das
+Transkript zeigt den Zusammenbruch wörtlich — aus „der in einen warmen Mantel gehüllt war" wird
+„werden an Wärmen manche Gehörsführer".
+
+**Einschränkungen**: eine Person, ein Paar, simulierte statt echter Pathologie. Sanity-Check zur
+Priorisierung, kein Validierungsdatensatz.
+
+### Nebenbefund: RANDNOTIZ-15 (SNR-Formel) an echten Daten erneut bestätigt
+
+Die SNR-Schätzung lieferte für die vier gehaltenen Vokale 1,4-3,8 dB, für dieselben Aufnahmen
+mit Fließsprache/DDK aber 30-39 dB — bei durchweg sauberen, nicht übersteuerten Aufnahmen
+(Clipping 0,00% in allen 8 Dateien). Das bestätigt an echtem Material, was bislang nur
+synthetisch gezeigt war: die Perzentil-basierte SNR-Formel misst bei gehaltenen Vokalen die
+fehlende Lautstärke-Dynamik, nicht das Rauschen, und ist für diesen Aufgabentyp ungeeignet.
+
 ## WER/CER-Test am ersten menschlich gegengehörten Dysarthrie-Fall (2026-08-17)
 
 **`svd_als_phrase.wav`** (AufnahmeID 1242, ALS-Sprecher, Satz "Guten Morgen, wie geht es
@@ -336,11 +451,13 @@ auf dem Server verifiziert).
       Patient:innen" (siehe Nachtrag oben) ist nur eine Hypothese (Aufnahmekette/-umgebung) —
       noch nicht verifiziert. Müsste z.B. mit einem dedizierten externen USB-Mikrofon
       gegengetestet werden, um Browser-Mikrofon-Pipeline als Ursache zu bestätigen/auszuschließen.
-      **Voraussetzung dafür ist seit 2026-08-20 geschaffen**: die App erfasst Mikrofon/Abstand/
-      Raum optional je Aufnahme (`core/recording_setup.py`, Backlog-Punkt 20) und stempelt sie
-      an jeden Take. Für den Gegentest also: dieselbe Person, gleicher Text, einmal mit
-      Browser-/Laptop-Mikrofon, einmal mit USB-Mikrofon — jeweils mit ausgefüllten
-      Aufnahmebedingungen, dann die Perturbationswerte gegenüberstellen.
+      **Am 2026-08-20 teilweise durchgeführt** — siehe Abschnitt „Aufnahmeketten-Vergleich
+      Browser vs. iPhone" unten: dieselbe Stimme über zwei Ketten zeigt Jitter/Shimmer etwa
+      halbiert und HNR um 4–8 dB besser. Die Hypothese ist damit gestützt, aber NICHT
+      abschließend geklärt: unklar bleibt, welche Kette näher an den wahren Werten liegt
+      (iPhone-Sprachmemos wendet mutmaßlich Aussteuerung/Rauschunterdrückung an). Offen bleibt
+      der Gegentest gegen ein **kalibriertes Referenzmikrofon**, der diese Frage entscheiden
+      würde.
 - [ ] SVD-Satz-Dateien (`svd_parkinson_phrase.wav`/`svd_als_phrase.wav`) noch nicht gegen
       Sprechrate/WER getestet — braucht WhisperX (läuft nur im Docker-Container, nicht in
       diesem lokalen Skript-Kontext). Nächster Schritt: über `views/testdaten.py` (freie

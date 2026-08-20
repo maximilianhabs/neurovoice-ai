@@ -222,7 +222,7 @@ darüber gestolpert wäre.
 
 ---
 
-## RANDNOTIZ-13 — App reagiert während WhisperX-Transkription nicht ⚠️ OFFEN (bekannte Einschränkung)
+## RANDNOTIZ-13 — App reagiert während WhisperX-Transkription nicht ✅ BEHOBEN (durch P9-Umbau)
 
 **Symptom:** Nutzer meldet, dass die App beim Transkribieren in Modul 2 (Vorlesen) für die
 Dauer der Transkription "hängen" blieb/nicht mehr reagierte.
@@ -243,6 +243,18 @@ sonst geht der Fortschritt verloren"), damit es nicht wie ein Absturz wirkt. Tra
 **Echte Lösung wäre größerer Umbau** (nicht jetzt): Transkription als Hintergrund-Job statt
 blockierendem Aufruf (z.B. eigener Worker-Prozess/Queue) — bewusst zurückgestellt, kein
 kleiner Schritt. Als Backlog-Punkt vermerkt.
+
+**✅ NACHTRAG 2026-08-20 — genau dieser Umbau ist längst erfolgt und der Eintrag war nur nie
+geschlossen worden.** P9 (`docs/konzept_p9_hintergrundjob_lokal.md`) hat die Transkription in
+einen getrennten Worker-Prozess verlagert: `core/job_queue.py` (dateibasierte Queue),
+`worker.py` (eigener Container mit eigenem 7GB-Limit) und
+`core/shared.py::render_transcription_job()` (Fortschritt per `st.fragment`, Seite bleibt
+bedienbar, Modulwechsel während des Laufs möglich). Das im Symptom beschriebene Blockieren
+tritt nicht mehr auf.
+
+Gefunden beim Erstellen von `docs/konzept_zuverlaessigkeit.md` — ein als offen geführter,
+tatsächlich erledigter Eintrag ist genau der Grund, warum der Tracker als Index unzuverlässig
+geworden war.
 
 ---
 
@@ -751,13 +763,47 @@ sollte leer sein.
 
 ## Offene Punkte (Zusammenfassung, damit nichts vergessen wird)
 
-| # | Thema | Priorität | Status |
-|---|---|---|---|
-| PROZESS-RISIKO-04 | Freitext-Dateinamen aus Voice Memos | mittel | offen, Lösung noch nicht entschieden |
-| BEFUND-03 | Kosmetische ALAC-Warnung im Skript-Output | niedrig | offen, rein kosmetisch |
-| PROZESS-RISIKO-05 | Task-Label kann inhaltlich falsch gesetzt werden | niedrig | kein technischer Fix geplant, Wachsamkeit nötig |
+**Diese Tabelle ist die einzige Wahrheit über den offenen Bestand.** Wer einen Eintrag oben
+anlegt oder schließt, pflegt sie hier mit. Stand 2026-08-20 vollständig neu aufgebaut: sie
+listete zuvor 3 Punkte, tatsächlich offen waren 11 — ein Tracker, der nicht sagt, was offen
+ist, kann nicht abgearbeitet werden (siehe `docs/konzept_zuverlaessigkeit.md`, Ursache C).
 
-## RANDNOTIZ-13 — Reproduzierbarkeitstest deckt zwei ungeklärte, aber konsistente Auffälligkeiten auf (⚠️ NICHT behoben, NICHT als Bug bestätigt — Beobachtung dokumentiert)
+### Messwert-Korrektheit — höchste Priorität, weil falsche Zahlen angezeigt werden
+
+| # | Thema | Status |
+|---|---|---|
+| RANDNOTIZ-17 | Pausen-/Flüssigkeitsmaße reagieren nicht (`fluency_score` konstant 1,00) | Ursache unbestätigt; seit 2026-08-20 in UI/Report als **nicht validiert** gekennzeichnet (Nutzer-Entscheidung: kennzeichnen statt ausblenden). Klärung über Etappe 2 |
+| RANDNOTIZ-15 | SNR-Schätzung ungeeignet für gehaltene Vokale | bestätigt (synthetisch + an echten Daten), Fix nicht entschieden. Klärung über Etappe 2 |
+| RANDNOTIZ-18 | DDK-Rate/CV: Zyklus-Zähl-Ambiguität | Hypothese offen. Klärung über Etappe 2 |
+
+### Zuverlässigkeit
+
+| # | Thema | Status |
+|---|---|---|
+| RANDNOTIZ-16 | Transkript-Cache-Pfad + Code-Duplikat | ✅ behoben 2026-08-20 (Etappe 1) |
+| RANDNOTIZ-10 | Cache-Dateien gehören `root` | offen, kosmetisch |
+
+### Datenintegrität / Prozess
+
+| # | Thema | Status |
+|---|---|---|
+| PROZESS-RISIKO-04 | Freitext-Dateinamen aus Sprachmemos | offen; 2026-08-20 erneut eingetreten. Soll über den M4A-Upload in der App entfallen (Etappe 4) |
+| PROZESS-RISIKO-05 | Task-Label kann inhaltlich falsch gesetzt werden | offen; bisher nur manuelle Prüfung. Automatische Plausibilitätsprüfung in Etappe 4 vorgesehen |
+
+### Kosmetik / niedrige Priorität
+
+| # | Thema | Status |
+|---|---|---|
+| RANDNOTIZ-11 | WhisperX glättet Füllwörter weg | offen, Befund statt Bug |
+| RANDNOTIZ-12 | `st.audio_input`: kosmetische Fehlermeldung | offen, nicht blockierend |
+| RANDNOTIZ-14 | Export-Button-Verdacht trotz BUG-25-Fix | offen, Ursache nicht abschließend geklärt |
+| BEFUND-03 | Kosmetische ALAC-Warnung im Skript-Output | offen, rein kosmetisch |
+
+## RANDNOTIZ-18 — Reproduzierbarkeitstest deckt zwei ungeklärte, aber konsistente Auffälligkeiten auf (⚠️ NICHT behoben, NICHT als Bug bestätigt — Beobachtung dokumentiert)
+
+> **Hinweis zur Nummer**: Dieser Eintrag hieß bis 2026-08-20 versehentlich ebenfalls
+> RANDNOTIZ-13 — dieselbe Nummer war doppelt vergeben. Umbenannt auf 18; die ältere
+> RANDNOTIZ-13 (blockierende Transkription) behält ihre Nummer und ist inzwischen erledigt.
 
 **Kontext:** Zweiter "Normalbefund" (NV-Z8YW, 2026-08-17) desselben Nutzers, andere
 Lesetext-Variante, zum Test der Reproduzierbarkeit gegen den ersten Normalbefund (NV-BFU8).
@@ -859,5 +905,90 @@ spaeter (noch nicht entschieden/umgesetzt):
 
 **Fund entstand als Nebenprodukt** der externen Referenzdaten-Bewertung (siehe
 `docs/externe_testdaten.md`), nicht durch gezielte Suche danach.
+
+---
+
+## RANDNOTIZ-16 — `transcript_cache_path()` schreibt neben die Audiodatei und stürzt auf `/data` ab (read-only) ✅ BEHOBEN
+
+**Symptom:** Beim Transkribieren einer Aufnahme aus dem Rohdaten-Korpus
+(`/data/IPH-KTRL-01/...`) bricht der Lauf ab:
+
+```
+OSError: [Errno 30] Read-only file system:
+'/data/IPH-KTRL-01/2026-08-20_1909_task-lesetext_take1.transcript.json'
+```
+
+**Ursache:** `core/transcription.py::transcript_cache_path()` legt den Cache direkt neben die
+Audiodatei (`os.path.splitext(recording_path)[0] + ".transcript.json"`). `/data` ist laut
+`docker-compose.yml` bewusst **read-only** gemountet („das Dashboard liest nur, es schreibt/
+löscht keine Rohdaten"). Für Uploads unter `/derived/_uploads/` funktioniert das, für den
+eigentlichen Korpus nicht.
+
+**Zusätzlich — die Zentralisierung ist unvollständig:** Der Docstring über der Funktion sagt
+ausdrücklich, sie sei zentral, „damit views/*.py UND worker.py garantiert denselben Pfad
+lesen/schreiben". Tatsächlich hat `views/testdaten.py` weiterhin eine **eigene, abweichende**
+Implementierung (`_transcript_cache_path()`), die nach `/derived/<patient_id>/` schreibt — also
+genau dorthin, wo es auch für `/data`-Dateien funktioniert. Es existieren damit zwei
+konkurrierende Pfad-Formeln; die dokumentierte Absicht ist verletzt, und je nach Aufrufweg
+landet der Cache an unterschiedlichen Orten oder gar nicht.
+
+**Auswirkung heute:** begrenzt, weil der Worker praktisch nur Upload-Pfade verarbeitet und
+`testdaten.py` seine eigene (funktionierende) Variante nutzt. Sobald aber ein Job für eine
+Korpus-Datei über `worker.py` läuft, schlägt er fehl.
+
+**✅ BEHOBEN 2026-08-20 (Etappe 1, `docs/konzept_zuverlaessigkeit.md`):**
+
+- `transcript_cache_path()` nutzt jetzt einheitlich `<derived>/<ordnername>/<datei>.transcript.json`
+  — dieselbe Formel, die `views/testdaten.py` schon immer verwendet hat. Für Uploads unter
+  `/derived/_uploads/` ergibt sie unverändert denselben Pfad, **bestehende Caches bleiben also
+  gültig**; nur für `/data`-Dateien wandert der Ort von „unschreibbar" nach „schreibbar". Die
+  befürchtete Cache-Invalidierung tritt damit nicht ein.
+- Die Duplikat-Implementierung in `views/testdaten.py` ist entfernt; beide Aufrufwege gehen
+  über dieselbe Funktion.
+- `save_transcript_cache()` schreibt **atomar** (temporäre Datei + `os.replace`) und gibt
+  `True`/`False` zurück, statt zu werfen.
+- `worker.py` ruft jetzt **erst** `mark_done()` und **danach** den Cache auf. Damit kann ein
+  Schreibfehler eine fertig berechnete Transkription nicht mehr vernichten — der Kern des
+  Problems: die teure Arbeit war erbracht und wurde weggeworfen, weil die Beschleunigung
+  fehlschlug.
+
+**Fund entstand als Nebenprodukt** der WER/CER-Auswertung des iPhone-Paar-Durchlaufs
+(siehe `docs/externe_testdaten.md`), nicht durch gezielte Suche.
+
+---
+
+## RANDNOTIZ-17 — Pausen-/Flüssigkeitsmaße reagieren gar nicht (fluency_score 1,00 in allen Aufnahmen) ⚠️ OFFEN, Verdacht auf Methodenproblem
+
+**Beobachtung:** Im iPhone-Paar-Durchlauf (Kontrolle vs. mittelgradig-schwer simulierte
+Dysarthrie, je Lesetext + Spontansprache) liefern die Pausenmaße in **allen vier** Aufnahmen
+exakt dieselben Werte:
+
+```
+pause_count: 0    micro_pause_count: 0    macro_pause_count: 0
+total_pause_time_s: 0.00                  fluency_score: 1.00
+```
+
+Das ist nicht plausibel. Ein 15-sekündiger Lesetext mit Komma enthält praktisch sicher Pausen,
+und eine als „mittelgradig bis schwer" simulierte Dysarthrie, die die Sprechrate von 149 auf
+94 WPM drückt und die Wortdauer von 0,33 s auf 0,56 s fast verdoppelt, sollte sich in
+irgendeiner Form auch im Pausenverhalten zeigen.
+
+**Verdacht (nicht verifiziert):** `core/speech_metrics.py` leitet Pausen aus den Lücken
+zwischen aufeinanderfolgenden WhisperX-Wortzeitstempeln ab (Schwelle
+`DEFAULT_PAUSE_THRESHOLD_S = 0.25`). WhisperX' Forced Alignment dehnt Wortgrenzen jedoch
+tendenziell so, dass sie aneinander anschließen — die Lücken werden dadurch systematisch
+~0, unabhängig davon, ob real eine Sprechpause vorliegt. Die Pausenmaße würden dann nicht die
+Sprechweise messen, sondern ein Artefakt des Alignment-Verfahrens.
+
+**Konsequenz für die Interpretation:** `fluency_score`, `pause_count`, `total_pause_time_s`
+und die Mikro-/Makropausen-Aufteilung sollten vorerst **nicht** als Unterscheidungsmerkmale
+herangezogen werden, solange nicht geklärt ist, ob sie überhaupt reagieren.
+
+**Nächster Prüfschritt:** eine Aufnahme mit bewusst eingebauten, langen Sprechpausen
+(z.B. 3× zwei Sekunden Stille mitten im Satz) durchlaufen lassen. Bleibt `pause_count` auch
+dann 0, ist die Ableitung aus den Alignment-Zeitstempeln als Ursache bestätigt; eine
+energiebasierte Pausenerkennung direkt aus dem Signal wäre dann die Alternative.
+
+**Fund entstand als Nebenprodukt** des iPhone-Paar-Durchlaufs, nicht durch gezielte Suche.
 
 ---

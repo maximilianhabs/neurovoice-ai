@@ -2,7 +2,13 @@ services:
   neurovoice-dashboard:
     build: .
     container_name: neurovoice-dashboard
-    restart: unless-stopped
+    # `always` statt `unless-stopped` (Etappe 1/F3, docs/konzept_zuverlaessigkeit.md):
+    # `unless-stopped` startet einen Container nach einem EXPLIZITEN `docker stop` auch ueber
+    # einen Neustart des Rechners hinweg NICHT wieder. Genau daran hing am 2026-08-20 der
+    # Syncthing-Container dreizehn Stunden lang. Der Server faehrt nachts planmaessig herunter,
+    # damit ist das ein wiederkehrendes Risiko -- und ein nicht laufender Worker bedeutet:
+    # Transkriptionen bleiben liegen.
+    restart: always
     # P9-Umbau (2026-08-16, docs/konzept_p9_hintergrundjob_lokal.md): WhisperX laeuft jetzt im
     # getrennten neurovoice-worker-Dienst, NICHT mehr direkt im UI-Prozess -- deshalb reicht
     # hier ein deutlich kleineres Limit als vorher (war 7g fuer denselben Container, der auch
@@ -31,7 +37,7 @@ services:
   neurovoice-worker:
     build: .
     container_name: neurovoice-worker
-    restart: unless-stopped
+    restart: always
     command: ["python", "worker.py"]
     # Der Dockerfile-HEALTHCHECK prueft den Streamlit-HTTP-Port -- der Worker laeuft aber
     # nicht als Streamlit-Prozess und haette diesen Port nie, wuerde also immer faelschlich

@@ -134,7 +134,7 @@ Misst: Artikulations-Koordination/-Tempo bei schnellem Silbenwechsel.
 
 Beide DDK-Kennwerte verhalten sich in unseren eigenen Daten NICHT literaturkonform (DDK-Rate
 sollte bei Dysarthrie sinken, stieg bei uns aber in beiden simulierten Sessions). Wie in
-`docs/bugtracker.md` RANDNOTIZ-13 vermutet, könnte die Zyklus-Zaehlung bei "pa-ta-ka" den
+`docs/bugtracker.md` RANDNOTIZ-18 vermutet, könnte die Zyklus-Zaehlung bei "pa-ta-ka" den
 kompletten Dreiklang statt der drei Einzellaute zaehlen — bevor hier irgendeine Schlagrichtung
 genannt wird, muss diese Messfrage geklärt werden (Audio-Gegenprobe mit bekannter
 Wiederholungszahl, siehe dort). **Wichtig: keine Richtung raten, nur weil andere Boxen schon
@@ -167,7 +167,7 @@ welche haben** — lieber ehrlich "noch nicht auswertbar" als eine falsche Richt
    einem ★★☆-Signal.
 2. **Artikulationsschärfe gezielt bei einem nächsten Vorher/Nachher-Vergleich mit auswerten**
    — bisher komplette Lücke, nicht negativ, einfach nie verglichen.
-3. **DDK-Zähl-Hypothese klären** (siehe `docs/bugtracker.md` RANDNOTIZ-13), bevor DDK
+3. **DDK-Zähl-Hypothese klären** (siehe `docs/bugtracker.md` RANDNOTIZ-18), bevor DDK
    überhaupt in eine Schlagrichtung einfließen kann.
 4. **Erst NACH mehr Datenpunkten** über eine konkrete UI-Umsetzung nachdenken (z.B. ein
    "Mustererkennung"-Kasten im Gesamtbericht: "3 von 5 auswertbaren Parametern zeigen ein

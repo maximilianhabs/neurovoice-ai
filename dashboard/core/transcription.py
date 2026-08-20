@@ -82,8 +82,28 @@ def transcribe(
 # Pfad-Formel wie die Streamlit-Seite verwenden).
 
 
+DERIVED_DIR = os.environ.get("NEUROVOICE_DERIVED_DIR", "/derived")
+
+
 def transcript_cache_path(recording_path: str) -> str:
-    return os.path.splitext(recording_path)[0] + ".transcript.json"
+    """Cache-Ablage IMMER unter `<derived>/<ordnername>/<datei>.transcript.json`.
+
+    Bugfix 2026-08-20 (RANDNOTIZ-16, docs/bugtracker.md): vorher wurde die Cache-Datei direkt
+    neben die Audiodatei gelegt. Fuer Uploads unter `/derived/_uploads/` ging das gut, fuer den
+    Rohdaten-Korpus unter `/data/<patient_id>/` nicht -- `/data` ist laut docker-compose.yml
+    bewusst READ-ONLY gemountet. Folge: der Worker transkribierte ein bis zwei Minuten lang,
+    scheiterte dann beim Schreiben an `OSError: Read-only file system` und warf das fertige
+    Ergebnis weg. Genau so passiert beim iPhone-Paar-Durchlauf am 2026-08-20.
+
+    Die neue Formel ist bewusst dieselbe, die views/testdaten.py schon immer benutzt hat (dort
+    als eigene, konkurrierende `_transcript_cache_path()`-Kopie -- jetzt entfernt, siehe
+    RANDNOTIZ-16 "Code-Duplikat"). Fuer Uploads liefert sie unveraendert
+    `/derived/_uploads/...`, bestehende Caches bleiben also gueltig; nur fuer `/data`-Dateien
+    aendert sich der Ort von "unschreibbar" zu "schreibbar"."""
+    ordner = os.path.basename(os.path.dirname(os.path.abspath(recording_path)))
+    ziel_dir = os.path.join(DERIVED_DIR, ordner)
+    base = os.path.splitext(os.path.basename(recording_path))[0]
+    return os.path.join(ziel_dir, f"{base}.transcript.json")
 
 
 def load_cached_transcript(recording_path: str) -> dict | None:
@@ -94,6 +114,21 @@ def load_cached_transcript(recording_path: str) -> dict | None:
     return None
 
 
-def save_transcript_cache(recording_path: str, transcript: dict) -> None:
-    with open(transcript_cache_path(recording_path), "w", encoding="utf-8") as f:
-        json.dump(transcript, f, ensure_ascii=False, indent=2)
+def save_transcript_cache(recording_path: str, transcript: dict) -> bool:
+    """Schreibt den Cache atomar (temporaere Datei + `os.replace`), damit ein Abbruch mitten im
+    Schreiben keine halbe JSON-Datei hinterlaesst, die beim naechsten Laden crasht.
+
+    Gibt True/False zurueck statt zu werfen: das Transkript ist zu diesem Zeitpunkt bereits
+    fertig berechnet und liegt im Job-Ergebnis -- ein fehlgeschlagener Cache-Schreibvorgang
+    darf diese teure Arbeit NICHT vernichten (RANDNOTIZ-16). Der Aufrufer entscheidet, ob er
+    das protokolliert; der Nutzer bekommt sein Transkript in jedem Fall."""
+    cache_path = transcript_cache_path(recording_path)
+    try:
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        tmp_path = f"{cache_path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(transcript, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, cache_path)
+        return True
+    except OSError:
+        return False

@@ -2031,7 +2031,7 @@ Aufgabentyp — siehe eigenes Konzeptdokument
 Bewegt sich innerhalb Zwischenstufe 1+2 oben (Muster-/Konsistenz-Hinweis), NICHT Stufe 3.
 Kurzfassung: robusteste Signale bisher Voice Breaks (Vokalisation) und Sprechrate
 (Fließsprache) — beide mehrfach unabhängig bestätigt. DDK-Werte aktuell NICHT nutzbar (siehe
-RANDNOTIZ-13, widersprechen der Literatur in unseren Daten). Reines Konzept, noch nicht
+RANDNOTIZ-18, widersprechen der Literatur in unseren Daten). Reines Konzept, noch nicht
 umgesetzt.
 
 ## Geschlechtsschätzung aus der Stimme ✅ UMGESETZT (2026-08-17)
@@ -2088,14 +2088,14 @@ Lautstärke/Spektrogramm + neuer Gender-Plot), kein Exception. Deployed, HTTP 20
 ### Reproduzierbarkeitstest: 2. Normalbefund (NV-Z8YW vs. NV-BFU8, 2026-08-17)
 
 Zweiter "Normalbefund" (anderer Lesetext) zum Test, wie stabil die Werte bei derselben Person
-ohne simulierte Pathologie sind — Ergebnis siehe `docs/bugtracker.md` RANDNOTIZ-13 für die
+ohne simulierte Pathologie sind — Ergebnis siehe `docs/bugtracker.md` RANDNOTIZ-18 für die
 Details der zwei auffälligen, aber reproduzierbaren Muster (CPPS bei Fließsprache, DDK-Rate
 "gemischt"). Kurzfassung: Jitter, F0-Tremor, Sprechrate (Vorlesen) und DDK-Rate selbst
 reproduzieren sich gut zwischen beiden Sessions — spricht grundsätzlich für eine verlässliche
 Messung. Shimmer, MPT (v.a. /u/) und Spontansprache-Sprechrate zeigen größere Schwankung,
 plausibel als normale Tag-/Text-Variabilität. Die zwei reproduzierbar "auffälligen" Muster
 (CPPS Fließsprache, DDK-Rate) sind als offene, dokumentierte Beobachtungen vermerkt — nicht
-als Bugs gefixt, siehe RANDNOTIZ-13 für Details und nächste Schritte.
+als Bugs gefixt, siehe RANDNOTIZ-18 für Details und nächste Schritte.
 
 ### Durchlauf 2 (NV-VAE5, "schwerer ausgeprägt", 2026-08-17) — konsolidierter Stand nach 4 Sessions
 
@@ -2112,7 +2112,7 @@ Vergleich gegen beide Normalbefunde (NV-BFU8, NV-Z8YW) und die leichtere Simulat
 
 **Nicht konsistent dosis-abhängig, weniger verlässlich für die Schweregrad-Einordnung:**
 - Jitter/Shimmer/HNR/CPPS bei den Vokalen (Session 4 teils näher an der Baseline als Session 3).
-- DDK-Rate/DDK-Regelmäßigkeit (CV) — vermutlich durch die in RANDNOTIZ-13 vermutete
+- DDK-Rate/DDK-Regelmäßigkeit (CV) — vermutlich durch die in RANDNOTIZ-18 vermutete
   Zählweise-Unsicherheit überlagert.
 
 **Vorläufige Fokus-Parameter-Liste für die künftige Berichts-Interpretation** (Zwischenstand,
@@ -2136,6 +2136,40 @@ HNR-Werte als unsere eigenen "gesunden" Baseline-Sessions — bestätigt unabhä
 eigenen Befund aus der simulierten Dysarthrie-Vergleichsstudie oben: isolierte Vokal-
 Perturbationsmaße sind ein schwächerer Marker als Sprechrate/Voice-Breaks/Wortdauer bei
 fließender Sprache.
+
+## Zuverlässigkeits-Konzept (2026-08-20) — eigener Fahrplan
+
+Nutzer-Wunsch nach einem Konzept, „um die Bugs abzuarbeiten, dass diese Fehler nicht mehr
+passieren", ausgelöst durch zwei selbst bemerkte Probleme (Pausenmaße stimmen nicht,
+Transkription muss zuverlässig laufen). Vollständig ausgearbeitet in
+**`docs/konzept_zuverlaessigkeit.md`** — dort stehen Ursachenanalyse, fünf Etappen,
+Aufwandsschätzung und die bewussten Nicht-Ziele.
+
+Kurzfassung der Ursachen: (A) keine automatisierten Tests, (B) kein Prüfmaßstab für die
+Messwerte selbst — geprüft wird gegen Plausibilität, nicht gegen konstruierte Wahrheit,
+(C) der Bugtracker ist als Index unzuverlässig geworden (doppelte ID, veralteter Eintrag,
+Zusammenfassungstabelle listet 3 von 11 offenen Punkten).
+
+- [x] **Etappe 1** ✅ umgesetzt 2026-08-20 — F1 Cache-Pfad vereinheitlicht + atomar + fail-safe
+      (RANDNOTIZ-16 geschlossen; fertige Transkriptionen können nicht mehr an einem
+      Cache-Fehler verloren gehen), F2 Worker-Heartbeat mit klarer Fehlermeldung statt endlosem
+      Fortschrittsbalken, F3 `restart: always` für Worker + Dashboard, F4 vom Heartbeat
+      miterledigt. Pausenmaße in Kachel/Tabelle/Glossar als „nicht validiert" gekennzeichnet
+      (Nutzer-Entscheidung: kennzeichnen statt ausblenden). Bugtracker aufgeräumt: doppelte
+      RANDNOTIZ-13 aufgelöst (DDK-Eintrag → RANDNOTIZ-18), veralteter Eintrag als durch P9
+      erledigt geschlossen, Übersichtstabelle von 3 auf alle 11 offenen Punkte erweitert.
+      Verifikationstabelle im Konzept-Anhang.
+- [ ] **Etappe 2** — Ground-Truth-Testsuite nach dem Muster des EDF-Analyzers
+      (`tests/test_analytic_groundtruth.py`) + GitHub Actions + `tools/preflight.sh`.
+      Klärt zugleich RANDNOTIZ-17 (Pausen), 13b (DDK-Zyklen) und 15 (SNR)
+- [ ] **Etappe 3** — Regressionstest auf dem Referenzkorpus (IPH-KTRL-01/IPH-SIM-01/SVD),
+      gekoppelt an `FEATURE_SCHEMA_VERSION`
+- [ ] **Etappe 4** — M4A-Upload in der App + automatische Inhalts-Plausibilitätsprüfung;
+      erledigt PROZESS-RISIKO-04 und -05
+- [ ] **Etappe 5** — Restbestand Kosmetik (RANDNOTIZ-10/11/12/14, BEFUND-03)
+
+**Bewusste Selbstbeschränkung daraus**: keine neuen Parameter, solange die vorhandenen nicht
+abgesichert sind.
 
 ## Externes KI-Review 2026-08-20 (README-basiert)
 
@@ -2353,9 +2387,9 @@ unterschiedlichen Körperbaus prüfbar.
 **DDK-Erweiterungen (Punkt 12) — bewusst zurückgestellt, nicht abgelehnt:** Sequenztreue,
 Amplitudenvariation, motorisches Timing-Jitter sind interessante Ideen, aber DDK-Rate/
 -Regelmäßigkeit sind laut unserer eigenen Testreihe aktuell UNZUVERLÄSSIG (siehe
-`docs/bugtracker.md` RANDNOTIZ-13, widersprechen der Literatur in unseren eigenen Daten) —
+`docs/bugtracker.md` RANDNOTIZ-18, widersprechen der Literatur in unseren eigenen Daten) —
 weitere DDK-Kennwerte auf diesem wackligen Fundament aufzubauen wäre verfrüht. Erst die
-Zähl-Hypothese aus RANDNOTIZ-13 klären, dann über Erweiterungen nachdenken.
+Zähl-Hypothese aus RANDNOTIZ-18 klären, dann über Erweiterungen nachdenken.
 
 **Strategische Umbenennung "Digital Speech Examination" (Punkt 24)**: interessanter
 Framing-Vorschlag, aber reine Positionierungsfrage, keine technische Aufgabe — Entscheidung
