@@ -560,6 +560,60 @@ def cpp_features(path: str) -> dict:
     return {"cpps_db": float(cpps_db)}
 
 
+def spectral_tilt_features(path: str) -> dict:
+    """Alpha Ratio + Hammarberg-Index -- zwei etablierte Spektral-Neigungsmasse aus der
+    eGeMAPS-Merkmalsfamilie (Eyben et al. 2016, "The Geneva Minimalistic Acoustic Parameter
+    Set", siehe docs/literatur_review.md), hier bewusst SELBST mit unserer eigenen Parselmouth-
+    Pipeline nachgebaut statt die openSMILE-Bibliothek einzubinden -- deren "audEERING Research
+    License" verbietet Nutzung in einem oeffentlichen Produkt, auch indirekt ueber die reine
+    Anzeige extrahierter Werte (siehe docs/backlog.md, Lizenz-Check 2026-08-17). Beide Masse
+    beschreiben, wie viel Energie in hoeheren vs. tieferen Frequenzbereichen steckt -- ein
+    Hinweis auf Stimmklang-Qualitaet (breathy/gepresst) und teilweise mit Dysarthrie assoziiert.
+
+    NICHT bit-identisch mit der openSMILE-Referenzimplementierung nachgebaut (eigene, einfachere
+    Annaeherung -- Alpha Ratio ueber Praats "Get band energy", Hammarberg ueber den tatsaechlichen
+    Spektral-Spitzenwert je Band statt einer geglaetteten LTAS) -- Werte NICHT ungeprueft gegen
+    in der Literatur mit echtem openSMILE erhobene Zahlen vergleichen, gleiches Prinzip wie beim
+    MDVP-vs-Praat-Vorbehalt bei Jitter/Shimmer.
+
+    - **Alpha Ratio** (dB): Energieverhaeltnis 50-1000Hz gegen 1000-5000Hz. Ein hoeherer Wert
+      bedeutet relativ mehr Energie im tiefen Bereich -- typischerweise bei gepresster/lauter
+      Stimme, ein niedrigerer/negativer Wert bei behauchter Stimme.
+    - **Hammarberg-Index** (dB): Differenz der Spektral-SPITZENWERTE (nicht der Summenenergie)
+      zwischen 0-2000Hz und 2000-5000Hz. Aehnliche Aussagerichtung wie Alpha Ratio, andere
+      Berechnungsmethode (Peak statt Summe) -- beide gelten in der Literatur als ergaenzend,
+      nicht redundant.
+
+    Nur bei ausreichend stimmhaftem Material sinnvoll (nicht bei reiner Stille) -- liefert bei
+    zu kurzen/leisen Aufnahmen ggf. wenig aussagekraeftige Werte, aber keinen Crash (Praat
+    liefert auch fuer sehr kurze Aufnahmen ein Spektrum zurueck).
+    """
+    sound = parselmouth.Sound(path)
+    spectrum = sound.to_spectrum()
+
+    low_energy = spectrum.get_band_energy(50, 1000)
+    high_energy = spectrum.get_band_energy(1000, 5000)
+    alpha_ratio_db = (
+        float(10 * np.log10(low_energy / high_energy))
+        if low_energy > 0 and high_energy > 0 else None
+    )
+
+    real, imag = spectrum.values[0], spectrum.values[1]
+    magnitude_db = 20 * np.log10(np.sqrt(real**2 + imag**2) + 1e-12)
+    freqs = spectrum.xs()
+    low_band = magnitude_db[(freqs >= 0) & (freqs <= 2000)]
+    high_band = magnitude_db[(freqs > 2000) & (freqs <= 5000)]
+    hammarberg_index_db = (
+        float(low_band.max() - high_band.max())
+        if len(low_band) and len(high_band) else None
+    )
+
+    return {
+        "alpha_ratio_db": alpha_ratio_db,
+        "hammarberg_index_db": hammarberg_index_db,
+    }
+
+
 def phonation_dynamics_features(path: str) -> dict:
     """Erweiterung zu Stufe 1 (Audit 2026-07-22): geht ueber die reine Momentaufnahme
     (Mittelwert/SD) hinaus.

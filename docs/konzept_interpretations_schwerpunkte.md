@@ -104,11 +104,18 @@ Misst: Artikulation, Tempo, Prosodie, Sprachproduktion — NICHT reine Phonation
   zwischen den Gruppen erkennbar in unseren bisherigen Daten. Könnte an einem zu strengen
   Cutoff für unsere spezifische Aufnahmesituation liegen (siehe RANDNOTIZ in
   `docs/backlog.md`). Nicht in die Schlagrichtung einbeziehen, bis geklärt.
-- **Artikulationsschärfe (`mean_burst_sharpness_db_s`) — ❓ noch KEIN Vergleichsdatenpunkt
-  vorhanden.** Wird zwar berechnet, aber in keiner der bisherigen Auswertungen (eigene
-  Sessions, externe Referenzen) explizit gesund-vs-pathologisch verglichen. Muss beim
-  nächsten Testdurchlauf gezielt mit ausgewertet werden, bevor eine Richtung genannt werden
-  kann — aktuell reine Lücke, kein negativer Befund.
+- **Artikulationsschärfe (`mean_burst_sharpness_db_s`) — ★☆☆ erster Datenpunkt vorhanden
+  (2026-08-17), noch zu wenig für mehr als ★.** Nachgeholt an den beiden SVD-Satz-Aufnahmen
+  (nur bei Wort-/Satzmaterial auswertbar, bei reinen Vokalen `None` — korrekt, da keine
+  Konsonanten-Verschlüsse vorhanden). **ALS-Fall (vom Nutzer als eindeutig dysarthrisch
+  bestätigt): 181,8 dB/s — deutlich unter unserer eigenen gesunden Baseline (~350-380 dB/s
+  bei Vorlesen).** Parkinson-Fall dagegen 357,1 dB/s — unauffällig, im gesunden Bereich.
+  Plausibel richtungsweisend für den ALS-Fall, aber mit nur 2 externen Fällen (und
+  unterschiedlichem Ätiologie-Typ: bulbär/ALS vs. hypokinetisch/Parkinson) zu wenig für mehr
+  als eine vorsichtige erste Einschätzung. Formant-Spannweite/-Geschwindigkeit
+  (`formant_dynamics_features()`) ebenfalls erstmals ausgewertet, aber Richtung noch unklar
+  (ALS zeigte größere F1-Spannweite, aber kleinere F2-Geschwindigkeit als Parkinson — kein
+  konsistentes Muster erkennbar bei n=2).
 
 ---
 
@@ -148,7 +155,8 @@ welche haben** — lieber ehrlich "noch nicht auswertbar" als eine falsche Richt
 | Fließsprache | Erkennungs-Konfidenz | ★★☆ | ↓ (vielversprechend, wenig Daten) |
 | Fließsprache | WER/CER | ⚠️ | unklar, nur in Kombination mit Konfidenz |
 | Fließsprache | CPPS | ❌ | aktuell kein Signal in unseren Daten |
-| Fließsprache | Artikulationsschärfe | ❓ | noch nie verglichen |
+| Fließsprache | Alpha Ratio / Hammarberg-Index | ❓ | neu (2026-08-17), noch keine gesunde Vergleichsaufnahme |
+| Fließsprache | Artikulationsschärfe | ★☆☆ | ↓ bei ALS-Fall (181,8 vs. ~350-380 gesund), Parkinson-Fall unauffällig — n=2, vorsichtig |
 | DDK | DDK-Rate | ❌ | widerspricht Literatur in unseren Daten |
 | DDK | DDK-Regelmäßigkeit (CV) | ❌ | inkonsistent |
 

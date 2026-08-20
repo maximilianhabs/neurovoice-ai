@@ -29,6 +29,7 @@ from core.audio import (
     prosody_features,
     recording_quality_features,
     save_uploaded_wav,
+    spectral_tilt_features,
 )
 from core.interpretation import build_glossary_entries, build_rows, build_tiles, flatten_take
 from core.module_state import add_take, delete_take, get_takes, select_take
@@ -116,6 +117,7 @@ if uploaded is not None:
             "formant_dynamics": formant_dynamics_features(recording.path),
             "prosody": prosody_features(recording.path),
             "cpp": cpp_features(recording.path),
+            "spectral_tilt": spectral_tilt_features(recording.path),
             "intonation": intonation_contour_features(recording.path),
         })
         st.success(f"Aufgenommen: {recording.filename}")

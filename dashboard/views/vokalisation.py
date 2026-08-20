@@ -33,6 +33,7 @@ from core.audio import (
     phonation_features,
     recording_quality_features,
     save_uploaded_wav,
+    spectral_tilt_features,
     vowel_space_area,
 )
 from core.interpretation import PARAMETER_INFO, build_glossary_entries, build_rows, build_tiles, flatten_take
@@ -136,6 +137,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 form = formant_features(recording.path)
                 mpt = mpt_features(recording.path)
                 tremor = f0_tremor_features(recording.path)
+                spectral_tilt = spectral_tilt_features(recording.path)
                 add_take(MODULE, task_key, {
                     "recording_path": recording.path,
                     "filename": recording.filename,
@@ -146,6 +148,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                     "formants": form,
                     "mpt": mpt,
                     "tremor": tremor,
+                    "spectral_tilt": spectral_tilt,
                 })
                 st.success(f"Aufgenommen: {recording.filename}")
                 st.rerun()  # Widget-Key aendert sich (len(takes)+1) -> sauberer neuer leerer Recorder

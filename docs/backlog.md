@@ -1775,6 +1775,23 @@ hatten bzw. die bei uns bereits richtig sind.
       die Erkennungs-Konfidenz nur bei Ø 52% lag (5 von 6 Wörtern unsicher, ein Wort nur 5,4%).
       **WER/CER allein ist bei kurzen prädiktiven Sätzen kein verlässlicher Verständlichkeits-
       Indikator** — muss immer zusammen mit der Konfidenz betrachtet werden, nicht isoliert.
+- [x] **Alpha Ratio + Hammarberg-Index** ✅ UMGESETZT (2026-08-17, Quick-Win-Alternative zu
+      openSMILE/eGeMAPS) — neues `core/audio.py::spectral_tilt_features()`, selbst mit
+      Parselmouth nachgebaut statt der lizenzrechtlich problematischen openSMILE-Bibliothek
+      (siehe eGeMAPS-Eintrag oben). Alpha Ratio über Praats `get_band_energy` (50-1000Hz vs.
+      1000-5000Hz), Hammarberg-Index über den tatsächlichen Spektral-Spitzenwert je Band
+      (0-2000Hz vs. 2000-5000Hz) statt Summenenergie. Bewusst NICHT bit-identisch mit
+      openSMILE nachgebaut, im Kontext-Text vermerkt. Neue `PARAMETER_INFO`-Einträge
+      `alpha_ratio_db`/`hammarberg_index_db`, keine eigenen Zonen (kein etablierter
+      Cutoff für unsere eigene Berechnung). In Vokalisation, Vorlesen UND Spontansprache
+      verkabelt (überall dort, wo auch CPPS berechnet wird). Verifiziert: End-to-End-Test der
+      `flatten_take()`/`build_rows()`-Pipeline + voller AppTest-Durchlauf mit synthetischer
+      Aufnahme, kein Exception. Deployed, HTTP 200 verifiziert.
+      **Nebenbefund beim ersten Testlauf**: an den beiden SVD-Satz-Aufnahmen (ALS/Parkinson)
+      berechnet — ALS zeigt höhere Werte (Alpha Ratio 24,2dB, Hammarberg 44,6dB) als Parkinson
+      (20,8dB/35,2dB), aber noch keine gesunde Fließsprache-Referenz mit derselben Aufgabe
+      zum Vergleich vorhanden — Richtung noch nicht interpretierbar, siehe
+      `docs/konzept_interpretations_schwerpunkte.md`.
 - [ ] **Silero VAD** als Ersatz/Ergänzung zur bisherigen Intensitäts-basierten Stimm-/Pause-
       Erkennung — leichtgewichtig, lokal/ONNX-fähig, aber neue Abhängigkeit, Nutzen gegenüber
       der bestehenden Lösung (Intensitätsschwellen aus Praat) noch nicht belegt.

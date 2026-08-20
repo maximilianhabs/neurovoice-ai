@@ -129,6 +129,41 @@ PARAMETER_INFO: dict[str, dict] = {
             "über verschiedene Studien/Aufnahmebedingungen hinweg."
         ),
     },
+    "alpha_ratio_db": {
+        "label": "Alpha Ratio",
+        "unit": "dB",
+        "description": "Energieverhältnis zwischen tiefen (50-1000Hz) und hohen (1000-5000Hz) Frequenzanteilen — Spektral-Neigung als Stimmklang-Hinweis.",
+        "zones_func": None,
+        "context": (
+            "Aus der eGeMAPS-Merkmalsfamilie (Eyben et al. 2016), hier selbst mit unserer "
+            "eigenen Parselmouth-Pipeline nachgebaut statt der openSMILE-Bibliothek (deren "
+            "Lizenz eine Nutzung in einem öffentlichen Produkt nicht erlaubt, siehe "
+            "docs/backlog.md). Höherer Wert = relativ mehr Energie im tiefen Bereich (eher "
+            "gepresste/laute Stimme), niedrigerer/negativer Wert = eher behauchte Stimme. "
+            "NICHT bit-identisch mit einer openSMILE-Berechnung — eigene, einfachere "
+            "Annäherung, nicht ungeprüft mit Literaturwerten aus echtem openSMILE vergleichen."
+        ),
+        "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "The Geneva Minimalistic Acoustic Parameter Set (GeMAPS) for Voice Research and Affective Computing (Eyben et al. 2016, IEEE Transactions on Affective Computing)",
+        "typical_values": None,
+    },
+    "hammarberg_index_db": {
+        "label": "Hammarberg-Index",
+        "unit": "dB",
+        "description": "Differenz der spektralen Spitzenwerte zwischen 0-2000Hz und 2000-5000Hz — ergänzendes Spektral-Neigungsmaß zur Alpha Ratio.",
+        "zones_func": None,
+        "context": (
+            "Ebenfalls aus der eGeMAPS-Merkmalsfamilie, gleicher Nachbau-Hinweis wie bei "
+            "Alpha Ratio (siehe dort). Nutzt den Spektral-SPITZENWERT je Band statt der "
+            "Summenenergie — andere Berechnungsmethode, ähnliche Aussagerichtung, gilt in der "
+            "Literatur als ergänzend, nicht redundant zur Alpha Ratio."
+        ),
+        "age_caveat": None,
+        "evidence": "eigene Heuristik / explorativ",
+        "literature": "The Geneva Minimalistic Acoustic Parameter Set (GeMAPS) for Voice Research and Affective Computing (Eyben et al. 2016, IEEE Transactions on Affective Computing)",
+        "typical_values": None,
+    },
     "cpps_db": {
         "label": "CPPS",
         "unit": "dB",
