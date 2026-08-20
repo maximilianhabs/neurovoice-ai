@@ -1,5 +1,7 @@
 # NeuroVoice AI — Lokales Sprachbiomarker-System
 
+*[English version](README.en.md)*
+
 ![Status](https://img.shields.io/badge/status-aktiv-brightgreen)
 ![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0--or--later-blue)
 
