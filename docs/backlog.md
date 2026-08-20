@@ -2136,3 +2136,55 @@ HNR-Werte als unsere eigenen "gesunden" Baseline-Sessions — bestätigt unabhä
 eigenen Befund aus der simulierten Dysarthrie-Vergleichsstudie oben: isolierte Vokal-
 Perturbationsmaße sind ein schwächerer Marker als Sprechrate/Voice-Breaks/Wortdauer bei
 fließender Sprache.
+
+## Externes KI-Review 2026-08-20 (README-basiert)
+
+Externer KI-Reviewer hat nur das README gelesen (nicht den Code) und eine ausführliche
+Einschätzung abgegeben. Wie beim Audit 2026-08-15: jeder Punkt gegen den tatsächlichen Stand
+geprüft, nicht blind übernommen.
+
+### Faktisch falsch — README-Lücke, kein fehlendes Feature
+
+- **"Kein echter Qualitäts-Score"**: Falsch — existiert seit P6 (2026-08-15),
+  `core/shared.py::quality_tiles()` zeigt in JEDEM Modul einen "Aufnahmequalität prüfen"-Block
+  (Clipping/Stille-Anteil/SNR-Schätzung, mit Ampel-Einordnung). Reviewer konnte es nur nicht
+  sehen, weil das README es nicht erwähnt — README-Ergänzung nachgezogen (siehe dort).
+
+### Bereits vorhanden/getrackt — externe Bestätigung, keine neue Aktion nötig
+
+- **Longitudinalanalyse als wichtigste nächste Ausbaustufe**: deckt sich mit unserem eigenen
+  Prio-4-Punkt "Longitudinal-Tracking/Δ-Metriken" oben — wartet weiterhin bewusst auf echte
+  Mehrfach-Sessions über Zeit. Externe Bestätigung der Priorität, keine neue Erkenntnis.
+- **Normwerte als größter wissenschaftlicher Engpass**: aktiv in Arbeit (P12, externe SVD/
+  TORGO-Vergleiche, siehe `docs/externe_testdaten.md`) — ehrlicher Zwischenstand: selbst
+  unsere eigenen "gesunden" Aufnahmen weichen messbar von der SVD-Referenz ab (vermutlich
+  Aufnahmeketten-Effekt), die Normierung bleibt also wirklich schwierig, nicht nur unbearbeitet.
+- **Linguistische Tiefenanalyse der Spontansprache** (Satzkomplexität, semantische Kohärenz,
+  Wortfindungsstörungen) als "größter blinder Fleck": deckt sich mit "Stufe 7 — Linguistik &
+  Kognition" oben — TTR/MTLD schon umgesetzt, der Rest explizit als offen vermerkt, braucht
+  neuen NLP-Stack (spaCy), bisher zurückgestellt.
+- **Self-Supervised-Embeddings (WavLM/HuBERT/wav2vec2)** als "zweitgrößter blinder Fleck":
+  bereits als eigene Initiative vermerkt ("Self-Supervised-Learning-Embeddings"), Grundsatz-
+  frage weiterhin ungeklärt — auch weil das schnell wieder Richtung unvalidiertes ML-Modell
+  driftet, siehe Projektprinzip.
+
+### Explizit NICHT übernommen — widerspricht Projektprinzip
+
+- **Domänen-Scores** (z.B. "Phonation: 78/100", "Artikulation: 91/100" als Verdichtungs-Layer
+  über Einzelparameter): ein 0-100-Wert ist faktisch ein Score, unabhängig von der Benennung —
+  würde bei unserer kleinen, unvalidierten Stichprobe genau die Pseudo-Objektivität vortäuschen,
+  die das Projektprinzip ("keine Diagnose, kein unvalidierter Score", `CONTRIBUTING.md`)
+  bewusst vermeidet. Dieselbe Spannung haben wir selbst schon durchdacht, siehe oben "Offene
+  Grundsatzfrage: über die reine Deskription hinaus?" — bewusste Entscheidung für die
+  schwächere, aber ehrliche Zwischenstufe "N von M Parametern zeigen ein Muster in dieselbe
+  Richtung" statt einer verdichteten Zahl je Domäne.
+
+### Neuer, sinnvoller Punkt — noch offen, braucht Nutzer-Entscheidung
+
+- [ ] **F0-Geschlechtsschätzung: Framing entschärfen.** Reviewer-Vorschlag: als
+      "Stimmcharakteristik" statt als Geschlechtsbestimmung labeln — geringer klinischer
+      Nutzen, Risiko für Fehlinterpretation bei einer reinen F0-Heuristik. Berechtigter Punkt,
+      auch wenn die Anzeige schon vorsichtig gehalten ist (Konfidenz gedeckelt 50-97%,
+      expliziter Grenzen-Hinweis im UI-Text, siehe `core/voice_demographics.py`). War
+      ursprünglich expliziter Nutzer-Wunsch als eigenständiges Feature (2026-08-17) — Framing-
+      Änderung nicht einseitig vorgenommen, sondern als offene Entscheidung vermerkt.

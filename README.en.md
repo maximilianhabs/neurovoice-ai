@@ -32,11 +32,13 @@ optional/skippable:
 4. **Diadochokinesis (DDK)** — pa/ta/ka individually + combined, for articulation rhythm.
 
 Each recording can be repeated multiple times (take management); the best take is selected
-manually — **nothing is averaged automatically**. For each parameter the app shows the value,
-reference range, status, and a context comment with a literature source, clearly labeled by
-evidence tier ("well established" / "discussed in research" / "own heuristic" /
-"descriptive only") — see [docs/literatur_review.md](docs/literatur_review.md) (German). An
-overall report summarizes all modules of a session and can be exported as Excel/PDF.
+manually — **nothing is averaged automatically**. Every recording first goes through a quality
+check (clipping, silence ratio, estimated signal-to-noise ratio, with a traffic-light rating)
+before the actual values are shown. For each parameter the app shows the value, reference
+range, status, and a context comment with a literature source, clearly labeled by evidence
+tier ("well established" / "discussed in research" / "own heuristic" / "descriptive only") —
+see [docs/literatur_review.md](docs/literatur_review.md) (German). An overall report
+summarizes all modules of a session and can be exported as Excel/PDF.
 
 Transcription (for speech rate/pauses/lexical measures) runs entirely locally via
 [WhisperX](https://github.com/m-bain/whisperX) in its own background process — no cloud API,

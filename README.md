@@ -31,11 +31,13 @@ optional/überspringbar:
 4. **Diadochokinese (DDK)** — pa/ta/ka einzeln + kombiniert, für Artikulations-Rhythmus.
 
 Jede Aufnahme kann mehrfach wiederholt werden (Take-Management); die beste Aufnahme wird manuell
-ausgewählt — es wird **nichts automatisch gemittelt**. Pro Parameter zeigt die App Wert,
-Normbereich, Status und einen Kontext-Kommentar mit Literaturquelle, klar nach Evidenzgrad
-eingeordnet ("gut etabliert" / "in der Forschung diskutiert" / "eigene Heuristik" / "deskriptiv")
-— siehe [docs/literatur_review.md](docs/literatur_review.md). Ein Gesamtbericht fasst alle
-Module einer Sitzung zusammen und lässt sich als Excel/PDF exportieren.
+ausgewählt — es wird **nichts automatisch gemittelt**. Jede Aufnahme durchläuft zuerst einen
+Qualitäts-Check (Clipping, Stille-Anteil, geschätztes Signal-Rausch-Verhältnis, mit
+Ampel-Einordnung), bevor die eigentlichen Werte gezeigt werden. Pro Parameter zeigt die App
+Wert, Normbereich, Status und einen Kontext-Kommentar mit Literaturquelle, klar nach
+Evidenzgrad eingeordnet ("gut etabliert" / "in der Forschung diskutiert" / "eigene Heuristik" /
+"deskriptiv") — siehe [docs/literatur_review.md](docs/literatur_review.md). Ein Gesamtbericht
+fasst alle Module einer Sitzung zusammen und lässt sich als Excel/PDF exportieren.
 
 Transkription (für Sprechrate/Pausen/Lexik) läuft komplett lokal über
 [WhisperX](https://github.com/m-bain/whisperX) in einem eigenen Hintergrund-Prozess — keine
