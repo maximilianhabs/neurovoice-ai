@@ -2188,3 +2188,84 @@ geprüft, nicht blind übernommen.
       expliziter Grenzen-Hinweis im UI-Text, siehe `core/voice_demographics.py`). War
       ursprünglich expliziter Nutzer-Wunsch als eigenständiges Feature (2026-08-17) — Framing-
       Änderung nicht einseitig vorgenommen, sondern als offene Entscheidung vermerkt.
+
+### Teil 2 — nach echtem Repo-Zugriff (2026-08-20, deutlich ausführlicher)
+
+Derselbe Reviewer konnte jetzt tatsächlich das Repo lesen (nicht nur README) und liefert 24
+Einzelpunkte. Wieder jeder Punkt gegen den Code geprüft. Viele Punkte überschneiden sich mit
+Teil 1 oben (Longitudinal, Normwerte, Linguistik, Embeddings, Domänen-Scores/LLM-Diagnose
+abgelehnt — Einschätzung bleibt dort unverändert, hier nicht wiederholt).
+
+**Zwei weitere faktische Korrekturen nötig:**
+- **"Formanten nur als Mittelwert" (Punkt 14)**: Falsch — `formant_dynamics_features()`
+  existiert bereits seit Audit 2026-07-22 und liefert genau die geforderte Zeitauflösung
+  (F1-/F2-Geschwindigkeit, -Spannweite, -IQR), nicht nur `formant_features()`s Ganzaufnahme-
+  Mittelwert. Zwei verschiedene Funktionen mit unterschiedlichem Zweck, beide vorhanden.
+- **"WhisperX large-v3 vermutlich falscher Default für den N150" (Punkt 5/22)**: War ein
+  reales Problem, ist aber bereits gelöst — siehe P9-Umbau
+  (`docs/konzept_p9_hintergrundjob_lokal.md`): WhisperX läuft in einem GETRENNTEN Worker-
+  Prozess mit eigenem 7GB-RAM-Limit, genau für large-v3 dimensioniert und seit Wochen stabil
+  im Betrieb (inkl. BUG-23-Fix gegen ungewollten CUDA-Ballast). Modellwahl selbst war zudem
+  eine bewusste Nutzer-Entscheidung ("Genauigkeit vor Geschwindigkeit", siehe
+  `core/transcription.py`-Docstring), keine unbedachte Drift vom Ausgangskonzept.
+
+**Neue, echte Lücken — sinnvoll, ins Backlog übernommen:**
+
+- [ ] **Feature-/Algorithmus-Versionierung je Messung** (Punkt 19) — wir haben bereits
+      `schema_version` fürs SITZUNGS-Speicherformat (`core/session_store.py`), aber KEINE
+      Versionierung auf Ebene der einzelnen Analyse (welche Code-Version/welcher Algorithmus
+      hat genau DIESEN Jitter-Wert berechnet). Echte Lücke, wird mit zunehmender
+      Longitudinal-Nutzung wichtiger — wenn sich `core/audio.py`-Formeln mal ändern, muss man
+      alte vs. neue Werte unterscheiden können. Sollte VOR dem Longitudinal-Dashboard (Prio 4
+      oben) angegangen werden, sonst baut man Verlaufsvergleiche auf wackligem Boden.
+- [ ] **Per-Take-Qualitätsvergleich vor der manuellen Auswahl** (Punkt 3) — `quality_tiles()`
+      existiert schon (siehe Teil 1 oben), zeigt aber nur EINEN ausgewählten Take. Sinnvolle
+      Erweiterung: alle Takes einer Teilaufgabe mit ihren Qualitätswerten NEBENEINANDER zeigen,
+      bevor man sich für den besten entscheidet — objektive Unterstützung für die ohnehin schon
+      manuelle Auswahl (P1), kein automatisches Auswählen.
+- [ ] **Messunsicherheit/Konfidenz je Parameter, nicht nur je Aufnahme** (Punkt 11) — aktuell
+      zeigt `quality_tiles()` die Aufnahmequalität insgesamt, aber nicht z.B. "Jitter beruht
+      nur auf 40% stimmhaften Frames, mit Vorsicht interpretieren". Guter Gedanke, bräuchte
+      pro Parameter eine eigene Zuverlässigkeits-Kennzahl (z.B. Anteil gültiger
+      Analyse-Frames) — noch nicht spezifiziert, reiner Merkposten.
+- [ ] **Aufnahme-Metadaten strukturiert erfassen** (Punkt 20) — Mikrofon-Typ/-Abstand,
+      Samplerate, Raum als optionale Freitext-/Auswahlfelder bei der Aufnahme speichern.
+      Sinnvoll für spätere Normierung (unterschiedliche Aufnahmeketten beeinflussen Jitter/
+      Shimmer nachweislich, siehe unser eigener Befund beim SVD-Vergleich in
+      `docs/externe_testdaten.md`), aber nur wenn es die Aufnahme-UX nicht verkompliziert —
+      müsste vorsichtig/optional eingebaut werden.
+- [ ] **FCR (Formant Centralization Ratio)** (Punkt 13) — Ergänzung zur bereits vorhandenen
+      VSA (`vowel_space_area()`), evtl. klinisch aussagekräftiger laut Reviewer. Kleiner
+      Zusatzaufwand, da dieselben F1/F2-Werte der drei Eckvokale schon vorliegen. Bisher nicht
+      recherchiert, ob dafür eine zitierfähige Formel/Normquelle existiert — vor Umsetzung
+      kurz gegenprüfen (gleiches Prinzip wie bei VSA, P12).
+
+**Bereits durch eigene Prinzipien/Architektur abgedeckt, keine Aktion nötig:**
+- 48kHz-Rohaufnahme getrennt von 16kHz-ASR-Downsampling (Punkt 6) — genau so bereits umgesetzt
+  (WhisperX resampled intern selbst, unsere eigene Analyse bleibt auf den Original-48kHz-Daten).
+- Alpha-Ratio/Hammarberg-Definition dokumentieren (Punkt 7) — bereits im Code-Docstring
+  vermerkt ("NICHT bit-identisch mit openSMILE... eigene Annäherung"), siehe
+  `core/audio.py::spectral_tilt_features()`.
+- "Individuelle Baseline statt absolutem Normwert" (Punkt 9-10) — deckt sich inhaltlich mit
+  unserem eigenen Befund/Vorbehalt zu Jitter/Shimmer/HNR in
+  `docs/konzept_interpretations_schwerpunkte.md` ("nur als Verlaufsvergleich INNERHALB
+  derselben Aufnahmekette nutzen, nicht als absoluten Cutoff") — dieselbe Idee, schon
+  eigenständig hergeleitet, keine neue Erkenntnis nötig, nur Bestätigung.
+- Auth/Rollen/Audit-Log bei Mehrbenutzer-Betrieb (Punkt 21) — bereits explizit in
+  `SECURITY.md` als offene Einschränkung benannt.
+- "Status"-Label ggf. zu klinisch (Punkt 18) — leichte Überschneidung mit dem bereits
+  vermerkten Framing-Punkt zur Geschlechtsschätzung oben; App zeigt an vielen Stellen bereits
+  Disclaimer ("rein beschreibend, keine Diagnose"), aber die Wortwahl "Status: auffällig" auf
+  einzelnen Kacheln könnte trotzdem missverständlich wirken — als kleiner, unpriorisierter
+  Merkposten vermerkt, keine akute Aktion.
+
+**DDK-Erweiterungen (Punkt 12) — bewusst zurückgestellt, nicht abgelehnt:** Sequenztreue,
+Amplitudenvariation, motorisches Timing-Jitter sind interessante Ideen, aber DDK-Rate/
+-Regelmäßigkeit sind laut unserer eigenen Testreihe aktuell UNZUVERLÄSSIG (siehe
+`docs/bugtracker.md` RANDNOTIZ-13, widersprechen der Literatur in unseren eigenen Daten) —
+weitere DDK-Kennwerte auf diesem wackligen Fundament aufzubauen wäre verfrüht. Erst die
+Zähl-Hypothese aus RANDNOTIZ-13 klären, dann über Erweiterungen nachdenken.
+
+**Strategische Umbenennung "Digital Speech Examination" (Punkt 24)**: interessanter
+Framing-Vorschlag, aber reine Positionierungsfrage, keine technische Aufgabe — Entscheidung
+liegt beim Nutzer, hier nur vermerkt, nicht bewertet.
