@@ -32,6 +32,7 @@ from core.shared import (
     render_interpretation_table,
 )
 from core.subject_store import require_subject_or_stop
+from core.versioning import take_provenance_caption
 
 require_subject_or_stop()
 recording_start_blip()
@@ -202,7 +203,7 @@ for (task_key, meta), tab in zip(SUB_TASKS.items(), tabs):
                 for i, t in enumerate(takes):
                     dcol1, dcol2, dcol3 = st.columns([2, 3, 1])
                     dcol1.write(f"Versuch {t['take_number']}" + (" · ausgewählt" if t.get("selected") else ""))
-                    dcol2.caption(t["filename"])
+                    dcol2.caption(take_provenance_caption(t))
                     if dcol3.button("Löschen", key=f"del_{task_key}_{i}", icon=":material/delete:"):
                         delete_take(MODULE, task_key, i)
                         st.rerun()

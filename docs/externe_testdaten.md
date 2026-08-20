@@ -336,6 +336,11 @@ auf dem Server verifiziert).
       Patient:innen" (siehe Nachtrag oben) ist nur eine Hypothese (Aufnahmekette/-umgebung) —
       noch nicht verifiziert. Müsste z.B. mit einem dedizierten externen USB-Mikrofon
       gegengetestet werden, um Browser-Mikrofon-Pipeline als Ursache zu bestätigen/auszuschließen.
+      **Voraussetzung dafür ist seit 2026-08-20 geschaffen**: die App erfasst Mikrofon/Abstand/
+      Raum optional je Aufnahme (`core/recording_setup.py`, Backlog-Punkt 20) und stempelt sie
+      an jeden Take. Für den Gegentest also: dieselbe Person, gleicher Text, einmal mit
+      Browser-/Laptop-Mikrofon, einmal mit USB-Mikrofon — jeweils mit ausgefüllten
+      Aufnahmebedingungen, dann die Perturbationswerte gegenüberstellen.
 - [ ] SVD-Satz-Dateien (`svd_parkinson_phrase.wav`/`svd_als_phrase.wav`) noch nicht gegen
       Sprechrate/WER getestet — braucht WhisperX (läuft nur im Docker-Container, nicht in
       diesem lokalen Skript-Kontext). Nächster Schritt: über `views/testdaten.py` (freie

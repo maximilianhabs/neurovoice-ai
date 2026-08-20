@@ -24,6 +24,8 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from core.interpretation import build_rows, flatten_take
+from core.recording_setup import describe_recording_setup
+from core.versioning import FEATURE_SCHEMA_VERSION
 
 DISCLAIMER = (
     "Diese Übersicht ist rein beschreibend. Ein \"auffälliger\" Wert bedeutet NICHT "
@@ -59,6 +61,10 @@ def collect_report_data(session_id: str) -> dict:
             module_out[subtask] = {
                 "take_number": selected.get("take_number", "?"),
                 "recorded_at": selected.get("recorded_at", "–"),
+                # Aeltere Sitzungen (vor Einfuehrung der Analyse-Versionierung) haben das Feld
+                # nicht -- leeres Dict statt KeyError, Report bleibt erzeugbar.
+                "analysis_metadata": selected.get("analysis_metadata") or {},
+                "recording_setup": selected.get("recording_setup") or {},
                 "rows": rows,
             }
         if module_out:
@@ -80,6 +86,7 @@ def build_excel_report(data: dict) -> bytes:
         {"Feld": "Alter", "Wert": data["subject_age"] if data["subject_age"] is not None else "–"},
         {"Feld": "Sitzungs-ID", "Wert": data["session_id"] or "–"},
         {"Feld": "Erstellt am", "Wert": data["generated_at"]},
+        {"Feld": "Analyse-Version (aktueller Code)", "Wert": FEATURE_SCHEMA_VERSION},
         {"Feld": "Hinweis", "Wert": DISCLAIMER},
     ]
 
@@ -92,6 +99,10 @@ def build_excel_report(data: dict) -> bytes:
                     "Teilaufgabe": subtask,
                     "Versuch": info["take_number"],
                     "Aufgenommen": info["recorded_at"],
+                    "Analyse-Version": info["analysis_metadata"].get("feature_schema_version", "–"),
+                    "Analysiert am": info["analysis_metadata"].get("analysis_timestamp", "–"),
+                    "Abtastrate (Hz)": info["analysis_metadata"].get("audio_sampling_rate_hz", "–"),
+                    "Aufnahmebedingungen": describe_recording_setup(info["recording_setup"]),
                     **row,
                 })
 
@@ -172,6 +183,20 @@ def build_pdf_report(data: dict) -> bytes:
                 _pdf_safe(f"{subtask} - Versuch {info['take_number']} ({info['recorded_at']})"),
                 new_x="LMARGIN", new_y="NEXT",
             )
+
+            meta = info["analysis_metadata"]
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(130, 130, 130)
+            pdf.cell(
+                0, 4,
+                _pdf_safe(
+                    f"Analyse-Version {meta.get('feature_schema_version', '-')}  |  "
+                    f"Abtastrate {meta.get('audio_sampling_rate_hz', '-')} Hz  |  "
+                    f"{describe_recording_setup(info['recording_setup'])}"
+                ),
+                new_x="LMARGIN", new_y="NEXT",
+            )
+            pdf.set_text_color(0, 0, 0)
 
             pdf.set_font("Helvetica", "B", 8)
             pdf.set_fill_color(235, 235, 235)

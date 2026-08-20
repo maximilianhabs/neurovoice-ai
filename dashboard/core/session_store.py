@@ -75,6 +75,10 @@ def save_session_snapshot(session_id: str) -> None:
         # Sitzungen hinweg (core/subject_store.py), Alter wird JE SITZUNG neu erfasst.
         "subject_id": st.session_state.get("subject_id"),
         "subject_age_at_session": st.session_state.get("subject_age"),
+        # Punkt 20 (docs/backlog.md): Aufnahmebedingungen der Sitzung -- die je Take gestempelte
+        # Kopie steckt ohnehin in `modules`, das hier ist der aktuelle Sitzungs-Stand, damit ein
+        # Reload das Formular nicht leer zuruecklaesst.
+        "recording_setup": st.session_state.get("recording_setup"),
         "created_at": existing_created_at or now,
         "updated_at": now,
         "modules": serializable,
@@ -104,6 +108,8 @@ def load_session_snapshot(session_id: str) -> None:
         st.session_state["subject_id"] = payload["subject_id"]
     if payload.get("subject_age_at_session") is not None and st.session_state.get("subject_age") is None:
         st.session_state["subject_age"] = payload["subject_age_at_session"]
+    if payload.get("recording_setup") and not st.session_state.get("recording_setup"):
+        st.session_state["recording_setup"] = payload["recording_setup"]
 
     if st.session_state.get("module_results"):
         return

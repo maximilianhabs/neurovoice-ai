@@ -45,6 +45,19 @@ Referenzwert/Cutoff braucht eine zitierfähige Quelle oder muss ehrlich als "eig
 gekennzeichnet werden — keine erfundenen Normbereiche. Wo die Literatur uneinig ist (z. B. MPT,
 siehe `PARAMETER_INFO`), gehört das als solches dargestellt, nicht künstlich vereinheitlicht.
 
+## Wenn sich eine Berechnung in `core/audio.py` ändert: Version erhöhen
+
+Jede gespeicherte Aufnahme trägt die Analyse-Version mit, unter der ihre Werte berechnet wurden
+(`core/versioning.py::FEATURE_SCHEMA_VERSION`, gestempelt in `core/module_state.py::add_take()`,
+sichtbar in Gesamtbericht und Export). Das ist die Grundlage dafür, dass ein Verlaufsvergleich
+über Monate hinweg belastbar bleibt: ohne sie ließe sich später nicht mehr unterscheiden, ob ein
+veränderter Jitter-Wert an der Stimme oder an einer geänderten Formel liegt.
+
+**Ändert ein Pull Request eine Berechnung so, dass sich bei gleicher Audiodatei ein anderer Wert
+ergibt, muss `FEATURE_SCHEMA_VERSION` erhöht und die Historie im Modulkopf ergänzt werden.**
+Reines Refactoring ohne Wertänderung bleibt außen vor — eine Version, die sich bei jeder
+Codeänderung dreht, sagt nichts mehr aus.
+
 ## Bevor ein Vorschlag zum wiederholten Mal kommt
 
 `docs/backlog.md` ist die laufend geführte Historie aller bereits geprüften/entschiedenen

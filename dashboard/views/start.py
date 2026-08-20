@@ -11,6 +11,7 @@ Bewusst KEIN Name/keine Initialen, nur ID + Alter (siehe core/subject_store.py-D
 
 import streamlit as st
 
+from core.recording_setup import render_recording_setup_editor
 from core.session_store import get_session_id
 from core.subject_store import bind_subject_to_session, generate_subject_id, list_subjects, rename_subject
 
@@ -120,3 +121,10 @@ else:
             if st.button("Sitzung starten", key="start_existing", icon=":material/play_arrow:"):
                 bind_subject_to_session(get_session_id(), chosen["subject_id"], int(age_existing))
                 st.switch_page("views/vokalisation.py")
+
+# Aufnahmebedingungen (Punkt 20, docs/backlog.md) -- bewusst hier am Seitenende und eingeklappt,
+# NICHT im Aufnahme-Fluss der Module: die Angaben sind optional und sollen die Aufnahme-UX nicht
+# verkomplizieren. Ausserhalb der if/elif-Kette oben, damit sie unabhaengig vom Zuordnungsstand
+# genau einmal erscheinen.
+st.divider()
+render_recording_setup_editor()

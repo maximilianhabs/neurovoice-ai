@@ -11,6 +11,7 @@ Wert eine Erkrankung BEDEUTET. Inhaltliche Basis: docs/literatur_review.md.
 import streamlit as st
 
 from core.interpretation import build_glossary_entries, build_rows, flatten_take
+from core.recording_setup import describe_recording_setup
 from core.report_export import build_excel_report, build_pdf_report, collect_report_data
 from core.session_store import get_session_id
 from core.shared import render_glossary, render_interpretation_table
@@ -83,6 +84,14 @@ else:
                 f"**{subtask}** — Versuch {selected.get('take_number', '?')} von {len(takes)}, "
                 f"aufgenommen {selected.get('recorded_at', '–')}"
             )
+            meta = selected.get("analysis_metadata") or {}
+            if meta:
+                st.caption(
+                    f"Analyse-Version {meta.get('feature_schema_version', '–')} · "
+                    f"Abtastrate {meta.get('audio_sampling_rate_hz', '–')} Hz · "
+                    f"analysiert {meta.get('analysis_timestamp', '–')}  \n"
+                    f"{describe_recording_setup(selected.get('recording_setup'))}"
+                )
             render_interpretation_table(rows)
 
             for entry in build_glossary_entries(flat):

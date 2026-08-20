@@ -20,7 +20,9 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
+from core.recording_setup import get_recording_setup
 from core.session_store import get_session_id, save_session_snapshot
+from core.versioning import build_analysis_metadata
 
 
 def get_takes(module: str, subtask: str) -> list[dict]:
@@ -40,6 +42,10 @@ def add_take(module: str, subtask: str, take: dict) -> None:
     take["take_number"] = len(takes) + 1
     take["selected"] = len(takes) == 0  # erster Versuch automatisch als "bester" markiert
     take["recorded_at"] = datetime.now(timezone.utc).isoformat()
+    take["analysis_metadata"] = build_analysis_metadata(take.get("recording_path"))
+    # Aufnahmebedingungen JE TAKE festhalten, nicht nur je Sitzung: wechselt jemand mitten in
+    # der Sitzung das Mikrofon, behaelt jede Aufnahme, was zu ihrem Zeitpunkt galt.
+    take["recording_setup"] = get_recording_setup()
     takes.append(take)
     _persist()
 

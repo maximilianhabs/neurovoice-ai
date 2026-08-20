@@ -2211,13 +2211,30 @@ abgelehnt — Einschätzung bleibt dort unverändert, hier nicht wiederholt).
 
 **Neue, echte Lücken — sinnvoll, ins Backlog übernommen:**
 
-- [ ] **Feature-/Algorithmus-Versionierung je Messung** (Punkt 19) — wir haben bereits
-      `schema_version` fürs SITZUNGS-Speicherformat (`core/session_store.py`), aber KEINE
-      Versionierung auf Ebene der einzelnen Analyse (welche Code-Version/welcher Algorithmus
-      hat genau DIESEN Jitter-Wert berechnet). Echte Lücke, wird mit zunehmender
-      Longitudinal-Nutzung wichtiger — wenn sich `core/audio.py`-Formeln mal ändern, muss man
-      alte vs. neue Werte unterscheiden können. Sollte VOR dem Longitudinal-Dashboard (Prio 4
-      oben) angegangen werden, sonst baut man Verlaufsvergleiche auf wackligem Boden.
+- [x] **Feature-/Algorithmus-Versionierung je Messung** (Punkt 19) — ✅ umgesetzt 2026-08-20.
+      Ausgangslage: `schema_version` gab es nur fürs SITZUNGS-Speicherformat
+      (`core/session_store.py`), nicht auf Ebene der einzelnen Analyse (welche Code-Version hat
+      genau DIESEN Jitter-Wert berechnet). Ohne das wären Verlaufsvergleiche nach einer
+      Formeländerung in `core/audio.py` nicht mehr interpretierbar — deshalb bewusst VOR dem
+      Longitudinal-Dashboard (Prio 4 oben) angegangen.
+
+      Umsetzung:
+      - Neues `core/versioning.py` mit `FEATURE_SCHEMA_VERSION` (aktuell `1.0.0`, manuell
+        gepflegt inkl. Änderungshistorie im Modulkopf — bewusst KEIN Git-Commit-Hash, das
+        Docker-Image enthält kein `.git`) und `build_analysis_metadata()`.
+      - Gestempelt zentral in `core/module_state.py::add_take()` — dem einen Punkt, durch den
+        jeder Take aus allen 4 Modulen läuft; die Modul-Seiten mussten dafür nicht angefasst
+        werden.
+      - Erfasst je Messung: `feature_schema_version`, `analysis_timestamp` (bewusst getrennt von
+        `recorded_at` — bei späterer Re-Analyse fallen beide auseinander) und
+        `audio_sampling_rate_hz`, direkt aus der Datei gelesen statt angenommen (unsere
+        Aufnahmen 48 kHz, SVD 50 kHz, TORGO 16 kHz — siehe `docs/externe_testdaten.md`).
+      - Sichtbar in der Take-Verwaltung aller 4 Module, im Gesamtbericht je Teilaufgabe sowie im
+        Excel- (3 Spalten + Meta-Zeile) und PDF-Export.
+      - Altbestand: Takes aus Sitzungen vor dieser Änderung haben das Feld nicht und zeigen „–"
+        statt einer vorgetäuschten Version; Report-Erzeugung bleibt fehlerfrei (getestet).
+      - Pflichtregel für künftige Formeländerungen in `CONTRIBUTING.md` verankert (Version nur
+        erhöhen, wenn sich bei gleicher Audiodatei der Wert ändert — nicht bei Refactoring).
 - [ ] **Per-Take-Qualitätsvergleich vor der manuellen Auswahl** (Punkt 3) — `quality_tiles()`
       existiert schon (siehe Teil 1 oben), zeigt aber nur EINEN ausgewählten Take. Sinnvolle
       Erweiterung: alle Takes einer Teilaufgabe mit ihren Qualitätswerten NEBENEINANDER zeigen,
@@ -2228,12 +2245,32 @@ abgelehnt — Einschätzung bleibt dort unverändert, hier nicht wiederholt).
       nur auf 40% stimmhaften Frames, mit Vorsicht interpretieren". Guter Gedanke, bräuchte
       pro Parameter eine eigene Zuverlässigkeits-Kennzahl (z.B. Anteil gültiger
       Analyse-Frames) — noch nicht spezifiziert, reiner Merkposten.
-- [ ] **Aufnahme-Metadaten strukturiert erfassen** (Punkt 20) — Mikrofon-Typ/-Abstand,
-      Samplerate, Raum als optionale Freitext-/Auswahlfelder bei der Aufnahme speichern.
-      Sinnvoll für spätere Normierung (unterschiedliche Aufnahmeketten beeinflussen Jitter/
-      Shimmer nachweislich, siehe unser eigener Befund beim SVD-Vergleich in
-      `docs/externe_testdaten.md`), aber nur wenn es die Aufnahme-UX nicht verkompliziert —
-      müsste vorsichtig/optional eingebaut werden.
+- [x] **Aufnahme-Metadaten strukturiert erfassen** (Punkt 20) — ✅ umgesetzt 2026-08-20, direkt
+      im Anschluss an die Analyse-Versionierung oben (dieselbe Stoßrichtung: Herkunft einer Zahl
+      nachvollziehbar machen). Motivation: unterschiedliche Aufnahmeketten beeinflussen Jitter/
+      Shimmer/HNR nachweislich — unser eigener SVD-Befund (`docs/externe_testdaten.md`), bei dem
+      GESUNDE Eigenaufnahmen schlechter abschnitten als SVD-Patient:innen, ist bis heute nicht
+      aufgeklärt, weil die Aufnahmebedingungen nie mitgeschrieben wurden. Ab jetzt sind sie
+      dokumentierbar; der Konfundierungsverdacht lässt sich künftig prüfen statt nur vermuten.
+
+      Umsetzung:
+      - Neues `core/recording_setup.py`: Mikrofon-Typ (Auswahl), Gerät/Modell (Freitext),
+        Abstand (Auswahl), Raumsituation (Auswahl). Samplerate NICHT hier — die kommt bereits
+        automatisch aus `core/versioning.py`, statt sie doppelt und fehleranfällig abzufragen.
+      - UI bewusst zurückhaltend (Backlog-Vorgabe „nur wenn es die Aufnahme-UX nicht
+        verkompliziert"): eingeklappter, optionaler Abschnitt am Ende der Startseite, einmal je
+        Sitzung, KEIN zusätzlicher Schritt im Aufnahme-Fluss der 4 Module. Wer nichts angibt,
+        merkt von der Funktion nichts.
+      - Gestempelt je Take in `core/module_state.py::add_take()`, nicht nur je Sitzung: bei
+        einem Mikrofonwechsel mitten in der Sitzung behält jede Aufnahme, was zu ihrem Zeitpunkt
+        galt (getestet — alte Takes ändern sich nicht rückwirkend).
+      - Nicht ausgefüllte Felder werden weggelassen statt mit Platzhalter gefüllt; Anzeige sagt
+        dann ausdrücklich „Aufnahmebedingungen nicht dokumentiert" — eine fehlende Angabe ist
+        beim späteren Vergleich eine echte Information, kein Nichts.
+      - Sichtbar im Gesamtbericht je Teilaufgabe und im Excel-/PDF-Export; Sitzungs-Stand
+        überlebt einen Reload (`core/session_store.py`, Muster wie `subject_id`).
+      - Altbestand ohne die Felder bleibt fehlerfrei exportierbar (mit Alt-/Neu-Mischung
+        getestet).
 - [ ] **FCR (Formant Centralization Ratio)** (Punkt 13) — Ergänzung zur bereits vorhandenen
       VSA (`vowel_space_area()`), evtl. klinisch aussagekräftiger laut Reviewer. Kleiner
       Zusatzaufwand, da dieselben F1/F2-Werte der drei Eckvokale schon vorliegen. Bisher nicht
