@@ -119,6 +119,13 @@ sf.write('1580-a_n.wav', data, rate)
 ```
 Samplerate der SVD-Aufnahmen: 50000 Hz (deutlich höher als unsere eigenen 48kHz-Aufnahmen).
 
+**Lizenz-Hinweis zu `nspfile`**: auf PyPI ohne deklarierte Lizenz gelistet (Stand 2026-08-17,
+geprüft via PyPI-JSON-API). Wird von uns NICHT eingebunden (kein Eintrag in
+`dashboard/requirements.txt`, nur diese Doku-Erwähnung als optionales Reproduktions-Tool für
+eigene Recherchezwecke) — wer es selbst nutzen möchte, sollte die Lizenzlage vorher eigenständig
+prüfen (z. B. direkt im Quellcode-Repository nach einer LICENSE-Datei suchen), bevor er/sie es
+in einem eigenen Projekt einsetzt.
+
 ## Bisher heruntergeladene/getestete Dateien
 
 | Datei (lokal) | Quelle | Sprache | Label | Dauer | Aufgabentyp | Für unsere Module geeignet? | Von Mensch gegengehört? |

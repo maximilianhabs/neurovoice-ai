@@ -37,7 +37,13 @@ Module einer Sitzung zusammen und lässt sich als Excel/PDF exportieren.
 
 Transkription (für Sprechrate/Pausen/Lexik) läuft komplett lokal über
 [WhisperX](https://github.com/m-bain/whisperX) in einem eigenen Hintergrund-Prozess — keine
-Cloud-API, keine Daten verlassen den eigenen Rechner/Server.
+Cloud-API, keine Daten verlassen den eigenen Rechner/Server. Beim Vorlesen-Modul (bekannter
+Referenztext) vergleicht die App die Transkription zusätzlich gegen den Originaltext
+(Wort-/Zeichenfehlerrate) als Näherung für Sprachverständlichkeit. Ergänzend gibt es eine
+F0-basierte Geschlechtsschätzung mit Konfidenzangabe sowie zwei spektrale Stimmklang-Maße
+(Alpha Ratio, Hammarberg-Index) — beide eigenständig mit der bestehenden Praat-Pipeline
+berechnet, nicht über die (lizenzrechtlich für uns nicht nutzbare) openSMILE-Bibliothek, siehe
+[docs/literatur_review.md](docs/literatur_review.md).
 
 ## Datenschutz-Prinzip
 
