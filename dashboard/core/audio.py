@@ -785,6 +785,50 @@ def vowel_space_area(f1_a, f2_a, f1_i, f2_i, f1_u, f2_u) -> float | None:
     return 0.5 * abs(f1_i * (f2_a - f2_u) + f1_a * (f2_u - f2_i) + f1_u * (f2_i - f2_a))
 
 
+def formant_centralization_ratio(f1_a, f2_a, f1_i, f2_i, f1_u, f2_u) -> float | None:
+    """Formant Centralization Ratio (FCR) nach Sapir, Ramig, Spielman & Fox (2010) --
+    Ergaenzung zur VSA oben, aus denselben F1/F2-Werten der drei Eckvokale, ohne zusaetzliche
+    Aufnahme (docs/backlog.md, Punkt 13 aus dem externen KI-Review 2026-08-20).
+
+    Formel (in zwei unabhaengigen Quellen wortgleich geprueft, siehe docs/literatur_review.md):
+        FCR = (F2u + F2a + F1i + F1u) / (F2i + F1a)
+
+    Idee: bei Vokal-Zentralisierung (artikulatorischem "Undershoot") steigen die Formanten im
+    Zaehler tendenziell an und die im Nenner fallen ab -- der Quotient waechst also mit
+    zunehmender Zentralisierung. Hoehere Werte = staerker zentralisiert. FCR ist exakt der
+    Kehrwert des Vowel Articulation Index (VAI).
+
+    WARUM ZUSAETZLICH ZUR VSA: die VSA ist stark sprecherabhaengig (Vokaltraktlaenge, damit
+    Geschlecht/Koerpergroesse), was echte Unterschiede statistisch zudeckt. Sapir et al. (2011,
+    MAVEBA) zeigen genau das an 38 Parkinson-Erkrankten vs. 14 gesunden Kontrollen: die VSA
+    trennte die Gruppen NICHT signifikant (p=0,058), der VAI/FCR dagegen deutlich (p=0,0006,
+    Effektstaerke 1,24). Der Variationskoeffizient innerhalb der Gruppen faellt von 41%/25%
+    (VSA) auf 8%/7% (VAI) -- deshalb ist das Mass ueberhaupt interessant.
+
+    DREI EINSCHRAENKUNGEN, die einer Uebertragung publizierter Zahlen auf unsere Werte
+    entgegenstehen (bewusst hier dokumentiert, nicht nur im Glossar):
+    1. Sapirs Vokale stammen aus WOERTERN/SAETZEN ("key", "stew", "Bobby"), nicht aus gehaltenen
+       Vokalen wie in unserem Vokalisations-Modul. Gehaltene Vokale werden typischerweise
+       sorgfaeltiger/deutlicher produziert -- unsere Werte sind mit den publizierten also NICHT
+       direkt vergleichbar.
+    2. Die Referenzdaten stammen von Sprecher:innen des amerikanischen Englisch; das deutsche
+       Vokalsystem ist ein anderes.
+    3. Die Gruppen ueberlappen erheblich (VAI: Parkinson 0,96 +/- 0,08 vs. gesund 1,05 +/- 0,08,
+       also rund eine Standardabweichung Abstand). Ein Einzelwert kann damit nicht klassifizieren
+       -- FCR bleibt hier deshalb bewusst ohne Ampel/Cutoff, genau wie die VSA.
+
+    Arbeitet wie vowel_space_area() auf bereits berechneten formant_features()-Werten dreier
+    Takes, nicht auf einer einzelnen Sound-Datei.
+    """
+    values = (f1_a, f2_a, f1_i, f2_i, f1_u, f2_u)
+    if any(v is None for v in values):
+        return None
+    denominator = f2_i + f1_a
+    if denominator <= 0:
+        return None  # physikalisch unmoeglich, aber kein Division-durch-Null-Absturz riskieren
+    return (f2_u + f2_a + f1_i + f1_u) / denominator
+
+
 MFCC_N_COEFFS = 12
 
 

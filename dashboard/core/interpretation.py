@@ -810,6 +810,36 @@ PARAMETER_INFO: dict[str, dict] = {
             "hohen Methodenabhängigkeit, deshalb weiterhin bewusst ohne Ampel/Cutoff."
         ),
     },
+    "fcr": {
+        "label": "Vokal-Zentralisierung (FCR)",
+        "unit": "",
+        "description": "Verhältniszahl aus den Formanten der drei Eckvokale /a/, /i/, /u/: (F2u + F2a + F1i + F1u) ÷ (F2i + F1a). Höhere Werte = stärker zentralisierte Vokale.",
+        "zones_func": None,
+        "context": (
+            "Ergänzung zur Vokalraum-Fläche (VSA) aus denselben Messwerten — ohne zusätzliche "
+            "Aufnahme. Vorteil gegenüber der VSA: deutlich weniger abhängig von Körperbau/"
+            "Vokaltraktlänge des Sprechers, dadurch in Studien trennschärfer. Sapir et al. "
+            "(2011) fanden an 38 Parkinson-Erkrankten vs. 14 Kontrollen: VSA trennte die "
+            "Gruppen NICHT signifikant (p=0,058), FCR/VAI dagegen deutlich (p=0,0006). "
+            "Trotzdem bewusst OHNE Ampel: die Gruppen überlappen stark, ein Einzelwert kann "
+            "nicht klassifizieren."
+        ),
+        "age_caveat": None,
+        "evidence": "in der Forschung diskutiert",
+        "literature": "Sapir, Ramig, Spielman & Fox (2010), „Formant Centralization Ratio: A Proposal for a New Acoustic Measure of Dysarthric Speech“, J Speech Lang Hear Res 53(1):114–125, doi:10.1044/1092-4388(2009/08-0184); Gruppenwerte aus Sapir et al. (2011), MAVEBA-Workshop. Formel in beiden Quellen wortgleich geprüft.",
+        "typical_values": (
+            "Kein Cutoff. Publizierte Gruppenwerte liegen als VAI vor (FCR ist exakt dessen "
+            "Kehrwert): Parkinson-Dysarthrie 0,96 ± 0,08 vs. gesunde Kontrollen 1,05 ± 0,08 — "
+            "als FCR also rund 1,04 vs. 0,95. DREI Gründe, warum diese Zahlen NICHT direkt auf "
+            "die hier gemessenen Werte übertragbar sind: (1) Sapirs Vokale stammen aus Wörtern/"
+            "Sätzen, unsere aus GEHALTENEN Vokalen, die typischerweise deutlicher artikuliert "
+            "werden; (2) die Referenzdaten stammen aus dem amerikanischen Englisch, nicht aus "
+            "dem Deutschen; (3) die Gruppen liegen nur etwa eine Standardabweichung "
+            "auseinander und überlappen entsprechend stark. Sinnvoll ist der Wert deshalb vor "
+            "allem im VERLAUF derselben Person bei gleicher Aufgabe, nicht als absolute "
+            "Einordnung."
+        ),
+    },
 }
 
 

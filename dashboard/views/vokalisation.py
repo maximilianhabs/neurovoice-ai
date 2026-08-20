@@ -34,6 +34,7 @@ from core.audio import (
     recording_quality_features,
     save_uploaded_wav,
     spectral_tilt_features,
+    formant_centralization_ratio,
     vowel_space_area,
 )
 from core.interpretation import PARAMETER_INFO, build_glossary_entries, build_rows, build_tiles, flatten_take
@@ -290,15 +291,27 @@ if len(vowel_points) >= 2:
             "zentrales Dreieck kann auf einen eingeschränkten Artikulationsraum hindeuten."
         )
         if take_a and take_i and take_u:
-            vsa = vowel_space_area(
+            formant_args = (
                 take_a["formants"]["f1_mean_hz"], take_a["formants"]["f2_mean_hz"],
                 take_i["formants"]["f1_mean_hz"], take_i["formants"]["f2_mean_hz"],
                 take_u["formants"]["f1_mean_hz"], take_u["formants"]["f2_mean_hz"],
             )
+            vsa = vowel_space_area(*formant_args)
             if vsa is not None:
                 kpi_tile(
                     "Vokalraum-Fläche (VSA)", f"{vsa:,.0f} Hz²".replace(",", "."), "kein Normwert", "neutral",
                     "Fläche des Dreiecks aus F1/F2 der Eckvokale /a/,/i/,/u/ — kleinere Fläche kann auf Zentralisierung hindeuten.",
+                )
+            # FCR aus DENSELBEN Formantwerten (Punkt 13, docs/backlog.md) -- laut Sapir et al.
+            # weniger sprecherabhaengig als die VSA und damit trennschaerfer, aber ebenfalls
+            # bewusst ohne Ampel: die publizierten Gruppen ueberlappen stark, ein Einzelwert
+            # kann nicht klassifizieren (Details im Glossar-/PARAMETER_INFO-Eintrag "fcr").
+            fcr = formant_centralization_ratio(*formant_args)
+            if fcr is not None:
+                kpi_tile(
+                    "Vokal-Zentralisierung (FCR)", f"{fcr:.2f}".replace(".", ","), "kein Normwert", "neutral",
+                    "Aus denselben Formantwerten wie die VSA, aber weniger abhängig von Körperbau/Stimmlage — "
+                    "höher = stärker zentralisiert. Aussagekräftig vor allem im Verlauf derselben Person.",
                 )
         else:
             st.caption("Noch nicht alle 3 Eckvokale vorhanden — die Flächenzahl (VSA) erscheint erst dann.")

@@ -2271,11 +2271,65 @@ abgelehnt — Einschätzung bleibt dort unverändert, hier nicht wiederholt).
         überlebt einen Reload (`core/session_store.py`, Muster wie `subject_id`).
       - Altbestand ohne die Felder bleibt fehlerfrei exportierbar (mit Alt-/Neu-Mischung
         getestet).
-- [ ] **FCR (Formant Centralization Ratio)** (Punkt 13) — Ergänzung zur bereits vorhandenen
-      VSA (`vowel_space_area()`), evtl. klinisch aussagekräftiger laut Reviewer. Kleiner
-      Zusatzaufwand, da dieselben F1/F2-Werte der drei Eckvokale schon vorliegen. Bisher nicht
-      recherchiert, ob dafür eine zitierfähige Formel/Normquelle existiert — vor Umsetzung
-      kurz gegenprüfen (gleiches Prinzip wie bei VSA, P12).
+- [x] **FCR (Formant Centralization Ratio)** (Punkt 13) — ✅ umgesetzt 2026-08-20.
+      Ergänzung zur VSA aus denselben F1/F2-Werten der drei Eckvokale, keine zusätzliche
+      Aufnahme nötig (`core/audio.py::formant_centralization_ratio()`).
+
+      **Literaturprüfung zuerst** (wie beim Eintrag gefordert): Formel in zwei unabhängigen
+      Quellen wortgleich bestätigt — FCR = (F2u + F2a + F1i + F1u) ÷ (F2i + F1a), Primärquelle
+      Sapir, Ramig, Spielman & Fox (2010), JSLHR 53(1):114–125. FCR ist exakt der Kehrwert des
+      VAI. Gruppenwerte aus Sapir et al. (2011, MAVEBA, Volltext geprüft): 38 Parkinson-
+      Erkrankte vs. 14 Kontrollen, VAI 0,96 ± 0,08 vs. 1,05 ± 0,08 (p=0,0006, ES 1,24) —
+      während die VSA dieselben Gruppen NICHT signifikant trennte (p=0,058). Variations-
+      koeffizient innerhalb der Gruppen 8%/7% (VAI) statt 41%/25% (VSA). Das ist der eigentliche
+      Grund für das Maß: geringere Sprecherabhängigkeit.
+
+      **Bewusst OHNE Ampel/Cutoff**, wie schon die VSA — drei Gründe, alle im
+      `PARAMETER_INFO["fcr"]`-Eintrag und im Funktions-Docstring festgehalten:
+      1. Sapirs Vokale stammen aus Wörtern/Sätzen („key", „stew", „Bobby"), unsere aus
+         GEHALTENEN Vokalen — die werden typischerweise deutlicher artikuliert, absolute
+         Vergleiche sind damit nicht zulässig.
+      2. Referenzdaten aus dem amerikanischen Englisch, nicht aus dem Deutschen.
+      3. Die Gruppen liegen nur rund eine Standardabweichung auseinander und überlappen stark —
+         ein Einzelwert kann nicht klassifizieren.
+
+      Eine dritte, methodisch schwächere Quelle (Global Scientific Journal 2020) bestätigt zwar
+      die Formel, bezeichnet aber p=0,11 als „significantly different" — als Wertequelle
+      deshalb verworfen, nur die Formelbestätigung übernommen.
+
+### Rückwirkender FCR-Befund auf allen bisherigen eigenen Sitzungen (2026-08-20)
+
+Da die Formantwerte in den Session-Snapshots bereits gespeichert sind, ließ sich FCR ohne
+Neuaufnahme über alle 8 Sitzungen mit vollständigem Vokal-Tripel /a/,/i/,/u/ rechnen:
+
+| Proband | Rolle laut Durchlauf-Doku oben | FCR | VSA |
+|---|---|---|---|
+| NV-5C5A | frühe Testsitzung | 0,929 | 366.155 |
+| NV-PM4N | frühe Testsitzung | 0,936 | 286.653 |
+| NV-BBUA | frühe Testsitzung | 0,944 | 274.620 |
+| NV-Z8YW | Normalbefund 2 | 0,972 | 355.194 |
+| NV-BFU8 | Normalbefund 1 | 0,979 | 328.832 |
+| NV-VAE5 | Simulation „schwerer ausgeprägt" | 1,056 | 212.398 |
+| NV-4A4T | Simulation leicht | 1,062 | 192.418 |
+| NV-99H7 | **in den Docs nicht dokumentiert** | 1,150 | 220.256 |
+
+**Richtung stimmt**: alle fünf nicht-simulierten Sitzungen liegen bei 0,93–0,98, beide
+simulierten darüber bei 1,06 — in dieser kleinen Stichprobe ohne Überlappung. Auch die
+absolute Lage passt gut zu Sapir (gesund ≈ 0,95, Parkinson ≈ 1,04), obwohl das nach den drei
+Einschränkungen oben eher Zufall als Bestätigung sein dürfte.
+
+**Wichtige Relativierung, die gegen den Reviewer-Punkt spricht**: die VSA trennt hier GENAUSO
+saubere (Normal 274.620–366.155 vs. simuliert 192.418–212.398). Der behauptete Vorteil des FCR
+kann sich an diesen Daten gar nicht zeigen — alle Aufnahmen stammen von EINER Person, und
+genau die Sprecher-zu-Sprecher-Varianz, gegen die der FCR robust sein soll, existiert in einer
+Ein-Personen-Stichprobe nicht. FCR ist hier also nicht als „besser" belegt, sondern nur als
+„richtungskonsistent". Der Vorteil wäre erst an einer Stichprobe mit mehreren Sprecher:innen
+unterschiedlichen Körperbaus prüfbar.
+
+- [ ] **NV-99H7 aufklären** — Sitzung vom 2026-08-17 (~12:53 UTC) taucht in keiner Durchlauf-
+      Dokumentation auf, hat aber den höchsten FCR aller Sitzungen (1,150) bei gleichzeitig
+      simulations-typischer VSA (220.256). Unklar, ob dritte Simulation, Abbruch oder Testlauf.
+      Sollte eingeordnet werden, bevor die Zahlen in irgendeine Auswertung einfließen.
 
 **Bereits durch eigene Prinzipien/Architektur abgedeckt, keine Aktion nötig:**
 - 48kHz-Rohaufnahme getrennt von 16kHz-ASR-Downsampling (Punkt 6) — genau so bereits umgesetzt
