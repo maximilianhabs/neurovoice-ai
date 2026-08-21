@@ -2159,9 +2159,26 @@ Zusammenfassungstabelle listet 3 von 11 offenen Punkten).
       RANDNOTIZ-13 aufgelöst (DDK-Eintrag → RANDNOTIZ-18), veralteter Eintrag als durch P9
       erledigt geschlossen, Übersichtstabelle von 3 auf alle 11 offenen Punkte erweitert.
       Verifikationstabelle im Konzept-Anhang.
-- [ ] **Etappe 2** — Ground-Truth-Testsuite nach dem Muster des EDF-Analyzers
-      (`tests/test_analytic_groundtruth.py`) + GitHub Actions + `tools/preflight.sh`.
-      Klärt zugleich RANDNOTIZ-17 (Pausen), 13b (DDK-Zyklen) und 15 (SNR)
+- [x] **Etappe 2** ✅ umgesetzt 2026-08-20 — 183 Tests + 3 als bekannter Mangel markiert,
+      Laufzeit 5,4 s. `tests/signale.py` (synthetische Signale mit konstruierter Wahrheit),
+      `test_analytic_groundtruth.py`, `test_bekannte_schwaechen.py`,
+      `test_parameter_registry.py`, `tools/preflight.sh`, `.github/workflows/test.yml`
+      (Python 3.11 + 3.12). Die CI braucht weder Streamlit noch WhisperX noch Torch.
+
+      **Die Suite hat sofort geliefert, wofür sie gebaut wurde — alle drei offenen
+      Messwert-Randnotizen sind geklärt oder beziffert:**
+      - **RANDNOTIZ-17 Ursache bewiesen**: `compute_speech_metrics()` rechnet korrekt
+        (3 konstruierte Lücken → `pause_count` 3). Der Fehler liegt in der EINGABE — WhisperX
+        liefert lückenlose Wortlisten. Fix-Richtung damit klar: energiebasiert aus dem Signal.
+      - **RANDNOTIZ-18 Zählfrage beantwortet**: `n_cycles` = Silben − 1, also eine Silbenrate.
+        **Neuer Befund**: der Variationskoeffizient hat eine Eigenstreuung von 0,15–0,28 bei
+        perfekt regelmäßiger Eingabe — er kann kleine echte Unterschiede gar nicht auflösen.
+      - **RANDNOTIZ-15 beziffert**: 25 dB konstruiert → 27,3 dB bei Sprache, 1,0 dB beim
+        gehaltenen Vokal.
+
+      Nebenbefund: Formant-Resonatoren dämpfen gemessenen Jitter/Shimmer um einen konstanten
+      Faktor (0,8385) — physikalisch, kein Fehler, aber der Grund, warum die analytischen
+      Perturbationstests an der ungefilterten Pulsfolge laufen.
 - [ ] **Etappe 3** — Regressionstest auf dem Referenzkorpus (IPH-KTRL-01/IPH-SIM-01/SVD),
       gekoppelt an `FEATURE_SCHEMA_VERSION`
 - [ ] **Etappe 4** — M4A-Upload in der App + automatische Inhalts-Plausibilitätsprüfung;

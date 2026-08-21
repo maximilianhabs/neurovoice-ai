@@ -78,13 +78,37 @@ klinischer Validierungsstudie dahintersteht — siehe `docs/backlog.md`.
 
 Siehe [README.md](README.md) — Kurzfassung: `docker compose -f dashboard/docker-compose.local.yml up --build`.
 
-## Kein formales Testsuite (Stand jetzt)
+## Tests
 
-Es gibt bislang keine automatisierten Unit-/Integrationstests. Änderungen werden manuell und per
-Ad-hoc-`streamlit.testing.v1.AppTest`-Skripten gegen alle Seiten regressionsgetestet (siehe
-`docs/backlog.md`/`docs/bugtracker.md` für Beispiele des bisherigen Vorgehens). Ein Pull Request
-sollte beschreiben, wie er getestet wurde — Beiträge, die eine echte, dauerhafte Testsuite
-einführen, sind ausdrücklich willkommen.
+```bash
+bash tools/preflight.sh
+```
+
+Das ist derselbe Lauf wie in der CI (`.github/workflows/test.yml`) und dauert wenige Sekunden.
+**Vor jedem Push ausführen.** Kommt eine Prüfung in der Workflow-Datei dazu, gehört sie auch
+in `tools/preflight.sh` — sonst öffnet sich genau die Lücke wieder, die das Skript schließt.
+
+Die Suite unter `tests/` prüft gegen **konstruierte Wahrheit**, nicht gegen Plausibilität:
+
+- `signale.py` erzeugt synthetische Signale, deren richtige Antwort aus ihrer Konstruktion
+  folgt — eine Pulsfolge mit alternierender Periode T·(1±j) hat per Definition
+  `jitter_local = 2j`, Ton plus Rauschen bekannter Leistung hat den konstruierten HNR.
+- `test_analytic_groundtruth.py` prüft F0, Jitter, Shimmer, HNR, Formanten, VSA/FCR und
+  Übersteuerung dagegen.
+- `test_bekannte_schwaechen.py` nagelt die offenen Messwert-Mängel als `xfail(strict=True)`
+  fest. Wird einer behoben, wird der Lauf rot („unexpectedly passing") und erinnert daran,
+  Markierung und Bugtracker-Eintrag zu schließen — ein behobener Fehler kann so nicht
+  unbemerkt bleiben.
+- `test_parameter_registry.py` prüft `PARAMETER_INFO` und die drei Anzeigepfade
+  (Kachel/Tabelle/Glossar) ohne Audio und ohne Streamlit.
+
+**Was hier bewusst NICHT passiert**: eine Formel neben der Implementierung nachbauen und beide
+vergleichen. Das zeigt nur, dass zwei Rechnungen übereinstimmen. Geprüft wird gegen Werte, die
+aus der Theorie oder aus der Konstruktion des Eingangssignals folgen.
+
+Ein neuer Kennwert in `core/audio.py` sollte einen solchen Test mitbringen. Die Oberfläche
+selbst ist weiterhin nicht automatisiert abgedeckt; dafür gilt weiter der Ad-hoc-`AppTest`-Weg,
+und ein Pull Request sollte beschreiben, wie er getestet wurde.
 
 ## Lizenz
 

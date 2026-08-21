@@ -772,9 +772,9 @@ ist, kann nicht abgearbeitet werden (siehe `docs/konzept_zuverlaessigkeit.md`, U
 
 | # | Thema | Status |
 |---|---|---|
-| RANDNOTIZ-17 | Pausen-/Flüssigkeitsmaße reagieren nicht (`fluency_score` konstant 1,00) | Ursache unbestätigt; seit 2026-08-20 in UI/Report als **nicht validiert** gekennzeichnet (Nutzer-Entscheidung: kennzeichnen statt ausblenden). Klärung über Etappe 2 |
-| RANDNOTIZ-15 | SNR-Schätzung ungeeignet für gehaltene Vokale | bestätigt (synthetisch + an echten Daten), Fix nicht entschieden. Klärung über Etappe 2 |
-| RANDNOTIZ-18 | DDK-Rate/CV: Zyklus-Zähl-Ambiguität | Hypothese offen. Klärung über Etappe 2 |
+| RANDNOTIZ-17 | Pausen-/Flüssigkeitsmaße reagieren nicht | **Ursache bewiesen** (Etappe 2): die Funktion rechnet richtig, WhisperX liefert lückenlose Wortlisten. Fix = energiebasierte Pausenerkennung, offen. In UI/Report als nicht validiert gekennzeichnet |
+| RANDNOTIZ-15 | SNR-Schätzung ungeeignet für gehaltene Vokale | **beziffert** (Etappe 2): 25 dB konstruiert → 27,3 dB bei Sprache, 1,0 dB bei Vokal. Fix nicht entschieden |
+| RANDNOTIZ-18 | DDK-Rate/CV | **Zählfrage beantwortet** (Etappe 2): `n_cycles` = Silben−1, also Silbenrate. **Neuer Befund**: CV hat Eigenstreuung 0,15–0,28 bei perfekt regelmäßiger Eingabe → nicht zur Beurteilung heranziehen |
 
 ### Zuverlässigkeit
 
@@ -804,6 +804,25 @@ ist, kann nicht abgearbeitet werden (siehe `docs/konzept_zuverlaessigkeit.md`, U
 > **Hinweis zur Nummer**: Dieser Eintrag hieß bis 2026-08-20 versehentlich ebenfalls
 > RANDNOTIZ-13 — dieselbe Nummer war doppelt vergeben. Umbenannt auf 18; die ältere
 > RANDNOTIZ-13 (blockierende Transkription) behält ihre Nummer und ist inzwischen erledigt.
+
+**✅ ZÄHLFRAGE BEANTWORTET 2026-08-20 (Etappe 2, Ground-Truth-Tests).** An konstruierten
+Silbenfolgen mit bekannter Silbenzahl und Rate ergab sich durchgehend `n_cycles` = n−1
+(20→19, 30→29, 15→14, 40→39). **Gezählt werden die Zwischenräume zwischen Silben.**
+`ddk_rate_hz` ist damit eine **Silbenrate**, keine „pa-ta-ka“-Gruppenrate — die Ambiguität ist
+aufgelöst. Die Erkennung ist bis mindestens 7 Silben/s zuverlässig; die niedrigen Werte an
+echten Aufnahmen (Kontrolle 3,47 Hz) sind daher vermutlich echt und kein Zählfehler.
+
+**NEUER BEFUND — der Variationskoeffizient hat eine Eigenstreuung.** Bei exakt gleichmäßig
+konstruierten Silben liefert `cycle_interval_cv` **0,15–0,28** statt ~0. Er misst damit
+überwiegend die Streuung der eigenen Erkennung, nicht die Regelmäßigkeit des Sprechens. Das
+erklärt, warum er im iPhone-Paar-Durchlauf nichts unterschied (0,41 gesund vs. 0,40
+mittelgradig-schwer simuliert): der echte Unterschied liegt unter der Eigenstreuung des
+Verfahrens. **Konsequenz: DDK-Regelmäßigkeit vorerst nicht zur Beurteilung heranziehen.**
+
+**Dokumentierte Grenze**: bei digitaler Stille (kein Rauschteppich) findet die Erkennung
+**null** Zyklen — das Intensitätstal ist dann ein spitzes V statt eines Plateaus, die gemessene
+Verschlussdauer wird 0 und der Plausibilitätsfilter (0,01–0,3 s) verwirft alle Kandidaten.
+Betrifft nur synthetisches oder geschnittenes Material. Beide Befunde als Tests festgehalten.
 
 **Kontext:** Zweiter "Normalbefund" (NV-Z8YW, 2026-08-17) desselben Nutzers, andere
 Lesetext-Variante, zum Test der Reproduzierbarkeit gegen den ersten Normalbefund (NV-BFU8).
@@ -903,6 +922,12 @@ spaeter (noch nicht entschieden/umgesetzt):
    Vorsicht interpretieren, niedrige Werte koennen auch stabile Phonation bedeuten").
 3. Die Kachel im Vokalisation-Modul ausblenden/anders labeln.
 
+**✅ QUANTITATIV BESTÄTIGT 2026-08-20 (Etappe 2).** Derselbe konstruierte Rauschabstand von
+25 dB, einmal auf einen gehaltenen Vokal und einmal auf Sprache mit Pausen gelegt: Sprache
+**27,3 dB** (korrekt), gehaltener Vokal **1,0 dB** (24 dB daneben). Der Mangel ist damit nicht
+mehr nur plausibel, sondern beziffert. Beide Fälle als Tests festgehalten, der Vokal-Fall als
+`xfail(strict=True)`.
+
 **Fund entstand als Nebenprodukt** der externen Referenzdaten-Bewertung (siehe
 `docs/externe_testdaten.md`), nicht durch gezielte Suche danach.
 
@@ -957,7 +982,7 @@ Korpus-Datei über `worker.py` läuft, schlägt er fehl.
 
 ---
 
-## RANDNOTIZ-17 — Pausen-/Flüssigkeitsmaße reagieren gar nicht (fluency_score 1,00 in allen Aufnahmen) ⚠️ OFFEN, Verdacht auf Methodenproblem
+## RANDNOTIZ-17 — Pausen-/Flüssigkeitsmaße reagieren gar nicht (fluency_score 1,00 in allen Aufnahmen) ⚠️ OFFEN — Ursache seit 2026-08-20 BEWIESEN, Fix ausstehend
 
 **Beobachtung:** Im iPhone-Paar-Durchlauf (Kontrolle vs. mittelgradig-schwer simulierte
 Dysarthrie, je Lesetext + Spontansprache) liefern die Pausenmaße in **allen vier** Aufnahmen
@@ -984,10 +1009,26 @@ Sprechweise messen, sondern ein Artefakt des Alignment-Verfahrens.
 und die Mikro-/Makropausen-Aufteilung sollten vorerst **nicht** als Unterscheidungsmerkmale
 herangezogen werden, solange nicht geklärt ist, ob sie überhaupt reagieren.
 
-**Nächster Prüfschritt:** eine Aufnahme mit bewusst eingebauten, langen Sprechpausen
-(z.B. 3× zwei Sekunden Stille mitten im Satz) durchlaufen lassen. Bleibt `pause_count` auch
-dann 0, ist die Ableitung aus den Alignment-Zeitstempeln als Ursache bestätigt; eine
-energiebasierte Pausenerkennung direkt aus dem Signal wäre dann die Alternative.
+**✅ URSACHE BEWIESEN 2026-08-20 (Etappe 2, Ground-Truth-Tests).** Der Prüfschritt wurde
+durchgeführt — nicht über eine Aufnahme, sondern direkter: `compute_speech_metrics()` wurde mit
+einer konstruierten Wortliste gefüttert, die exakt drei Lücken von je 2 s enthält.
+
+| Eingabe | `pause_count` | `fluency_score` |
+|---|---|---|
+| Wortliste mit 3 konstruierten Lücken à 2 s | **3** (korrekt, `total_pause_time_s` = 6,00 s) | 0,333 |
+| Lückenlose Wortliste (das WhisperX-Muster) | **0** | 1,00 |
+
+**Die Funktion rechnet also richtig.** Der Fehler liegt ausschließlich in ihrer EINGABE: das
+Forced Alignment von WhisperX dehnt die Wortgrenzen aneinander, sodass die abgeleiteten Lücken
+systematisch null werden — unabhängig davon, ob tatsächlich pausiert wurde. Damit ist die
+Hypothese bestätigt und zugleich eingegrenzt: `core/speech_metrics.py` braucht **keine**
+Änderung.
+
+**Fix-Richtung (noch nicht umgesetzt):** Pausen energiebasiert direkt aus dem Audiosignal
+bestimmen statt aus Wortzeitstempeln. Beide Tests stehen bereits in
+`tests/test_bekannte_schwaechen.py`; der geforderte Zielzustand ist dort als
+`xfail(strict=True)` formuliert und wird automatisch rot, sobald eine Funktion
+`core.audio.pausen_aus_signal()` existiert und die drei konstruierten Stillen findet.
 
 **Fund entstand als Nebenprodukt** des iPhone-Paar-Durchlaufs, nicht durch gezielte Suche.
 

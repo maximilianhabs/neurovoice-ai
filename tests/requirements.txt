@@ -1,0 +1,9 @@
+# Nur was die Testsuite braucht -- BEWUSST ohne streamlit, whisperx, torch und die
+# Report-Bibliotheken. Die Tests pruefen Signalverarbeitung und die Parameter-Registry;
+# beides haengt nicht an der Oberflaeche. Der CI-Lauf bleibt dadurch in Sekunden statt
+# Minuten und zieht kein Modell-Gewicht von mehreren Gigabyte.
+numpy>=1.26
+scipy>=1.11
+soundfile>=0.12
+praat-parselmouth>=0.4.3
+pytest>=8.0

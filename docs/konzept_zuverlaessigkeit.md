@@ -4,8 +4,8 @@
 diese Fehler nicht mehr passieren", mit zwei ausdrücklich benannten Punkten: die Pausenmaße
 stimmen erkennbar nicht, und **das Transkribieren muss sicher immer funktionieren**.
 
-Dieses Dokument war ursprünglich ein reiner Plan. **Etappe 1 ist seit 2026-08-20 umgesetzt
-und auf dem Server verifiziert** (Abschnitt 2); die Etappen 2–5 stehen weiterhin aus. Es benennt zuerst die Ursache, warum solche
+Dieses Dokument war ursprünglich ein reiner Plan. **Etappe 1 und Etappe 2 sind seit 2026-08-20
+umgesetzt** (Abschnitte 2 und 3); die Etappen 3–5 stehen weiterhin aus. Es benennt zuerst die Ursache, warum solche
 Fehler überhaupt bis zur Nutzung durchrutschen — sonst arbeitet man elf Befunde ab und der
 zwölfte entsteht auf demselben Weg.
 
@@ -113,7 +113,7 @@ befüllen. Aufwand: eine halbe Stunde. Ohne diesen Schritt ist jede Priorisierun
 
 ---
 
-## 3. Etappe 2 — das Fundament: Prüfung gegen konstruierte Wahrheit
+## 3. Etappe 2 — das Fundament: Prüfung gegen konstruierte Wahrheit ✅ UMGESETZT 2026-08-20
 
 Der Kern des Konzepts. Das Schwesterprojekt EDF-Analyzer hat dieses Fundament bereits
 (`tests/test_analytic_groundtruth.py`, `tests/test_eeg_groundtruth.py`), NeuroVoice nie.
@@ -234,3 +234,53 @@ Etappe 1 zuerst, weil sie das benannte Leid unmittelbar beendet.
 | Pausenmaße in Tabelle/Kachel/Glossar | 4/4 als „nicht validiert" markiert |
 | Jitter als Gegenprobe | unmarkiert, Status „im Normbereich" |
 | Alle 7 Seiten laden ohne Exception | ja, HTTP 200 |
+
+---
+
+## Anhang B: Ergebnis von Etappe 2 (2026-08-20)
+
+**183 Tests, 3 als bekannter Mangel markiert, Laufzeit 5,4 Sekunden.** Dateien: `tests/signale.py`,
+`tests/test_analytic_groundtruth.py`, `tests/test_bekannte_schwaechen.py`,
+`tests/test_parameter_registry.py`, `tools/preflight.sh`, `.github/workflows/test.yml`.
+
+Die CI braucht weder Streamlit noch WhisperX noch Torch — geprüft werden Signalverarbeitung und
+Parameter-Registry, und beides hängt nicht an der Oberfläche. Deshalb Sekunden statt Minuten.
+
+### Was gegen konstruierte Wahrheit geprüft wird
+
+| Maß | Sollwert aus der Konstruktion | Ergebnis |
+|---|---|---|
+| F0 | die synthetisierte Grundfrequenz | exakt (90/120/200 Hz) |
+| Jitter | `2 × jitter_rel` (alternierende Perioden) | exakt, Verhältnis 1,000 in allen 4 Stufen |
+| Shimmer | `2 × shimmer_rel` | exakt, Verhältnis 1,000 in allen 3 Stufen |
+| HNR | konstruierter Rauschabstand | ±1,5 dB bei 5/10/20/30 dB |
+| Formanten (F2) | gesetzte Polfrequenz | innerhalb 15 % |
+| VSA / FCR | Handrechnung | exakt |
+| Perfekt periodisch | Jitter/Shimmer = 0 | < 0,01 % |
+
+### Was die Suite sofort geklärt hat
+
+Alle drei offenen Messwert-Randnotizen — der eigentliche Zweck von Etappe 2:
+
+- **RANDNOTIZ-17 (Pausen): Ursache bewiesen.** `compute_speech_metrics()` zählt bei einer
+  Wortliste mit drei konstruierten Lücken korrekt drei Pausen. Bei einer lückenlosen Wortliste
+  — dem WhisperX-Muster — null. Die Funktion ist in Ordnung, ihre Eingabe nicht.
+- **RANDNOTIZ-18 (DDK): Zählfrage beantwortet.** `n_cycles` = Silben − 1, also eine Silbenrate.
+  **Neuer Befund**: der Variationskoeffizient hat bei perfekt regelmäßiger Eingabe eine
+  Eigenstreuung von 0,15–0,28 und kann kleine echte Unterschiede daher nicht auflösen.
+- **RANDNOTIZ-15 (SNR): beziffert.** 25 dB konstruiert → 27,3 dB bei Sprache, 1,0 dB beim
+  gehaltenen Vokal.
+
+### Bewusste Entscheidungen
+
+- **Perturbationstests laufen an der ungefilterten Pulsfolge.** Durch Formant-Resonatoren
+  gefiltert, dämpft deren Nachschwingen die Alternation um einen konstanten Faktor (Shimmer
+  0,8385 in allen Fällen) — ein physikalischer Effekt, kein Messfehler, der aber einen
+  analytischen Sollwert unmöglich macht.
+- **F1 wird nur bei offenen Vokalen auf einen Absolutwert geprüft.** Liegt F1 nahe an F0 und
+  dessen ersten Harmonischen (/i/, /u/), überschätzt Praats Burg-Tracker es am synthetischen
+  Signal deutlich. Das ist eine Grenze der Prüfung, kein belegter Fehler an echter Sprache —
+  echte Vokale haben eine dichtere Formantstruktur. Statt eines Absolutwerts wird dort die
+  **Topologie** des Vokaldreiecks geprüft, und genau die trägt VSA und FCR.
+- **Kein Linter in der CI.** Ein Linter über gewachsenen Code würde die CI sofort rot färben
+  und damit wertlos machen. Erst aufräumen, dann einschalten.
