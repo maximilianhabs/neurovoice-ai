@@ -2024,6 +2024,20 @@ Entscheidung):
 **Nächster Schritt**: mit dem Nutzer klären, welche der Zwischenstufen (falls überhaupt)
 gewünscht ist, sobald mehrere Vergleichsdurchläufe vorliegen — bewusst noch nicht umgesetzt.
 
+**Fortsetzung (2026-08-22)**: Nutzer möchte die Wertung jetzt konkret — ausgearbeitet in
+**`docs/konzept_wertung.md`**. Ergebnis: Zwischenstufe 1+2 (Muster/Konsistenz) ist tragfähig
+und wird vorgeschlagen; die gewünschte Abstufung leicht/mittel/schwer wird **nicht als
+klinischer Schweregrad** umgesetzt, sondern als Ausprägung der Messabweichung — eine Aussage
+über die Zahl, nicht über den Menschen. Grund: es gibt drei echte Patient:innen, alle ohne
+klinische Schweregrad-Angabe und alle nur mit gehaltenem Vokal.
+
+**Zentraler neuer Befund aus der Konzeptarbeit — Simulation reproduziert die Erkrankung
+nicht**: Unsere eigene „bulbär/fazial"-Simulation traf die artikulatorische Seite voll (FCR
+0,853→1,276), ließ die Phonation aber unverändert (Jitter 0,41→0,43, HNR 19,1→20,7). Der echte
+SVD-Bulbärfall zeigt das umgekehrte Bild (Jitter 1,38, Shimmer 7,17, HNR 16,0, Voice Break).
+**Konsequenz: Schwellen und Schweregrade dürfen nicht aus den Simulationen abgeleitet werden** —
+sie taugen zum Prüfen, ob ein Marker reagiert, nicht zur Kalibrierung.
+
 **Fortsetzung (2026-08-17)**: nach mehreren eigenen Testreihen + einem extern gegengehörten
 Dysarthrie-Fall genug Datenpunkte für erste, vorsichtige Interpretations-Schwerpunkte je
 Aufgabentyp — siehe eigenes Konzeptdokument
