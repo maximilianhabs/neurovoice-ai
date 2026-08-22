@@ -186,6 +186,23 @@ SILENCE_THRESHOLD_DBFS = -40.0  # Fenster unterhalb gelten als "Stille" -- grobe
 CLIPPING_THRESHOLD = 0.99  # Anteil der Vollaussteuerung, ab dem ein Sample als "geklippt" zaehlt
 
 
+# Ab wie vielen Sekunden leiser Fenster gilt eine Rauschreferenz als brauchbar (RANDNOTIZ-15).
+MIN_RAUSCHREFERENZ_S = 0.5
+
+# Wie weit unter dem lautesten Fenster ein Fenster liegen muss, um als "leise" zu zaehlen.
+#
+# 15 dB ist NICHT geraten, sondern der einzige Wert, der drei Anforderungen gleichzeitig
+# erfuellt -- empirisch bestimmt an den eigenen 16 Aufnahmen plus konstruierten Signalen
+# (2026-08-22):
+#   * groessere Marge (20/25 dB): findet bei einem verrauschten Signal gar keine Referenz mehr,
+#     denn die Stille liegt dann nur ~15 dB unter dem Signal. Ausgerechnet bei schlechtem
+#     Rauschabstand -- wo der Wert am wichtigsten waere -- gaebe es dann keinen.
+#   * kleinere Marge (10/12 dB): eine echte Vokalaufnahme kam faelschlich auf 3,96 s bzw.
+#     1,05 s Referenz und haette einen unbrauchbaren SNR bekommen.
+#   * 15 dB trennt sauber: gehaltene Vokale 0,09-0,42 s, Sprech-/DDK-Aufgaben 4,17-10,41 s.
+NOISE_REFERENCE_MARGIN_DB = 15.0
+
+
 def recording_quality_features(path: str, frame_ms: float = 30.0) -> dict:
     """Recording-Quality-Check (P6, siehe docs/backlog.md, externer Audit Prio 1) --
     SNR-Naeherung, Clipping-Anteil, Stille-Anteil aus den Rohdaten, ohne neue Abhaengigkeit
@@ -203,6 +220,26 @@ def recording_quality_features(path: str, frame_ms: float = 30.0) -> dict:
     braeuchte man eine echte Stille-Referenz ohne Sprache), aber ein brauchbarer
     Anhaltspunkt ohne zusaetzliches Tooling.
 
+    WICHTIG (RANDNOTIZ-15, behoben 2026-08-22): Diese Naeherung setzt voraus, dass die
+    Aufnahme ueberhaupt einen leisen Abschnitt enthaelt, in dem das 10. Perzentil landen
+    kann. Bei einem gut gehaltenen Vokal ist das NICHT der Fall -- er ist von Anfang bis
+    Ende gleich laut. Der Abstand zwischen 90. und 10. Perzentil misst dann die (fehlende)
+    Lautstaerke-Dynamik statt des Rauschens und faellt strukturell niedrig aus, egal wie
+    sauber die Aufnahme ist. An unseren eigenen Aufnahmen lieferte das 1,4-6,6 dB fuer
+    einwandfreie Vokalaufnahmen, waehrend Sprechaufgaben derselben Sitzung bei 30-39 dB
+    lagen -- und loeste damit faelschlich die Empfehlung aus, die Aufnahme zu wiederholen.
+
+    Deshalb wird der Wert nur noch berechnet, wenn genuegend leise Fenster als Rauschreferenz
+    vorhanden sind (MIN_RAUSCHREFERENZ_S). Sonst `None` plus Begruendung in
+    `snr_unavailable_reason` -- eine ehrliche Fehlanzeige statt einer irrefuehrenden Zahl.
+    Fuer gehaltene Vokale ist ohnehin der HNR das passende Rauschmass; er misst genau das
+    Verhaeltnis von harmonischem zu geraeuschhaftem Anteil und ist gegen konstruierte
+    Rauschabstaende auf 1,5 dB genau geprueft (tests/test_analytic_groundtruth.py).
+
+    Das Kriterium fragt bewusst nach einer Eigenschaft der AUFNAHME, nicht nach dem
+    Aufgabentyp: eine Vokalaufnahme mit ordentlicher Anlauf-/Schlussstille bekommt sehr wohl
+    einen SNR, eine durchgehend gesprochene Passage ohne jede Pause bekommt keinen.
+
     Bugfix beim Testen gefunden (2026-08-15, synthetischer Test mit reiner Stille):
     ein erster Entwurf filterte Fenster mit RMS==0 VOR der Stille-Berechnung heraus --
     dadurch wurde reine Digitalstille faelschlich NICHT als Stille gezaehlt (0% statt 100%).
@@ -215,7 +252,8 @@ def recording_quality_features(path: str, frame_ms: float = 30.0) -> dict:
     samples, sample_rate = sf.read(path, dtype="float64", always_2d=True)
     samples_mono = samples.mean(axis=1)
     n = len(samples_mono)
-    empty = {"clipping_pct": None, "silence_pct": None, "snr_estimate_db": None}
+    empty = {"clipping_pct": None, "silence_pct": None, "snr_estimate_db": None,
+             "snr_unavailable_reason": None, "noise_reference_s": None}
     if n == 0:
         return empty
 
@@ -233,9 +271,27 @@ def recording_quality_features(path: str, frame_ms: float = 30.0) -> dict:
     frame_db_all = 20 * np.log10(np.maximum(frame_rms, EPS))
     silence_pct = float(100 * np.mean(frame_db_all < SILENCE_THRESHOLD_DBFS))
 
+    # Rauschreferenz: Fenster, die deutlich unter dem lautesten liegen. Relativ zum Maximum
+    # gerechnet, nicht gegen eine absolute dBFS-Schwelle -- sonst haengt das Ergebnis an der
+    # Aussteuerung statt am Verhaeltnis. An den eigenen Aufnahmen trennt das Kriterium klar:
+    # Sprech-/DDK-Aufgaben 4,2-10,4 s Referenz, gehaltene Vokale 0,09-0,42 s.
+    noise_reference_s = float(
+        np.sum(frame_db_all < (frame_db_all.max() - NOISE_REFERENCE_MARGIN_DB)) * frame_ms / 1000
+    )
+
     frame_rms_nonzero = frame_rms[frame_rms > 0]
-    if len(frame_rms_nonzero) < 2:
+    snr_unavailable_reason = None
+    if noise_reference_s < MIN_RAUSCHREFERENZ_S:
         snr_estimate_db = None
+        snr_unavailable_reason = (
+            "Die Aufnahme enthält keinen ausreichend leisen Abschnitt als Rauschreferenz "
+            "(nur %.2f s). Bei einem durchgehend gehaltenen Vokal ist das normal und kein "
+            "Mangel der Aufnahme. Zur Beurteilung des Rauschanteils eignet sich hier der HNR."
+            % noise_reference_s
+        )
+    elif len(frame_rms_nonzero) < 2:
+        snr_estimate_db = None
+        snr_unavailable_reason = "Zu wenige auswertbare Fenster."
     else:
         frame_db_nonzero = 20 * np.log10(frame_rms_nonzero)
         snr_estimate_db = float(np.percentile(frame_db_nonzero, 90) - np.percentile(frame_db_nonzero, 10))
@@ -244,6 +300,8 @@ def recording_quality_features(path: str, frame_ms: float = 30.0) -> dict:
         "clipping_pct": clipping_pct,
         "silence_pct": silence_pct,
         "snr_estimate_db": snr_estimate_db,
+        "snr_unavailable_reason": snr_unavailable_reason,
+        "noise_reference_s": noise_reference_s,
     }
 
 

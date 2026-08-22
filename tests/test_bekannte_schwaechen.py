@@ -134,17 +134,58 @@ def test_snr_ist_bei_fliessender_sprache_korrekt(tmp_path):
     assert recording_quality_features(pfad)["snr_estimate_db"] == pytest.approx(25.0, abs=5.0)
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "RANDNOTIZ-15: die Perzentil-Formel misst bei gehaltenen Vokalen die fehlende "
-    "Lautstaerke-Dynamik statt des Rauschens. Gemessen wurden ~1 dB bei konstruierten 25 dB."))
-def test_snr_sollte_bei_gehaltenem_vokal_denselben_wert_liefern(tmp_path):
-    """Derselbe konstruierte Rauschabstand muss unabhaengig von der Aufgabenart herauskommen.
-    Ein Rauschabstand ist eine Eigenschaft der Aufnahme, nicht der Sprechaufgabe."""
+def _aufnahme_mit_rauschboden(nutzsignal, snr_db, rand_s=0.6, seed=20260822):
+    """Realistische Aufnahme: Rauschen laeuft durchgehend, das Nutzsignal nur in der Mitte.
+    Damit gibt es eine echte Rauschreferenz -- so sieht eine gewoehnliche Aufnahme aus, bei
+    der jemand Aufnahme startet, einatmet, spricht und wieder stoppt."""
+    rng = np.random.default_rng(seed)
+    p_sig = float(np.mean(nutzsignal ** 2))
+    p_noise = p_sig / (10 ** (snr_db / 10))
+    n_rand = int(FS * rand_s)
+    rausch = rng.standard_normal(n_rand * 2 + len(nutzsignal))
+    rausch *= np.sqrt(p_noise / float(np.mean(rausch ** 2)))
+    rausch[n_rand:n_rand + len(nutzsignal)] += nutzsignal
+    return rausch
+
+
+@pytest.mark.parametrize("snr_db", [15.0, 25.0, 40.0])
+def test_snr_stimmt_auch_beim_vokal_wenn_eine_rauschreferenz_da_ist(tmp_path, snr_db):
+    """✅ RANDNOTIZ-15, Kern der Sache: das Verfahren ist nicht per se falsch, es braucht einen
+    leisen Abschnitt. Hat die Vokalaufnahme normale Anlauf- und Schlussstille, trifft die
+    Schaetzung den konstruierten Rauschabstand -- unabhaengig von der Aufgabenart."""
+    import soundfile as sf
+    vokal = glottis_signal(120.0, 3.0, formanten_hz=(700.0, 1200.0))
+    pfad = str(tmp_path / f"vokal{snr_db}.wav")
+    sf.write(pfad, _aufnahme_mit_rauschboden(vokal, snr_db), FS)
+    assert recording_quality_features(pfad)["snr_estimate_db"] == pytest.approx(snr_db, abs=5.0)
+
+
+def test_ohne_rauschreferenz_wird_kein_snr_behauptet(tmp_path):
+    """✅ RANDNOTIZ-15, der eigentliche Fix: fehlt der leise Abschnitt voellig, liefert die
+    Funktion `None` mit Begruendung statt einer strukturell zu niedrigen Zahl.
+
+    Vorher meldete genau dieser Fall ~1 dB bei konstruierten 25 dB -- und loeste damit in der
+    Oberflaeche die Empfehlung aus, die einwandfreie Aufnahme zu wiederholen."""
     import soundfile as sf
     vokal = mit_rauschen(glottis_signal(120.0, 4.0, formanten_hz=(700.0, 1200.0)), 25.0)
-    pfad = str(tmp_path / "vokal.wav")
+    pfad = str(tmp_path / "ohne_referenz.wav")
     sf.write(pfad, vokal, FS)
-    assert recording_quality_features(pfad)["snr_estimate_db"] == pytest.approx(25.0, abs=5.0)
+    r = recording_quality_features(pfad)
+    assert r["snr_estimate_db"] is None
+    assert r["snr_unavailable_reason"]
+    assert r["noise_reference_s"] < 0.5
+
+
+def test_hnr_bleibt_fuer_solche_aufnahmen_das_passende_rauschmass(tmp_path):
+    """Gegenprobe zur Fehlanzeige: was der SNR dort nicht kann, kann der HNR sehr wohl --
+    deshalb verweist die Begruendung darauf."""
+    import soundfile as sf
+    from core.audio import phonation_features
+    vokal = mit_rauschen(glottis_signal(120.0, 4.0, formanten_hz=(700.0, 1200.0)), 25.0)
+    pfad = str(tmp_path / "hnr_gegenprobe.wav")
+    sf.write(pfad, vokal, FS)
+    assert recording_quality_features(pfad)["snr_estimate_db"] is None
+    assert phonation_features(pfad)["hnr_mean_db"] == pytest.approx(25.0, abs=2.0)
 
 
 # ══ RANDNOTIZ-18 — DDK-Zaehlung und Regelmaessigkeit ═════════════════════════════════════

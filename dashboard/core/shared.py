@@ -657,7 +657,11 @@ def quality_tiles(q: dict) -> None:
             snr_zone = zone_for_value(q["snr_estimate_db"], lo, hi, zones)
             snr_label = {"success": "gut", "warning": "Hintergrundgeräusch hörbar", "danger": "Kennwerte ggf. verzerrt"}[snr_zone]
         else:
-            snr_zone, snr_label = "neutral", "–"
+            # RANDNOTIZ-15: ohne leisen Abschnitt laesst sich kein Rauschabstand schaetzen.
+            # Das ist bei einem gehaltenen Vokal der Normalfall und KEIN Qualitaetsmangel --
+            # deshalb neutrale Zone, die unten nicht in die Gesamtbewertung einfliesst.
+            snr_zone = "neutral"
+            snr_label = "nicht bestimmbar" if q.get("snr_unavailable_reason") else "–"
 
         worst_zone = max((clip_zone, snr_zone), key=lambda z: _QUALITY_ZONE_RANK[z])
         if worst_zone == "danger":
@@ -684,8 +688,12 @@ def quality_tiles(q: dict) -> None:
             kpi_tile("Stille-Anteil", f"{_fmt(q['silence_pct'], 0)} %", "taskabhängig, kein fester Korridor", "neutral",
                      "Anteil leiser Fenster — bei Spontansprache mit Pausen normal auch 15-30%.")
         with qc3:
-            kpi_tile("SNR (geschätzt)", f"{_fmt(q['snr_estimate_db'], 1)} dB", snr_label, snr_zone,
-                     "90.–10. Perzentil der Fenster-Lautstärke — Heuristik aus der Signalverarbeitung, keine stimmklinische Referenz.")
+            snr_wert = f"{_fmt(q['snr_estimate_db'], 1)} dB" if q["snr_estimate_db"] is not None else "–"
+            snr_hinweis = q.get("snr_unavailable_reason") or (
+                "90.–10. Perzentil der Fenster-Lautstärke — Heuristik aus der "
+                "Signalverarbeitung, keine stimmklinische Referenz."
+            )
+            kpi_tile("SNR (geschätzt)", snr_wert, snr_label, snr_zone, snr_hinweis)
 
 
 def render_voice_gender_estimate(estimate: dict) -> None:

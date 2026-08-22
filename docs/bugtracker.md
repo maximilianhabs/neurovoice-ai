@@ -773,7 +773,7 @@ ist, kann nicht abgearbeitet werden (siehe `docs/konzept_zuverlaessigkeit.md`, U
 | # | Thema | Status |
 |---|---|---|
 | RANDNOTIZ-17 | Pausen-/Flüssigkeitsmaße | ✅ behoben 2026-08-21 — `pausen_aus_signal()` arbeitet am Signal statt an Wortzeitstempeln. Trennt beim Lesetext deutlich (Flüssigkeit 0,973 vs. 0,794), bei Spontansprache nicht |
-| RANDNOTIZ-15 | SNR-Schätzung ungeeignet für gehaltene Vokale | **beziffert** (Etappe 2): 25 dB konstruiert → 27,3 dB bei Sprache, 1,0 dB bei Vokal. Fix nicht entschieden |
+| RANDNOTIZ-15 | SNR-Schätzung bei gehaltenen Vokalen | ✅ behoben 2026-08-22 — wird nur noch bei ausreichender Rauschreferenz berechnet, sonst ehrliche Fehlanzeige mit Verweis auf den HNR |
 | RANDNOTIZ-18 | DDK-Rate/CV | **Zählfrage beantwortet** (Etappe 2): `n_cycles` = Silben−1, also Silbenrate. **Neuer Befund**: CV hat Eigenstreuung 0,15–0,28 bei perfekt regelmäßiger Eingabe → nicht zur Beurteilung heranziehen |
 
 ### Zuverlässigkeit
@@ -890,7 +890,7 @@ bleibt (Beleg für einen noch nicht gefundenen echten State-Bug).
 
 ---
 
-## RANDNOTIZ-15 — SNR-Schätzung (`recording_quality_features()`) ungeeignet für gehaltene Vokale ⚠️ ECHTE METHODEN-LIMITATION, NICHT BEHOBEN
+## RANDNOTIZ-15 — SNR-Schätzung (`recording_quality_features()`) ungeeignet für gehaltene Vokale ✅ BEHOBEN
 
 **Kontext:** Beim Bewerten externer SVD-Referenzdateien (Parkinson/ALS/Bulbärparalyse, alle
 gehaltene Vokale /a/) fiel auf, dass ALLE Dateien einen sehr niedrigen "SNR"-Wert zeigten
@@ -927,6 +927,45 @@ spaeter (noch nicht entschieden/umgesetzt):
 **27,3 dB** (korrekt), gehaltener Vokal **1,0 dB** (24 dB daneben). Der Mangel ist damit nicht
 mehr nur plausibel, sondern beziffert. Beide Fälle als Tests festgehalten, der Vokal-Fall als
 `xfail(strict=True)`.
+
+**✅ BEHOBEN 2026-08-22.** Die entscheidende Einsicht kam beim Bauen: das Verfahren ist
+**nicht per se falsch**, es braucht nur einen leisen Abschnitt, in dem das 10. Perzentil landen
+kann. Ein Gegentest mit realistisch aufgebauten Aufnahmen (Rand-Stille vorhanden) zeigte, dass
+die alte Formel dort den konstruierten Rauschabstand durchaus trifft — bei 25 dB kamen 25,5 dB
+heraus. Die eigenen Vokalaufnahmen enthalten aber nur **0,09–0,42 s** leisen Abschnitt,
+Sprechaufgaben derselben Sitzung dagegen 4,2–10,4 s. Ohne Referenz misst die Formel die
+fehlende Lautstärke-Dynamik statt des Rauschens.
+
+**Ein Zwischenweg wurde verworfen**: eine echte, stille-referenzierte SNR-Berechnung (Praats
+Stille-Erkennung, Rauschleistung aus den stillen Abschnitten) traf an konstruierten Signalen
+zwar exakt, war an den echten Vokalaufnahmen aber unbrauchbar instabil — 29,2 dB und 50,1 dB
+für zwei Takes desselben Vokals derselben Person, weil die Referenz nur ~0,1 s lang ist. Ein
+instabiler Ersatz wäre keine Verbesserung gewesen, nur ein anderer Fehler.
+
+**Umgesetzt wurde deshalb die ehrliche Fehlanzeige**: `recording_quality_features()` berechnet
+den SNR nur noch, wenn mindestens `MIN_RAUSCHREFERENZ_S` (0,5 s) an leisen Fenstern vorliegt.
+Sonst `snr_estimate_db = None` plus Begründung in `snr_unavailable_reason`, die in der Kachel
+angezeigt wird und auf den HNR verweist. Das Kriterium fragt bewusst nach einer Eigenschaft der
+**Aufnahme**, nicht nach dem Aufgabentyp: eine Vokalaufnahme mit ordentlicher Anlauf-/
+Schlussstille bekommt sehr wohl einen Wert.
+
+**Die Marge von 15 dB ist empirisch bestimmt**, nicht geraten — sie ist der einzige Wert, der
+drei Anforderungen gleichzeitig erfüllt (geprüft an 16 eigenen Aufnahmen plus konstruierten
+Signalen):
+
+| Marge | Problem |
+|---|---|
+| 20–25 dB | findet bei verrauschtem Signal gar keine Referenz — ausgerechnet dort, wo der Wert am wichtigsten wäre |
+| 10–12 dB | eine echte Vokalaufnahme kam fälschlich auf 3,96 s bzw. 1,05 s Referenz |
+| **15 dB** | trennt sauber: Vokale 0,09–0,42 s, Sprech-/DDK-Aufgaben 4,17–10,41 s |
+
+**Praktische Wirkung**: Der SNR-Wert speist die Gesamtbewertung im Qualitäts-Block. Vorher löste
+damit **jede einwandfreie Vokalaufnahme** fälschlich die Empfehlung „Aufnahme wiederholen" aus.
+Jetzt steht dort „nicht bestimmbar" in neutraler Zone, und der HNR — für genau diese Aufnahmen
+17,5–28,3 dB — belegt, dass sie in Ordnung sind. Werte für Sprechaufgaben bleiben unverändert
+(30,0–39,6 dB wie zuvor).
+
+`FEATURE_SCHEMA_VERSION` auf 1.2.0 erhöht.
 
 **Fund entstand als Nebenprodukt** der externen Referenzdaten-Bewertung (siehe
 `docs/externe_testdaten.md`), nicht durch gezielte Suche danach.

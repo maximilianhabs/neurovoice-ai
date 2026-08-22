@@ -29,7 +29,13 @@ import soundfile as sf
 #                      sich damit andere Werte als unter 1.0.0 -- Aufnahmen aus beiden
 #                      Versionen duerfen bei diesen Kennwerten nicht direkt verglichen werden.
 #                      Alle uebrigen Kennwerte sind unveraendert.
-FEATURE_SCHEMA_VERSION = "1.1.0"
+# 1.2.0 (2026-08-22): SNR-Schaetzung wird nur noch berechnet, wenn die Aufnahme einen
+#                      ausreichend leisen Abschnitt als Rauschreferenz enthaelt
+#                      (RANDNOTIZ-15). Betrifft `snr_estimate_db`: fuer gehaltene Vokale
+#                      steht dort jetzt None statt eines strukturell zu niedrigen Werts.
+#                      Alle uebrigen Kennwerte unveraendert; Aufnahmen mit ausreichender
+#                      Referenz bekommen denselben Wert wie unter 1.1.0.
+FEATURE_SCHEMA_VERSION = "1.2.0"
 
 
 def build_analysis_metadata(recording_path: str | None) -> dict:

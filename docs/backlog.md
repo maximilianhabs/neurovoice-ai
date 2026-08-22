@@ -2187,6 +2187,13 @@ Zusammenfassungstabelle listet 3 von 11 offenen Punkten).
       vs. 0,794 (Simulation) — vorher beide exakt 1,00. **Grenze**: bei Spontansprache trennt
       das Maß nicht (0,796 vs. 0,802), weil freies Erzählen von Natur aus Denkpausen enthält.
       Die „nicht validiert"-Kennzeichnung ist entfallen.
+- [x] **SNR-Fix** ✅ 2026-08-22 (RANDNOTIZ-15 geschlossen) — SNR wird nur noch berechnet, wenn
+      die Aufnahme eine ausreichende Rauschreferenz enthält (≥ 0,5 s leise Fenster, Marge
+      empirisch auf 15 dB bestimmt). Sonst ehrliche Fehlanzeige mit Begründung und Verweis auf
+      den HNR. Behebt nebenbei einen echten Anzeigefehler: vorher löste jede einwandfreie
+      Vokalaufnahme fälschlich „Aufnahme wiederholen" aus. Ein stille-referenziertes
+      Ersatzverfahren wurde geprüft und **verworfen** — an echten Vokalen instabil (29 vs. 50 dB
+      für zwei Takes desselben Vokals). `FEATURE_SCHEMA_VERSION` 1.2.0.
 - [ ] **Etappe 3** — Regressionstest auf dem Referenzkorpus (IPH-KTRL-01/IPH-SIM-01/SVD),
       gekoppelt an `FEATURE_SCHEMA_VERSION`
 - [ ] **Etappe 4** — M4A-Upload in der App + automatische Inhalts-Plausibilitätsprüfung;
