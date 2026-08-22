@@ -1,6 +1,6 @@
 # Konzept: Muster-Wertung — von Einzelwerten zu einer Gesamtaussage
 
-**Status: Konzept, noch nicht umgesetzt.** Erstellt 2026-08-22 auf Nutzer-Wunsch: die
+**Status: Kern umgesetzt am 2026-08-22** (`core/wertung.py`, Anzeige im Gesamtbericht und in PDF/Excel). Offene Punkte am Ende. Erstellt 2026-08-22 auf Nutzer-Wunsch: die
 Parameter aufgreifen, die bei den vorliegenden Dysarthrie-Aufnahmen auffällig sind, daraus eine
 Aussage bilden („wenn sich diese Konstellation zeigt, ist das verdächtig für eine Dysarthrie"),
 möglichst mit Abstufung leicht/mittel/schwer, und das im Report abbilden.
@@ -230,9 +230,65 @@ solange keine validierte Kohorte dahintersteht.
 4. Report-Abschnitt in `core/report_export.py` (PDF + Excel) und im Gesamtbericht.
 5. Referenzarten sichtbar machen (Voraufnahme / Literatur / Korpus).
 
-## 10. Offene Entscheidungen
+## 10. Entscheidungen und Stand der Umsetzung
 
-- **Formulierung**: „vereinbar mit" (Vorschlag) oder „verdächtig für" (Wunsch)?
-- **Ausprägungsstufen anzeigen, wenn nur die schwächste Referenzart vorliegt** — oder dann nur
-  beschreiben ohne Stufe?
-- **Box 3 leer lassen** oder ganz ausblenden, solange die DDK-Marker rauschen?
+**Nutzer-Entscheidung 2026-08-22** — sie löst den Konflikt aus Abschnitt 8 sauber auf: Die
+Werte heißen **Dysarthrie-Marker**, und die Schwere wird dem **Marker** zugeschrieben, nicht der
+Person. Ausgegeben wird „Dysarthrie-Marker: hoch", nicht „schwere Dysarthrie". Es wird
+ausdrücklich nicht behauptet, dass eine Dysarthrie vorliegt, und auch nicht welcher Typ. Damit
+ist die Aussage messtechnisch statt diagnostisch — und bleibt trotzdem klinisch brauchbar.
+
+### Umgesetzt
+
+`core/wertung.py` mit Marker-Registry (9 Marker, je mit Box, Richtung, Skala, Vertrauensstufe
+und begründeten Schwellen), Einstufung leicht/mittel/hoch, Box-Aggregation ohne Punktsumme.
+Anzeige im Gesamtbericht als erster Block sowie in PDF und Excel (eigenes Blatt). Referenz ist
+die jüngste frühere Sitzung derselben Person; ohne Voraufnahme wird bewusst **kein** Ersatz-
+maßstab verwendet und das offen angezeigt.
+
+### Kalibrierungs-Befund: Schwellen müssen über der gesunden Tagesschwankung liegen
+
+Die erste Schwellenfassung (1,25 / 2,0 / 3,0 bzw. 3 / 6 / 10 dB) erzeugte beim Vergleich zweier
+**gesunder** Sitzungen derselben Person zwei Marker — Shimmer wich um Faktor 1,28 ab, HNR um
+4,0 dB. Beides normale Tagesform, nicht Befund.
+
+**Daraus die wichtigste Regel dieses Konzepts: eine Schwelle muss oberhalb der gemessenen
+Test-Retest-Schwankung derselben gesunden Person liegen.** Sonst markiert sie Tagesform. Die
+Perturbationsschwellen wurden entsprechend angehoben (1,5 / 2,2 / 3,0 bzw. 5 / 8 / 12 dB) —
+begründet an gemessener Schwankung, nicht am gewünschten Ergebnis.
+
+Der Preis ist bewusst in Kauf genommen: der echte Parkinson-Fall wird jetzt nur noch über den
+HNR erfasst. Ein Marker, der bei Gesunden anschlägt, wäre wertlos; ein etwas unempfindlicherer
+ist brauchbar.
+
+Nach der Anpassung, an echten Sitzungen geprüft:
+
+| Vergleich (Referenz: Normalbefund NV-BFU8) | Marker | höchste Ausprägung |
+|---|---|---|
+| zweiter Normalbefund (NV-Z8YW) | **0 von 6** | keine |
+| Simulation leicht (NV-4A4T) | 4 von 6 | mittel |
+| Simulation schwer (NV-VAE5) | 2 von 6 | mittel |
+
+### Offen
+
+- **Zwei Marker erreichen die Auswertung noch nicht**: `fcr` und `wer_pct` werden berechnet,
+  aber nicht in das Take-Dict geschrieben — sie fehlen deshalb in der Marker-Prüfung. Reine
+  Verdrahtungslücke, kein methodisches Problem.
+- **Ausprägungsstufen ohne Voraufnahme**: derzeit gar keine Auswertung. Ob ersatzweise eine
+  schwächere Referenz (Literatur/Korpus) mit entsprechender Kennzeichnung angeboten werden
+  soll, ist offen.
+- **Box 3 (Diadochokinese)** bleibt außen vor, solange der Variationskoeffizient rauscht
+  (RANDNOTIZ-18).
+- **Schwellen sind nicht validiert** — n=3 Erkrankte, n=2 gesunde Wiederholungen. Sie stehen
+  bewusst an einer Stelle im Code, um sie mit mehr Daten zu revidieren.
+
+## 11. Folgethemen (Nutzer, 2026-08-22)
+
+In dieser Reihenfolge nach den Dysarthrie-Markern vorgesehen:
+1. **Psychomotorische Verlangsamung / langsame Sprache** — teilweise dieselben Marker
+   (Sprechrate, Wortdauer, Pausen), aber andere Fragestellung; die Trennung zur Dysarthrie
+   wäre der eigentliche Inhalt.
+2. **Untertypisierung von Dysarthrie-Ausprägungen** — setzt deutlich mehr echte Fälle voraus;
+   die bisherige Datenlage (drei Patient:innen, nur gehaltener Vokal) trägt das nicht.
+3. **Dysphasien / Aphasien** — anderer Gegenstand (Sprache statt Sprechen), bräuchte
+   linguistische statt akustischer Marker.

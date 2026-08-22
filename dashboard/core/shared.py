@@ -907,3 +907,93 @@ def render_transcription_job(recording_path: str) -> dict | None:
 
     _fragment()
     return None
+
+
+_STUFEN_ZONE = {"leicht": "warning", "mittel": "warning", "hoch": "danger"}
+_BOX_LABEL = {"vokalisation": "Vokalisation (Stimmgebung)", "fliesssprache": "Fließende Sprache"}
+
+DYSARTHRIE_MARKER_DISCLAIMER = (
+    "Dies sind Messbefunde, keine Diagnose. Gekennzeichnet wird, welche Kennwerte von der "
+    "Referenz abweichen und wie stark — nicht, ob eine Dysarthrie vorliegt oder welcher Art. "
+    "Grundlage sind drei echte Vergleichsfälle; die Einstufungsgrenzen sind nachvollziehbar "
+    "hergeleitet, aber nicht klinisch validiert. Ersetzt keine ärztliche Beurteilung."
+)
+
+
+def _marker_abstand_text(m: dict) -> str:
+    """Formuliert den Abstand zur Referenz in der Einheit, die zum Marker passt."""
+    from core.wertung import ANTEIL, DIFFERENZ_DB
+    if m["skala"] == DIFFERENZ_DB:
+        return f"{m['abstand']:.1f} dB unter Referenz"
+    if m["skala"] == ANTEIL:
+        return f"{m['abstand']:+.1f} Prozentpunkte gegenüber Referenz"
+    return f"{m['abstand']:.2f}-fach gegenüber Referenz"
+
+
+def render_dysarthrie_marker(ergebnis: dict, referenz_info: dict | None) -> None:
+    """Zeigt die Dysarthrie-Marker als eigenen Block (Nutzer-Wunsch 2026-08-22, siehe
+    docs/konzept_wertung.md).
+
+    Bewusst so benannt und formuliert: die Schwere gehoert dem MARKER, nicht der Person. Der
+    Vorbehalt steht IM Block und nicht am Dokumentende -- sonst wird die Aussage zitiert und
+    der Vorbehalt bleibt liegen."""
+    with st.container(border=True):
+        st.markdown(
+            '<div style="font-size:13px;font-weight:600;text-transform:uppercase;'
+            'letter-spacing:0.02em;color:var(--dw-text-secondary);margin-bottom:2px;">'
+            "Dysarthrie-Marker</div>",
+            unsafe_allow_html=True,
+        )
+
+        if referenz_info is None:
+            st.info(
+                "Keine Voraufnahme dieser Proband:in vorhanden — ohne Referenz aus derselben "
+                "Aufnahmekette lassen sich die Marker nicht bestimmen. Ab der zweiten Sitzung "
+                "steht die Auswertung zur Verfügung.",
+                icon=":material/info:",
+            )
+            st.caption(
+                "Absolute Literaturgrenzen werden hier bewusst nicht ersatzweise verwendet: "
+                "sie erwiesen sich an echten Patient:innen als zu unempfindlich und lösten "
+                "zugleich bei gesunden Aufnahmen Fehlalarm aus."
+            )
+            return
+
+        st.caption(
+            f"Referenz: eigene Voraufnahme vom {referenz_info.get('aufgenommen_am', '–')} "
+            "(stärkste verfügbare Vergleichsbasis — dieselbe Person, dieselbe Aufnahmekette)."
+        )
+
+        if ergebnis["marker_auffaellig"] == 0:
+            st.success(
+                f"Kein Marker auffällig — alle {ergebnis['marker_gesamt']} geprüften Kennwerte "
+                "liegen im Bereich der Voraufnahme.",
+                icon=":material/check:",
+            )
+        else:
+            stufe = ergebnis["hoechste_stufe"]
+            text = (f"**{ergebnis['marker_auffaellig']} von {ergebnis['marker_gesamt']} "
+                    f"geprüften Markern auffällig, höchste Ausprägung: {stufe}.**")
+            (st.error if stufe == "hoch" else st.warning)(text, icon=":material/flag:")
+
+        for box in ergebnis["boxen"]:
+            auff = [m for m in box["marker"] if m["stufe"]]
+            kopf = f"**{_BOX_LABEL.get(box['box'], box['box'])}** — "
+            kopf += (f"{box['auffaellig']} von {box['geprueft']} Markern auffällig"
+                     if auff else f"unauffällig ({box['geprueft']} Marker geprüft)")
+            if box["gleichsinnig"]:
+                kopf += " · zusammengehörige Marker weichen gemeinsam ab"
+            st.markdown(kopf)
+            for m in sorted(auff, key=lambda x: STUFEN_RANG[x["stufe"]], reverse=True):
+                st.markdown(
+                    f'<div style="margin-left:1rem;color:{_TILE_ZONE_COLORS[_STUFEN_ZONE[m["stufe"]]]};">'
+                    f'▪ {m["label"]}: <b>{m["stufe"]}</b> '
+                    f'<span style="color:var(--dw-text-secondary);">'
+                    f'({m["wert"]:.2f} vs. {m["referenz"]:.2f} — {_marker_abstand_text(m)})</span></div>',
+                    unsafe_allow_html=True,
+                )
+
+        st.caption(DYSARTHRIE_MARKER_DISCLAIMER)
+
+
+STUFEN_RANG = {"leicht": 1, "mittel": 2, "hoch": 3}

@@ -70,7 +70,25 @@ def collect_report_data(session_id: str) -> dict:
         if module_out:
             modules_out[module_name] = module_out
 
+    # Dysarthrie-Marker (docs/konzept_wertung.md) -- gegen die juengste fruehere Sitzung
+    # derselben Person. Ohne Voraufnahme bewusst KEIN Ersatzmassstab.
+    from core.session_store import load_previous_session_values
+    from core.wertung import dysarthrie_marker
+
+    aktuelle_werte: dict = {}
+    for subtasks in results.values():
+        for takes in subtasks.values():
+            gewaehlt = next((t for t in takes if t.get("selected")), takes[-1] if takes else None)
+            if gewaehlt:
+                for k, v in flatten_take(gewaehlt).items():
+                    aktuelle_werte.setdefault(k, v)
+
+    referenz = load_previous_session_values(st.session_state.get("subject_id"), session_id)
+    marker = dysarthrie_marker(aktuelle_werte, referenz["werte"]) if referenz else None
+
     return {
+        "dysarthrie_marker": marker,
+        "marker_referenz": {"aufgenommen_am": referenz["aufgenommen_am"]} if referenz else None,
         "subject_id": st.session_state.get("subject_id"),
         "subject_age": st.session_state.get("subject_age"),
         "session_id": session_id,
@@ -109,6 +127,23 @@ def build_excel_report(data: dict) -> bytes:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         pd.DataFrame(meta_rows).to_excel(writer, sheet_name="Übersicht", index=False)
+
+        marker = data.get("dysarthrie_marker")
+        referenz = data.get("marker_referenz")
+        if marker and referenz:
+            marker_rows = [{
+                "Box": m["box"], "Marker": m["label"],
+                "Ausprägung": m["stufe"] or "unauffällig",
+                "Wert": round(m["wert"], 3), "Referenz": round(m["referenz"], 3),
+                "Abstand": round(m["abstand"], 3), "Skala": m["skala"],
+                "Vertrauen": m["vertrauen"],
+            } for box in marker["boxen"] for m in box["marker"]]
+        else:
+            marker_rows = [{"Box": "–", "Marker": "keine Voraufnahme vorhanden",
+                            "Ausprägung": "–", "Wert": None, "Referenz": None,
+                            "Abstand": None, "Skala": "–", "Vertrauen": "–"}]
+        pd.DataFrame(marker_rows).to_excel(writer, sheet_name="Dysarthrie-Marker", index=False)
+
         pd.DataFrame(value_rows).to_excel(writer, sheet_name="Werte", index=False)
 
         for sheet in writer.sheets.values():
@@ -133,6 +168,80 @@ def _pdf_safe(text) -> str:
     for old, new in replacements.items():
         text = text.replace(old, new)
     return text.encode("latin-1", errors="replace").decode("latin-1")
+
+
+_BOX_LABEL_PDF = {"vokalisation": "Vokalisation (Stimmgebung)", "fliesssprache": "Fliessende Sprache"}
+
+DYSARTHRIE_MARKER_HINWEIS = (
+    "Dies sind Messbefunde, keine Diagnose. Gekennzeichnet wird, welche Kennwerte von der "
+    "Referenz abweichen und wie stark - nicht, ob eine Dysarthrie vorliegt oder welcher Art. "
+    "Grundlage sind drei echte Vergleichsfaelle; die Einstufungsgrenzen sind nachvollziehbar "
+    "hergeleitet, aber nicht klinisch validiert. Ersetzt keine aerztliche Beurteilung."
+)
+
+
+def _pdf_dysarthrie_marker(pdf, data: dict) -> None:
+    """Rendert den Dysarthrie-Marker-Block ins PDF (docs/konzept_wertung.md).
+
+    Der Vorbehalt steht IM Block, nicht am Dokumentende -- sonst wird die Aussage
+    herausgeloest zitiert und der Vorbehalt bleibt liegen."""
+    marker, referenz = data.get("dysarthrie_marker"), data.get("marker_referenz")
+
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, _pdf_safe("Dysarthrie-Marker"), new_x="LMARGIN", new_y="NEXT")
+
+    if not marker or not referenz:
+        pdf.set_font("Helvetica", "", 9)
+        pdf.multi_cell(0, 5, _pdf_safe(
+            "Keine Voraufnahme dieser Proband:in vorhanden - ohne Referenz aus derselben "
+            "Aufnahmekette lassen sich die Marker nicht bestimmen. Absolute Literaturgrenzen "
+            "werden bewusst nicht ersatzweise verwendet: sie erwiesen sich an echten "
+            "Patient:innen als zu unempfindlich und loesten zugleich bei gesunden Aufnahmen "
+            "Fehlalarm aus."), new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+        return
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(110, 110, 110)
+    pdf.cell(0, 5, _pdf_safe(
+        f"Referenz: eigene Voraufnahme vom {referenz.get('aufgenommen_am', '-')}"),
+        new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(0, 0, 0)
+
+    pdf.set_font("Helvetica", "B", 10)
+    if marker["marker_auffaellig"] == 0:
+        pdf.cell(0, 6, _pdf_safe(
+            f"Kein Marker auffaellig ({marker['marker_gesamt']} Kennwerte geprueft)."),
+            new_x="LMARGIN", new_y="NEXT")
+    else:
+        pdf.cell(0, 6, _pdf_safe(
+            f"{marker['marker_auffaellig']} von {marker['marker_gesamt']} Markern auffaellig, "
+            f"hoechste Auspraegung: {marker['hoechste_stufe']}."),
+            new_x="LMARGIN", new_y="NEXT")
+
+    for box in marker["boxen"]:
+        auff = [m for m in box["marker"] if m["stufe"]]
+        pdf.set_font("Helvetica", "B", 9)
+        zeile = f"{_BOX_LABEL_PDF.get(box['box'], box['box'])}: "
+        zeile += (f"{box['auffaellig']} von {box['geprueft']} Markern auffaellig"
+                  if auff else f"unauffaellig ({box['geprueft']} geprueft)")
+        if box["gleichsinnig"]:
+            zeile += " - zusammengehoerige Marker weichen gemeinsam ab"
+        pdf.cell(0, 5, _pdf_safe(zeile), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 9)
+        for m in auff:
+            pdf.cell(0, 5, _pdf_safe(
+                f"    - {m['label']}: {m['stufe']} ({m['wert']:.2f} vs. Referenz {m['referenz']:.2f})"),
+                new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(1)
+    pdf.set_fill_color(255, 244, 225)
+    pdf.set_text_color(130, 80, 0)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.multi_cell(0, 4, _pdf_safe(DYSARTHRIE_MARKER_HINWEIS), fill=True,
+                   new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(4)
 
 
 def build_pdf_report(data: dict) -> bytes:
@@ -168,6 +277,9 @@ def build_pdf_report(data: dict) -> bytes:
     pdf.multi_cell(0, 5, _pdf_safe("Wichtig: " + DISCLAIMER), fill=True, new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(4)
+
+    # Dysarthrie-Marker als Erstes -- das ist die Zusammenfassung, kein Anhang.
+    _pdf_dysarthrie_marker(pdf, data)
 
     col_widths = [58, 28, 40, 30]
     headers = ["Parameter", "Wert", "Normbereich", "Status"]

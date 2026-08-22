@@ -64,6 +64,31 @@ else:
     seen_labels: set[str] = set()
     all_glossary_entries: list[dict] = []
 
+    # Dysarthrie-Marker ZUERST (Nutzer-Wunsch 2026-08-22, docs/konzept_wertung.md): das ist die
+    # Zusammenfassung des Berichts, kein Anhang. Referenz ist die juengste fruehere Sitzung
+    # derselben Person -- ohne eine solche wird bewusst KEIN Ersatzmassstab verwendet.
+    from core.session_store import load_previous_session_values
+    from core.shared import render_dysarthrie_marker
+    from core.wertung import dysarthrie_marker
+
+    aktuelle_werte: dict = {}
+    for subtasks in results.values():
+        for takes in subtasks.values():
+            gewaehlt = next((t for t in takes if t.get("selected")), takes[-1] if takes else None)
+            if gewaehlt:
+                for k, v in flatten_take(gewaehlt).items():
+                    aktuelle_werte.setdefault(k, v)
+
+    referenz = load_previous_session_values(
+        st.session_state.get("subject_id"), get_session_id()
+    )
+    marker_ergebnis = dysarthrie_marker(aktuelle_werte, referenz["werte"]) if referenz else {
+        "boxen": [], "marker_gesamt": 0, "marker_auffaellig": 0,
+        "hoechste_stufe": None, "betroffene_boxen": [],
+    }
+    render_dysarthrie_marker(marker_ergebnis, referenz)
+    st.divider()
+
     for module_name, subtasks in results.items():
         module_takes = {k: v for k, v in subtasks.items() if v}
         if not module_takes:

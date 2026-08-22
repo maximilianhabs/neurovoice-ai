@@ -130,3 +130,64 @@ def load_session_snapshot(session_id: str) -> None:
 
     st.session_state["module_results"] = module_results
     st.session_state["_session_loaded_at"] = payload.get("updated_at")
+
+
+def load_previous_session_values(subject_id: str, current_session_id: str) -> dict | None:
+    """Sucht die juengste FRUEHERE Sitzung derselben Proband:in und liefert deren Kennwerte
+    flach, als Referenz fuer die Dysarthrie-Marker (core/wertung.py).
+
+    Warum die Voraufnahme und nicht ein Normbereich: an den echten SVD-Faellen hat sich gezeigt,
+    dass absolute Literaturgrenzen zu unempfindlich sind, um erkrankte von gesunden Sprecher:innen
+    zu trennen -- waehrend der Gradient INNERHALB derselben Aufnahmekette eindeutig ist (siehe
+    core/wertung.py-Modulkopf). Der Vergleich mit einer frueheren Aufnahme derselben Person bei
+    gleichem Setup ist deshalb die belastbarste verfuegbare Referenz und zugleich der erklaerte
+    Kernzweck des Projekts.
+
+    Gibt None zurueck, wenn es keine fruehere Sitzung gibt -- der Aufrufer muss das sichtbar
+    machen, statt stillschweigend auf eine schwaechere Referenz auszuweichen.
+    """
+    from core.interpretation import flatten_take
+
+    if not subject_id:
+        return None
+
+    kandidaten = []
+    if not os.path.isdir(SESSIONS_DIR):
+        return None
+    for name in os.listdir(SESSIONS_DIR):
+        if not name.endswith(".json"):
+            continue
+        pfad = os.path.join(SESSIONS_DIR, name)
+        try:
+            with open(pfad, encoding="utf-8") as f:
+                payload = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if payload.get("subject_id") != subject_id:
+            continue
+        if payload.get("session_id") == current_session_id:
+            continue
+        if not payload.get("modules"):
+            continue
+        kandidaten.append(payload)
+
+    if not kandidaten:
+        return None
+
+    juengste = max(kandidaten, key=lambda p: p.get("updated_at") or "")
+
+    werte: dict = {}
+    for subtasks in juengste.get("modules", {}).values():
+        for takes in subtasks.values():
+            gewaehlt = next((t for t in takes if t.get("selected")), takes[-1] if takes else None)
+            if gewaehlt:
+                # Spaetere Module ueberschreiben frueher gesetzte Schluessel nicht -- der erste
+                # gefundene Wert je Kennwert gewinnt, damit die Referenz stabil bleibt.
+                for k, v in flatten_take(gewaehlt).items():
+                    werte.setdefault(k, v)
+
+    return {
+        "session_id": juengste.get("session_id"),
+        "aufgenommen_am": (juengste.get("created_at") or "")[:10],
+        "werte": werte,
+    } if werte else None
