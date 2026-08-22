@@ -50,6 +50,7 @@ def compute_speech_metrics(
     words: list[dict],
     total_duration_s: float,
     pause_threshold_s: float = DEFAULT_PAUSE_THRESHOLD_S,
+    pausen_aus_audio: dict | None = None,
 ) -> dict:
     """Berechnet Sprechrate-/Pausen-/Fluessigkeitsmasse aus einer Wortliste.
 
@@ -97,25 +98,49 @@ def compute_speech_metrics(
     # Anlauf-/Schlusspausen raus, die nichts mit der eigentlichen Sprechweise zu tun haben.
     articulation_rate_wpm = (n_words / articulation_span_s) * 60 if articulation_span_s > 0 else None
 
-    pause_durations = []
-    for prev_word, next_word in zip(valid_words, valid_words[1:]):
-        gap = next_word["start"] - prev_word["end"]
-        if gap > 0:
-            pause_durations.append(gap)
+    # Pausen kommen bevorzugt AUS DEM SIGNAL (core/audio.py::pausen_aus_signal()), nicht aus
+    # den Wortzeitstempeln. Grund: WhisperX' Forced Alignment dehnt die Wortgrenzen aneinander,
+    # sodass die Luecken hier systematisch null werden -- unabhaengig davon, ob tatsaechlich
+    # pausiert wurde. Genau das lieferte ueber Monate `fluency_score` = 1,00 in JEDER Aufnahme
+    # (RANDNOTIZ-17, am 2026-08-20 mit konstruierten Wortlisten bewiesen).
+    #
+    # Die wortbasierte Ableitung bleibt als Rueckfallweg erhalten, damit die Funktion auch ohne
+    # Audiodatei aufrufbar bleibt (Tests, Altdaten) -- sie ist dann aber nur so gut wie ihre
+    # Eingabe, was der Aufrufer wissen muss.
+    if pausen_aus_audio is not None:
+        real_pauses = None  # unten nicht mehr gebraucht, Werte kommen fertig aus dem Signal
+        total_pause_time_s = pausen_aus_audio["total_pause_time_s"]
+        mean_pause_duration_s = pausen_aus_audio["mean_pause_duration_s"]
+        max_pause_duration_s = pausen_aus_audio["max_pause_duration_s"]
+        pause_count = pausen_aus_audio["pause_count"]
+        micro_count = pausen_aus_audio["micro_pause_count"]
+        macro_count = pausen_aus_audio["macro_pause_count"]
+        mean_micro_pause_duration_s = pausen_aus_audio["mean_micro_pause_duration_s"]
+        mean_macro_pause_duration_s = pausen_aus_audio["mean_macro_pause_duration_s"]
+    else:
+        pause_durations = []
+        for prev_word, next_word in zip(valid_words, valid_words[1:]):
+            gap = next_word["start"] - prev_word["end"]
+            if gap > 0:
+                pause_durations.append(gap)
 
-    real_pauses = [p for p in pause_durations if p >= pause_threshold_s]
-    total_pause_time_s = sum(real_pauses)
+        real_pauses = [p for p in pause_durations if p >= pause_threshold_s]
+        total_pause_time_s = sum(real_pauses)
 
-    mean_pause_duration_s = total_pause_time_s / len(real_pauses) if real_pauses else None
-    max_pause_duration_s = max(real_pauses) if real_pauses else None
+        mean_pause_duration_s = total_pause_time_s / len(real_pauses) if real_pauses else None
+        max_pause_duration_s = max(real_pauses) if real_pauses else None
 
     # Mikro-/Makropausen-Verteilung (Audit 2026-07-22): Pausen bislang nur als eine Kategorie
     # gezaehlt -- Unterscheidung nach Dauer kann auf unterschiedliche Ursachen hindeuten
     # (Mikropausen = normale Atem-/Wortgrenzen, Makropausen = auffaellige Zoegerungen/Suchen).
-    micro_pauses = [p for p in real_pauses if p < MACRO_PAUSE_THRESHOLD_S]
-    macro_pauses = [p for p in real_pauses if p >= MACRO_PAUSE_THRESHOLD_S]
-    mean_micro_pause_duration_s = sum(micro_pauses) / len(micro_pauses) if micro_pauses else None
-    mean_macro_pause_duration_s = sum(macro_pauses) / len(macro_pauses) if macro_pauses else None
+    if real_pauses is not None:
+        micro_pauses = [p for p in real_pauses if p < MACRO_PAUSE_THRESHOLD_S]
+        macro_pauses = [p for p in real_pauses if p >= MACRO_PAUSE_THRESHOLD_S]
+        pause_count = len(real_pauses)
+        micro_count = len(micro_pauses)
+        macro_count = len(macro_pauses)
+        mean_micro_pause_duration_s = sum(micro_pauses) / len(micro_pauses) if micro_pauses else None
+        mean_macro_pause_duration_s = sum(macro_pauses) / len(macro_pauses) if macro_pauses else None
 
     # Fluessigkeits-Score: Anteil der Sprechspanne, der tatsaechlich mit Sprechen (statt Pausen)
     # gefuellt ist. 1.0 = keine nennenswerten Pausen, niedrigere Werte = mehr/laengere Pausen
@@ -151,14 +176,14 @@ def compute_speech_metrics(
         "net_speech_rate_wpm": net_speech_rate_wpm,
         "articulation_rate_wpm": articulation_rate_wpm,
         "articulation_span_s": articulation_span_s,
-        "pause_count": len(real_pauses),
+        "pause_count": pause_count,
         "mean_pause_duration_s": mean_pause_duration_s,
         "max_pause_duration_s": max_pause_duration_s,
         "total_pause_time_s": total_pause_time_s,
         "fluency_score": fluency_score,
         "rhythm_npvi": rhythm_npvi,
-        "micro_pause_count": len(micro_pauses),
-        "macro_pause_count": len(macro_pauses),
+        "micro_pause_count": micro_count,
+        "macro_pause_count": macro_count,
         "mean_micro_pause_duration_s": mean_micro_pause_duration_s,
         "mean_macro_pause_duration_s": mean_macro_pause_duration_s,
         "prosodic_entropy_bits": prosodic_entropy_bits,

@@ -55,39 +55,46 @@ def test_ohne_zonen_wird_kein_normbereich_behauptet(key):
         assert interpret(key, 1.0)["range"] == "kein etablierter Normbereich"
 
 
-@pytest.mark.parametrize("key", sorted(PAUSENMASSE))
-def test_pausenmasse_sind_als_nicht_validiert_markiert(key):
-    """RANDNOTIZ-17: solange unklar ist, ob diese Masse ueberhaupt reagieren, duerfen sie nicht
-    wie belastbare Befunde aussehen. Faellt die Markierung weg, ohne dass der Mangel behoben
-    ist, faellt es hier auf."""
-    assert PARAMETER_INFO[key].get("validation_warning")
-
-
-def test_nur_die_pausenmasse_tragen_eine_warnung():
+def test_aktuell_traegt_kein_parameter_eine_warnung():
+    """Die Pausenmasse trugen die Kennzeichnung vom 2026-08-20 bis 2026-08-21 (RANDNOTIZ-17);
+    seit die Erkennung am Signal arbeitet, ist der Grund entfallen. Schlaegt dieser Test fehl,
+    wurde irgendwo eine Kennzeichnung gesetzt -- dann gehoert sie hier eingetragen, damit sie
+    nicht unbemerkt wieder verschwindet."""
     markiert = {k for k, v in PARAMETER_INFO.items() if v.get("validation_warning")}
-    assert markiert == PAUSENMASSE
+    assert markiert == set()
 
 
-def test_warnung_erreicht_alle_drei_anzeigepfade():
-    """Kachel, Tabelle und Glossar werden getrennt gebaut -- eine Markierung, die nur an einer
-    Stelle ankommt, ist keine."""
-    flat = {"fluency_score": 1.0, "jitter_local_pct": 0.41}
+def test_kennzeichnung_erreicht_alle_drei_anzeigepfade():
+    """Der Mechanismus muss funktionsfaehig bleiben, auch wenn ihn gerade kein Parameter nutzt --
+    sonst faellt beim naechsten Bedarf erst auf, dass er unterwegs kaputtgegangen ist.
 
-    zeile = {r["Parameter"]: r["Status"] for r in build_rows(flat)}
-    kachel = {t["label"]: (t["sub_text"], t["zone"]) for t in build_tiles(flat)}
-    glossar = {e["label"]: e.get("validation_warning") for e in build_glossary_entries(flat)}
+    Kachel, Tabelle und Glossar werden getrennt gebaut; eine Markierung, die nur an einer Stelle
+    ankommt, ist keine. Geprueft an einem kuenstlich markierten Eintrag."""
+    import copy
+    from core import interpretation
 
-    fl = PARAMETER_INFO["fluency_score"]["label"]
-    ji = PARAMETER_INFO["jitter_local_pct"]["label"]
+    original = interpretation.PARAMETER_INFO["fluency_score"]
+    interpretation.PARAMETER_INFO["fluency_score"] = {**copy.deepcopy(original),
+                                                     "validation_warning": "Testwarnung"}
+    try:
+        flat = {"fluency_score": 1.0, "jitter_local_pct": 0.41}
+        zeile = {r["Parameter"]: r["Status"] for r in build_rows(flat)}
+        kachel = {t["label"]: (t["sub_text"], t["zone"]) for t in build_tiles(flat)}
+        glossar = {e["label"]: e.get("validation_warning") for e in build_glossary_entries(flat)}
 
-    assert zeile[fl] == "nicht validiert"
-    assert kachel[fl] == ("nicht validiert", "warning")
-    assert glossar[fl]
+        fl = original["label"]
+        ji = PARAMETER_INFO["jitter_local_pct"]["label"]
 
-    # Gegenprobe: ein unbelastetes Mass darf NICHT mitmarkiert werden
-    assert zeile[ji] != "nicht validiert"
-    assert kachel[ji][1] != "warning"
-    assert glossar[ji] is None
+        assert zeile[fl] == "nicht validiert"
+        assert kachel[fl] == ("nicht validiert", "warning")
+        assert glossar[fl] == "Testwarnung"
+
+        # Gegenprobe: ein unmarkiertes Mass darf NICHT mitgezogen werden
+        assert zeile[ji] != "nicht validiert"
+        assert kachel[ji][1] != "warning"
+        assert glossar[ji] is None
+    finally:
+        interpretation.PARAMETER_INFO["fluency_score"] = original
 
 
 def test_unbekannter_parameter_liefert_none_statt_abzustuerzen():

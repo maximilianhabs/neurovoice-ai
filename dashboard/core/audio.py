@@ -945,6 +945,104 @@ def intonation_contour_features(path: str) -> dict:
 MIN_DDK_CYCLES = 3  # unter 3 erkannten Zyklen ist eine Rate/Regelmaessigkeit nicht sinnvoll interpretierbar
 
 
+# Praat-Standardwerte fuer die Stille-Erkennung ("To TextGrid (silences)"). Bewusst
+# uebernommen statt selbst gewaehlt: das Verfahren ist in der Phonetik etabliert und an echter
+# Sprache erprobt. MIN_STILLE_S liegt unter unserer eigenen Pausenschwelle (0,25s), damit die
+# Entscheidung, was als Pause zaehlt, an genau EINER Stelle faellt -- in core/speech_metrics.py.
+SILENCE_MIN_PITCH_HZ = 100.0
+SILENCE_THRESHOLD_DB = -25.0
+MIN_STILLE_S = 0.1
+MIN_LAUT_S = 0.1
+
+
+def pausen_aus_signal(
+    path: str,
+    pause_threshold_s: float | None = None,
+    macro_threshold_s: float | None = None,
+) -> dict:
+    """Sprechpausen direkt aus dem Audiosignal statt aus Transkript-Zeitstempeln.
+
+    HINTERGRUND (RANDNOTIZ-17, docs/bugtracker.md): die Pausenmasse wurden bisher aus den
+    Luecken zwischen WhisperX-Wortzeitstempeln abgeleitet. Dessen Forced Alignment dehnt die
+    Wortgrenzen jedoch aneinander -- die Luecken werden dadurch systematisch null, unabhaengig
+    davon, ob tatsaechlich pausiert wurde. Ergebnis war ein `fluency_score`, der in JEDER
+    geprueften Aufnahme exakt 1,00 lieferte, auch bei mittelgradig bis schwer simulierter
+    Dysarthrie. Am 2026-08-20 mit konstruierten Wortlisten bewiesen: die Rechnung war korrekt,
+    die Eingabe war es nicht (siehe tests/test_bekannte_schwaechen.py).
+
+    Diese Funktion umgeht das Transkript vollstaendig. Sie nutzt Praats etablierte
+    Stille-Erkennung ueber die Intensitaetskontur -- bewusst kein eigenes Verfahren: das
+    Praat-Kommando ist in der Phonetik Standard und an echter Sprache erprobt, waehrend eine
+    selbstgebaute Schwellenlogik genau die Art von unbelegter Heuristik waere, die dieses
+    Projekt vermeiden will.
+
+    Anlauf- und Schlussstille werden verworfen -- sie sagen etwas ueber den Aufnahmestart aus,
+    nicht ueber die Sprechweise. Das entspricht dem Vorgehen in core/speech_metrics.py.
+
+    Liefert dieselben Schluessel wie der Pausen-Teil von compute_speech_metrics(), damit die
+    Werte dort eins zu eins einsetzbar sind.
+    """
+    from core.speech_metrics import DEFAULT_PAUSE_THRESHOLD_S, MACRO_PAUSE_THRESHOLD_S
+
+    if pause_threshold_s is None:
+        pause_threshold_s = DEFAULT_PAUSE_THRESHOLD_S
+    if macro_threshold_s is None:
+        macro_threshold_s = MACRO_PAUSE_THRESHOLD_S
+
+    leer = {
+        "pause_count": 0, "mean_pause_duration_s": None, "max_pause_duration_s": None,
+        "total_pause_time_s": 0.0, "micro_pause_count": 0, "macro_pause_count": 0,
+        "mean_micro_pause_duration_s": None, "mean_macro_pause_duration_s": None,
+        "sprech_span_s": None,
+    }
+
+    sound = parselmouth.Sound(path)
+    try:
+        textgrid = parselmouth.praat.call(
+            sound, "To TextGrid (silences)",
+            SILENCE_MIN_PITCH_HZ, 0.0, SILENCE_THRESHOLD_DB,
+            MIN_STILLE_S, MIN_LAUT_S, "still", "laut",
+        )
+    except Exception:
+        # Sehr kurze oder durchgehend stille Aufnahmen bringen das Praat-Kommando zu Fall.
+        # Kein Grund, die ganze Auswertung scheitern zu lassen -- leeres Ergebnis genuegt.
+        return leer
+
+    anzahl = int(parselmouth.praat.call(textgrid, "Get number of intervals", 1))
+    intervalle = []
+    for i in range(1, anzahl + 1):
+        label = parselmouth.praat.call(textgrid, "Get label of interval", 1, i)
+        start = float(parselmouth.praat.call(textgrid, "Get start time of interval", 1, i))
+        ende = float(parselmouth.praat.call(textgrid, "Get end time of interval", 1, i))
+        intervalle.append((label, start, ende))
+
+    laut = [(a, b) for label, a, b in intervalle if label == "laut"]
+    if not laut:
+        return leer
+
+    # Nur Stillen ZWISCHEN dem ersten und letzten Sprechabschnitt zaehlen.
+    erster, letzter = laut[0][0], laut[-1][1]
+    stillen = [b - a for label, a, b in intervalle
+               if label == "still" and a >= erster and b <= letzter]
+
+    echte = [p for p in stillen if p >= pause_threshold_s]
+    mikro = [p for p in echte if p < macro_threshold_s]
+    makro = [p for p in echte if p >= macro_threshold_s]
+    gesamt = float(sum(echte))
+
+    return {
+        "pause_count": len(echte),
+        "mean_pause_duration_s": gesamt / len(echte) if echte else None,
+        "max_pause_duration_s": max(echte) if echte else None,
+        "total_pause_time_s": gesamt,
+        "micro_pause_count": len(mikro),
+        "macro_pause_count": len(makro),
+        "mean_micro_pause_duration_s": sum(mikro) / len(mikro) if mikro else None,
+        "mean_macro_pause_duration_s": sum(makro) / len(makro) if makro else None,
+        "sprech_span_s": letzter - erster,
+    }
+
+
 def ddk_rate_features(path: str) -> dict:
     """Diadochokinese-Rate (Stufe 3, siehe docs/backlog.md) -- Silbenzyklen/Sekunde beim
     "pa-ta-ka"-Task, jetzt umsetzbar seit den DDK-Testaufnahmen vom 2026-07-24.

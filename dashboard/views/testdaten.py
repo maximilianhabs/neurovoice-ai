@@ -274,10 +274,15 @@ cached_transcript = _load_cached_transcript(recording)
 speech_metrics = None
 lexical = None
 if cached_transcript is not None:
+    from core.audio import pausen_aus_signal
     from core.speech_metrics import compute_speech_metrics
     from core.linguistics import lexical_diversity_features
 
-    speech_metrics = compute_speech_metrics(cached_transcript["words"], total_duration_s=stats["duration_s"])
+    # Pausen aus dem Signal statt aus den Wortzeitstempeln (RANDNOTIZ-17)
+    speech_metrics = compute_speech_metrics(
+        cached_transcript["words"], total_duration_s=stats["duration_s"],
+        pausen_aus_audio=pausen_aus_signal(recording.path),
+    )
     lexical = lexical_diversity_features(cached_transcript["words"])
 
 # --- 2. Werte auf einen Blick (Konzept 2026-07-21: hierarchisch nach Auswertbarkeit beim Lesetext) ---
@@ -573,7 +578,12 @@ else:
 
         from core.speech_metrics import compute_speech_metrics
 
-        detail_metrics = compute_speech_metrics(transcript["words"], total_duration_s=stats["duration_s"])
+        from core.audio import pausen_aus_signal
+
+        detail_metrics = compute_speech_metrics(
+            transcript["words"], total_duration_s=stats["duration_s"],
+            pausen_aus_audio=pausen_aus_signal(recording.path),
+        )
         scores = [w["score"] for w in transcript["words"] if w.get("score") is not None]
         mean_confidence = sum(scores) / len(scores) if scores else None
         low_confidence_count = sum(1 for s in scores if s < CONFIDENCE_WARN_THRESHOLD)

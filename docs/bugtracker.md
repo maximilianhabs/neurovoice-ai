@@ -772,7 +772,7 @@ ist, kann nicht abgearbeitet werden (siehe `docs/konzept_zuverlaessigkeit.md`, U
 
 | # | Thema | Status |
 |---|---|---|
-| RANDNOTIZ-17 | Pausen-/Flüssigkeitsmaße reagieren nicht | **Ursache bewiesen** (Etappe 2): die Funktion rechnet richtig, WhisperX liefert lückenlose Wortlisten. Fix = energiebasierte Pausenerkennung, offen. In UI/Report als nicht validiert gekennzeichnet |
+| RANDNOTIZ-17 | Pausen-/Flüssigkeitsmaße | ✅ behoben 2026-08-21 — `pausen_aus_signal()` arbeitet am Signal statt an Wortzeitstempeln. Trennt beim Lesetext deutlich (Flüssigkeit 0,973 vs. 0,794), bei Spontansprache nicht |
 | RANDNOTIZ-15 | SNR-Schätzung ungeeignet für gehaltene Vokale | **beziffert** (Etappe 2): 25 dB konstruiert → 27,3 dB bei Sprache, 1,0 dB bei Vokal. Fix nicht entschieden |
 | RANDNOTIZ-18 | DDK-Rate/CV | **Zählfrage beantwortet** (Etappe 2): `n_cycles` = Silben−1, also Silbenrate. **Neuer Befund**: CV hat Eigenstreuung 0,15–0,28 bei perfekt regelmäßiger Eingabe → nicht zur Beurteilung heranziehen |
 

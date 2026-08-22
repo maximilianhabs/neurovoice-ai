@@ -22,7 +22,14 @@ import soundfile as sf
 # 1.0.0 (2026-08-20): Erstversion, deckt den Stand aller bis dahin vorhandenen Features ab
 #                      (Jitter/Shimmer/HNR/CPPS/Formanten/DDK/Sprechrate/WER-CER/Alpha Ratio/
 #                      Hammarberg-Index/Geschlechtsschaetzung/...).
-FEATURE_SCHEMA_VERSION = "1.0.0"
+# 1.1.0 (2026-08-21): Pausenmasse kommen aus dem Signal statt aus WhisperX-Wortzeitstempeln
+#                      (core/audio.py::pausen_aus_signal(), RANDNOTIZ-17). Betrifft
+#                      pause_count, micro-/macro_pause_count, mean-/max_pause_duration_s,
+#                      total_pause_time_s und fluency_score. Fuer DIESELBE Audiodatei ergeben
+#                      sich damit andere Werte als unter 1.0.0 -- Aufnahmen aus beiden
+#                      Versionen duerfen bei diesen Kennwerten nicht direkt verglichen werden.
+#                      Alle uebrigen Kennwerte sind unveraendert.
+FEATURE_SCHEMA_VERSION = "1.1.0"
 
 
 def build_analysis_metadata(recording_path: str | None) -> dict:

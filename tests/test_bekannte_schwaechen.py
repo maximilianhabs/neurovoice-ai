@@ -54,20 +54,73 @@ def test_lueckenlose_wortliste_erzeugt_null_pausen():
     assert r["fluency_score"] == pytest.approx(1.0)
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "RANDNOTIZ-17: Pausen werden aus WhisperX-Wortzeitstempeln abgeleitet statt aus dem "
-    "Signal. Sobald die Erkennung energiebasiert auf dem Audio arbeitet, findet sie die "
-    "konstruierten Stillen und dieser Test wird gruen."))
-def test_pausen_sollten_aus_dem_signal_erkennbar_sein(tmp_path):
-    """Was das Mass leisten muesste: drei konstruierte Stillen von je 0,6 s im Audio finden --
-    ohne Umweg ueber eine Transkription. Bis dahin gibt es dafuer gar keine Funktion, was der
-    Kern des Mangels ist."""
-    from core.audio import pausen_aus_signal  # existiert noch nicht
-    signal = mit_pausen(0.5, [0.6, 0.6, 0.6])
-    pfad = str(tmp_path / "pausen.wav")
+def test_pausen_werden_aus_dem_signal_erkannt(tmp_path):
+    """✅ Seit 2026-08-21 behoben: `pausen_aus_signal()` findet die konstruierten Stillen ohne
+    Umweg ueber eine Transkription. Vorher war dieser Test ein `xfail` -- es gab die Funktion
+    gar nicht, das war der Kern des Mangels."""
     import soundfile as sf
+    from core.audio import pausen_aus_signal
+    rng = np.random.default_rng(20260820)
+    signal = mit_pausen(0.5, [0.6, 0.6, 0.6])
+    signal = signal + rng.standard_normal(len(signal)) * 1e-3  # realistischer Rauschteppich
+    pfad = str(tmp_path / "pausen.wav")
     sf.write(pfad, signal, FS)
-    assert pausen_aus_signal(pfad)["pause_count"] == 3
+    r = pausen_aus_signal(pfad)
+    assert r["pause_count"] == 3
+    assert r["macro_pause_count"] == 3
+    # Praats Intensitaetsfenster glaettet die Flanken, die erkannte Stille faellt dadurch etwas
+    # kuerzer aus als die konstruierte -- konservativ in die richtige Richtung.
+    assert r["total_pause_time_s"] == pytest.approx(1.8, rel=0.15)
+
+
+@pytest.mark.parametrize("n_pausen", [1, 2, 4])
+def test_pausenzahl_folgt_der_konstruktion(tmp_path, n_pausen):
+    import soundfile as sf
+    from core.audio import pausen_aus_signal
+    rng = np.random.default_rng(20260820)
+    signal = mit_pausen(0.5, [0.6] * n_pausen)
+    signal = signal + rng.standard_normal(len(signal)) * 1e-3
+    pfad = str(tmp_path / f"p{n_pausen}.wav")
+    sf.write(pfad, signal, FS)
+    assert pausen_aus_signal(pfad)["pause_count"] == n_pausen
+
+
+# Praat warnt hier zu Recht, dass lauteste und leiseste Stelle sich kaum unterscheiden --
+# genau das ist bei einem gehaltenen Vokal ohne Pausen der Fall und der Punkt des Tests.
+@pytest.mark.filterwarnings("ignore::parselmouth.PraatWarning")
+def test_durchgehende_sprache_hat_keine_pausen(tmp_path):
+    """Gegenprobe: ein Mass, das ueberall Pausen findet, waere genauso wertlos wie eines, das
+    nie welche findet."""
+    import soundfile as sf
+    from core.audio import pausen_aus_signal
+    rng = np.random.default_rng(20260820)
+    signal = glottis_signal(120.0, 3.0, formanten_hz=(700.0, 1200.0))
+    signal = signal + rng.standard_normal(len(signal)) * 1e-3
+    pfad = str(tmp_path / "durchgehend.wav")
+    sf.write(pfad, signal, FS)
+    assert pausen_aus_signal(pfad)["pause_count"] == 0
+
+
+def test_signalpausen_ersetzen_die_wortbasierte_ableitung(tmp_path):
+    """Die entscheidende Verdrahtung: dieselbe lueckenlose Wortliste, die vorher zwangslaeufig
+    `fluency_score` 1,00 ergab, liefert mit Audio jetzt ein echtes Ergebnis."""
+    import soundfile as sf
+    from core.audio import pausen_aus_signal
+    rng = np.random.default_rng(20260820)
+    signal = mit_pausen(0.5, [0.6, 0.6, 0.6])
+    signal = signal + rng.standard_normal(len(signal)) * 1e-3
+    pfad = str(tmp_path / "verdrahtung.wav")
+    sf.write(pfad, signal, FS)
+    worte = _worte([(i * 0.5, (i + 1) * 0.5) for i in range(7)])  # lueckenlos, WhisperX-Muster
+
+    ohne = compute_speech_metrics(worte, total_duration_s=3.8)
+    mit = compute_speech_metrics(worte, total_duration_s=3.8,
+                                 pausen_aus_audio=pausen_aus_signal(pfad))
+
+    assert ohne["pause_count"] == 0 and ohne["fluency_score"] == pytest.approx(1.0)
+    assert mit["pause_count"] == 3 and mit["fluency_score"] < 0.7
+    # Sprechrate haengt weiterhin an den Woertern und darf sich NICHT veraendert haben
+    assert mit["net_speech_rate_wpm"] == pytest.approx(ohne["net_speech_rate_wpm"])
 
 
 # ══ RANDNOTIZ-15 — SNR bei gehaltenen Vokalen ════════════════════════════════════════════

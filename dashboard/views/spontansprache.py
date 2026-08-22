@@ -212,11 +212,18 @@ else:
             st.caption("Gelb unterstrichene Wörter: Erkennungs-Konfidenz unter 75%.")
 
             from core.linguistics import lexical_diversity_features
+            from core.audio import pausen_aus_signal
             from core.speech_metrics import compute_speech_metrics
             import soundfile as sf
 
             duration_s = sf.info(take["recording_path"]).duration
-            speech_metrics = compute_speech_metrics(transcript["words"], total_duration_s=duration_s)
+            # Pausen aus dem SIGNAL, nicht aus den Wortzeitstempeln (RANDNOTIZ-17):
+            # WhisperX' Alignment dehnt die Wortgrenzen aneinander, die Luecken werden
+            # dadurch systematisch null.
+            speech_metrics = compute_speech_metrics(
+                transcript["words"], total_duration_s=duration_s,
+                pausen_aus_audio=pausen_aus_signal(take["recording_path"]),
+            )
             lexical = lexical_diversity_features(transcript["words"])
             take["speech_metrics"] = speech_metrics
             take["lexical"] = lexical

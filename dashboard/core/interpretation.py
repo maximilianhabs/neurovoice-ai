@@ -39,17 +39,15 @@ AGE_CAVEAT_JITTER_SHIMMER_HNR_F0 = (
 # Jeder Eintrag: label, unit, description (was der Parameter misst -- Nutzer-Vorgabe
 # 2026-08-15: "Erklärung aller Parameter" direkt auf der Aufnahme-Seite), zones_func (oder
 # None), context (Krankheits-Assoziation, deskriptiv), age_caveat (optional)
-# Warnung fuer die pausenbasierten Masse (RANDNOTIZ-17, docs/bugtracker.md; Entscheidung des
-# Nutzers 2026-08-20: sichtbar lassen, aber deutlich kennzeichnen -- NICHT ausblenden, damit die
-# Werte fuer die eigene Beurteilung im Blick bleiben und auffaellt, falls sie je reagieren).
-PAUSE_VALIDATION_WARNING = (
-    "Dieses Maß ist derzeit NICHT VALIDIERT und sollte nicht zur Beurteilung herangezogen "
-    "werden. Es lieferte in allen bisher geprüften Aufnahmen denselben Wert — auch bei einer "
-    "mittelgradig bis schwer simulierten Dysarthrie, die die Sprechrate um ein Drittel senkte. "
-    "Verdacht: Pausen werden aus den WhisperX-Wortzeitstempeln abgeleitet, deren Forced "
-    "Alignment die Wortgrenzen aneinander dehnt — die Lücken werden dadurch systematisch null, "
-    "unabhängig vom tatsächlichen Sprechverhalten. Siehe docs/bugtracker.md RANDNOTIZ-17."
-)
+# Das optionale Feld "validation_warning" kennzeichnet ein Mass, dessen Aussagekraft aktuell
+# nicht gesichert ist -- es wird in Kachel, Tabelle UND Glossar deutlich sichtbar gemacht
+# (core/shared.py, build_rows/build_tiles/build_glossary_entries weiter unten).
+#
+# Aktuell traegt kein Parameter diese Kennzeichnung. Die Pausenmasse hatten sie vom 2026-08-20
+# bis 2026-08-21: sie lieferten in jeder Aufnahme denselben Wert, weil sie aus den
+# WhisperX-Wortzeitstempeln abgeleitet wurden (RANDNOTIZ-17). Seit die Erkennung ueber
+# core/audio.py::pausen_aus_signal() direkt am Signal arbeitet, ist der Grund entfallen.
+# Der Mechanismus bleibt bewusst erhalten -- der naechste solche Fall kommt bestimmt.
 
 PARAMETER_INFO: dict[str, dict] = {
     "f0_sd_hz": {
@@ -394,7 +392,6 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
     },
     "fluency_score": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Flüssigkeits-Score",
         "unit": "",
         "description": "Anteil der Sprechspanne, der tatsächlich mit Sprechen (statt Pausen) gefüllt ist — 1,0 = keine nennenswerten Pausen.",
@@ -422,7 +419,6 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
     },
     "mean_pause_duration_s": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Ø Pausendauer",
         "unit": "s",
         "description": "Mittlere Dauer der erkannten Sprechpausen (≥250ms).",
@@ -441,7 +437,6 @@ PARAMETER_INFO: dict[str, dict] = {
         ),
     },
     "max_pause_duration_s": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Max. Pausendauer",
         "unit": "s",
         "description": "Längste einzelne erkannte Sprechpause in der Aufnahme.",
@@ -452,7 +447,6 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Einzelwert-Ableitung, kein eigenständiges Standardmaß in der Literatur",
     },
     "micro_pause_count": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Mikropausen (250–500ms)",
         "unit": "",
         "description": "Anzahl kürzerer Pausen — meist normale Atem-/Wortgrenzen.",
@@ -463,7 +457,6 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Projekteigene Schwellenwert-Kategorisierung (500ms-Grenze), keine etablierte Konvention",
     },
     "macro_pause_count": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Makropausen (≥500ms)",
         "unit": "",
         "description": "Anzahl längerer Pausen — eher auffällige Zögerungen/Wortsuche als normale Atemgrenzen.",
@@ -474,7 +467,6 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Projekteigene Schwellenwert-Kategorisierung (500ms-Grenze), keine etablierte Konvention",
     },
     "mean_micro_pause_duration_s": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Ø Mikropausendauer",
         "unit": "s",
         "description": "Mittlere Dauer der kürzeren Pausen (250–500ms).",
@@ -485,7 +477,6 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Ergänzt die Mikropausen-Anzahl, keine eigenständige Literatur-Referenz",
     },
     "mean_macro_pause_duration_s": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Ø Makropausendauer",
         "unit": "s",
         "description": "Mittlere Dauer der längeren Pausen (≥500ms).",
@@ -506,7 +497,6 @@ PARAMETER_INFO: dict[str, dict] = {
         "literature": "Direkt aus den Wort-Zeitstempeln abgeleitet, kein etablierter klinischer Referenzwert",
     },
     "pause_count": {
-        "validation_warning": PAUSE_VALIDATION_WARNING,
         "label": "Pausen (Anzahl)",
         "unit": "",
         "description": "Anzahl der Sprechpausen ≥250ms, ermittelt aus den Wort-Zeitstempeln der Transkription.",

@@ -2179,6 +2179,14 @@ Zusammenfassungstabelle listet 3 von 11 offenen Punkten).
       Nebenbefund: Formant-Resonatoren dämpfen gemessenen Jitter/Shimmer um einen konstanten
       Faktor (0,8385) — physikalisch, kein Fehler, aber der Grund, warum die analytischen
       Perturbationstests an der ungefilterten Pulsfolge laufen.
+- [x] **Pausen-Fix vorgezogen** ✅ 2026-08-21 (RANDNOTIZ-17 geschlossen) — nicht Teil der
+      Etappenfolge, aber direkt nach Etappe 2 gemacht, weil die Ursache bewiesen und der Test
+      bereits als `xfail` formuliert war: gebaut wurde gegen eine fertige Zielvorgabe.
+      `core/audio.py::pausen_aus_signal()` nutzt Praats etablierte Stille-Erkennung statt der
+      WhisperX-Wortzeitstempel. **Wirkung**: identischer Lesetext, Flüssigkeit 0,973 (Kontrolle)
+      vs. 0,794 (Simulation) — vorher beide exakt 1,00. **Grenze**: bei Spontansprache trennt
+      das Maß nicht (0,796 vs. 0,802), weil freies Erzählen von Natur aus Denkpausen enthält.
+      Die „nicht validiert"-Kennzeichnung ist entfallen.
 - [ ] **Etappe 3** — Regressionstest auf dem Referenzkorpus (IPH-KTRL-01/IPH-SIM-01/SVD),
       gekoppelt an `FEATURE_SCHEMA_VERSION`
 - [ ] **Etappe 4** — M4A-Upload in der App + automatische Inhalts-Plausibilitätsprüfung;
